@@ -41,9 +41,10 @@
 		else error = problem || null;
 	}
 
-	const SEGMENT = 'bg-surface-200-800 rounded-base inline-flex shrink-0 gap-1 p-0.5';
+	// stretched to the name field beside it, so the two controls share top and bottom edges
+	const SEGMENT = 'bg-surface-200-800 rounded-base inline-flex shrink-0 items-stretch gap-1 p-0.5';
 	function seg(active: boolean) {
-		return `rounded-base px-2.5 py-1 text-xs ${active ? 'bg-surface-50-950 font-medium shadow-sm' : 'text-muted hover:text-surface-950-50'}`;
+		return `rounded-base flex items-center px-2.5 text-xs ${active ? 'bg-surface-50-950 font-medium shadow-sm' : 'text-muted hover:text-surface-950-50'}`;
 	}
 	const ROW = 'hover:preset-tonal-surface flex items-start gap-2 px-3 py-2 text-sm';
 </script>
@@ -74,7 +75,9 @@
 			<div class="min-w-0 flex-1">
 				<label for="publish-to-github" class="block cursor-pointer font-medium">{m.vcs_publish_github()}</label>
 				{#if picked === 'github'}
-					<div class="mt-2 flex flex-wrap items-center gap-2">
+					<!-- the row's tint colours its text, and muted text is a share of that colour: set the
+					     ordinary text colour again so the hint below stays readable -->
+					<div class="text-surface-950-50 mt-2 flex flex-wrap items-stretch gap-2">
 						<input
 							class="input min-w-40 flex-1 text-sm"
 							type="text"
@@ -106,10 +109,10 @@
 							</button>
 						</div>
 					</div>
-					<p class="text-muted mt-2 text-xs">
-						{m.vcs_publish_github_signin()}
+					<p class="text-surface-950-50 mt-2 text-xs">
+						<span class="text-muted">{m.vcs_publish_github_signin()}</span>
 						<a
-							class="anchor"
+							class="anchor underline"
 							href="https://github.com/settings/tokens/new?scopes=repo&description=Texpile"
 							target="_blank"
 							rel="noopener noreferrer">{m.vcs_create_token()}</a

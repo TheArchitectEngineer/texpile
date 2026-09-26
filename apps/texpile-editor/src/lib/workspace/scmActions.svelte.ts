@@ -138,8 +138,12 @@ export class ScmActions {
 	commit = async (message: string, paths: string[]): Promise<boolean> => {
 		const root = workspaceRoot.current;
 		if (!root || !paths.length) return false;
-		if (!(await this.ensureIdentity(root))) return false;
+		// busy from the start: Save version must not be pressable again behind the identity dialog
 		this.busy = true;
+		if (!(await this.ensureIdentity(root))) {
+			this.busy = false;
+			return false;
+		}
 		const clear = await gitUnstage(root, []);
 		if (!clear.ok) {
 			this.busy = false;
@@ -399,12 +403,16 @@ export class ScmActions {
 			if (res.ok && (res.pulled || res.pushed)) await refreshGitHistory(root);
 			const remote = res.remote ?? '';
 			if (res.ok) {
+				// name what moved, and only the direction something moved in
+				const pulled = res.pulled ?? 0;
+				const pushed = res.pushed ?? 0;
+				const moved = [
+					...(pulled ? [pulled === 1 ? m.vcs_sync_received_one() : m.vcs_sync_received_count({ count: pulled })] : []),
+					...(pushed ? [pushed === 1 ? m.vcs_sync_sent_one() : m.vcs_sync_sent_count({ count: pushed })] : [])
+				];
 				toaster.success(
-					res.pulled || res.pushed
-						? {
-								title: m.vcs_toast_synced({ remote }),
-								description: m.vcs_sync_counts({ pulled: res.pulled ?? 0, pushed: res.pushed ?? 0 })
-							}
+					moved.length
+						? { title: m.vcs_toast_synced({ remote }), description: moved.join(' · ') }
 						: { title: m.vcs_toast_sync_uptodate({ remote }) }
 				);
 			} else if (res.failure !== 'cancelled') {

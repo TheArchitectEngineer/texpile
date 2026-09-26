@@ -85,6 +85,16 @@
 
 	let message = $state('');
 
+	// what Sync would do, naming versions and leaving out the side with nothing on it. `behind` is
+	// only as fresh as the last fetch, and its phrase says so.
+	const syncTip = $derived(
+		[
+			m.vcs_sync_tip({ tracking: tracking ?? '' }),
+			...(behind > 0 ? [behind === 1 ? m.vcs_sync_to_receive_one() : m.vcs_sync_to_receive_count({ count: behind })] : []),
+			...(ahead > 0 ? [ahead === 1 ? m.vcs_sync_to_send_one() : m.vcs_sync_to_send_count({ count: ahead })] : [])
+		].join(' · ')
+	);
+
 	// one implementation of how a path is written, shared by the changes and a version's files
 	const labels = $derived(pathLabels(root));
 
@@ -152,7 +162,7 @@
 				{#if tracking}
 					<button
 						class="hover:preset-tonal flex items-center gap-1 rounded-base px-1 py-0.5 disabled:opacity-50"
-						use:tip={ahead || behind ? m.vcs_sync_tip_counts({ tracking, behind, ahead }) : m.vcs_sync_tip({ tracking })}
+						use:tip={syncTip}
 						aria-label={m.vcs_sync_aria()}
 						onclick={onSync}
 						disabled={busy}

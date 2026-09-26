@@ -3,6 +3,7 @@
 	// passphrase, or whether to trust a server it has not seen - asked here instead of in a terminal
 	// nobody can see (electron/src/gitAskpass.ts). Git's own credential helpers are asked first, so
 	// this appears only when they have nothing, and a helper that has one keeps it after it works.
+	import { onMount } from 'svelte';
 	import { KeyRound, ShieldQuestionMark } from '@lucide/svelte';
 	import Modal from '../Modal.svelte';
 	import ModalActions from '../ModalActions.svelte';
@@ -12,6 +13,10 @@
 	let { question }: { question: GitQuestion } = $props();
 
 	let value = $state('');
+	// explicit, not autofocus: that one is skipped whenever the control that started the operation
+	// still has focus
+	let inputEl = $state<HTMLInputElement>();
+	onMount(() => inputEl?.focus());
 
 	// GitHub has not taken account passwords for git since 2021; saying "password" there sends people
 	// to type the one thing that cannot work
@@ -67,14 +72,13 @@
 		{/if}
 		<label class="block text-sm">
 			<span class="font-medium">{label}</span>
-			<!-- svelte-ignore a11y_autofocus -->
 			<input
 				class="input mt-1 w-full text-sm"
 				type={question.input === 'secret' ? 'password' : 'text'}
 				autocomplete={question.subject === 'username' ? 'username' : 'off'}
 				spellcheck="false"
 				bind:value
-				autofocus
+				bind:this={inputEl}
 			/>
 		</label>
 	{/if}
