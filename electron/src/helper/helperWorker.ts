@@ -4,6 +4,7 @@
 // main process is also what serves the renderer its code chunks: those holds left the editor
 // waiting on a blank pane (startupStats.ts caught it). helperProcess.ts is the other end.
 import * as gitService from '../gitService';
+import * as gitRemote from '../gitRemote';
 import { startWorkspaceWatch, stopWorkspaceWatch } from '../fs/fsWatch';
 import { pathKey } from '../shell/toolDirs';
 
@@ -26,7 +27,8 @@ function run(op: string, args: unknown[]): unknown {
 		return true;
 	}
 	if (op.startsWith('git.')) {
-		const fn = (gitService as Record<string, unknown>)[op.slice(4)];
+		const name = op.slice(4);
+		const fn = (gitService as Record<string, unknown>)[name] ?? (gitRemote as Record<string, unknown>)[name];
 		if (typeof fn === 'function') return (fn as (...a: unknown[]) => unknown)(...args);
 	}
 	throw new Error(`unknown helper op ${op}`);

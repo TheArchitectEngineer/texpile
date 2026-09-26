@@ -1,7 +1,7 @@
 // source control ops: call the git client, refresh status, toast on failure. the panel is
 // presentational; WorkspaceView wires the deps.
 import { workspaceRoot } from './workspaceStore';
-import { refreshGitStatus, refreshGitHistory, isGitRepo, gitChanges } from './gitStore';
+import { refreshGitStatus, refreshGitHistory, isGitRepo, gitChanges, gitBranch } from './gitStore';
 import {
 	gitInit,
 	gitStage,
@@ -10,10 +10,19 @@ import {
 	gitCommit,
 	gitRestore,
 	gitChangesSince,
-	gitPush,
+	gitIdentity,
+	gitSetIdentity,
+	gitRemotes,
+	gitAddRemote,
+	gitPublish,
+	gitSync,
+	githubPublish,
 	type GitStatusEntry,
-	type GitFileChange
+	type GitFileChange,
+	type GitRemote,
+	type GitPushResult
 } from './git';
+import { askIdentity, askPublish, type PublishChoice } from './gitDialogs.svelte';
 import { uploadReason } from './uploadReason';
 import { basename, samePath, joinPath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
@@ -129,6 +138,7 @@ export class ScmActions {
 	commit = async (message: string, paths: string[]): Promise<boolean> => {
 		const root = workspaceRoot.current;
 		if (!root || !paths.length) return false;
+		if (!(await this.ensureIdentity(root))) return false;
 		this.busy = true;
 		const clear = await gitUnstage(root, []);
 		if (!clear.ok) {
@@ -154,6 +164,19 @@ export class ScmActions {
 		toaster.success({ title: m.wsview_toast_commit_created_title() });
 		return true;
 	};
+
+	/** git will not commit without a name and an email, and says so in words that send someone to
+	 *  a terminal to type two config commands. Those two commands, asked here instead - once per
+	 *  machine, since they are written globally. */
+	private async ensureIdentity(root: string): Promise<boolean> {
+		const who = await gitIdentity(root);
+		if (who.name && who.email) return true;
+		const answer = await askIdentity({ name: who.name ?? '', email: who.email ?? '' });
+		if (!answer) return false;
+		const res = await gitSetIdentity(root, answer.name, answer.email);
+		if (!res.ok) toaster.error({ title: m.vcs_identity_failed(), description: res.error });
+		return res.ok;
+	}
 
 	/** Clears the way for a restore, and asks about it first.
 	 *
@@ -256,20 +279,140 @@ export class ScmActions {
 		this.deps.openCompareTab(path, { hash: entry.hash, subject: entry.subject });
 	};
 
-	/** Send saved versions to the upstream. Push only: it never fetches or merges, so a remote that
-	 *  has moved on is reported and left alone rather than combined with guesswork. */
-	upload = async (): Promise<void> => {
+	/** VS Code's Publish Branch: give a branch with no upstream one. With exactly one remote there is
+	 *  nothing to choose, so it goes straight there; otherwise the dialog offers each remote, a new
+	 *  GitHub repository, or an address. */
+	publish = async (): Promise<void> => {
 		const root = workspaceRoot.current;
-		if (!root) return;
-		this.busy = true;
-		const res = await gitPush(root);
-		this.busy = false;
-		if (res.ok) {
-			await refreshGitStatus(root); // the ahead count is now zero, and the button goes with it
-			toaster.success({ title: m.vcs_toast_uploaded({ remote: res.remote ?? '' }) });
+		const branch = gitBranch.current;
+		if (!root || !branch || this.busy) return;
+		const listed = await gitRemotes(root);
+		const remotes = listed.ok ? (listed.remotes ?? []) : [];
+		if (remotes.length === 1) {
+			this.busy = true;
+			const res = await gitPublish(root, remotes[0].name);
+			this.busy = false;
+			const problem = await this.published(root, res);
+			if (problem) toaster.error({ title: m.vcs_toast_publish_failed(), description: problem });
 			return;
 		}
-		toaster.error({ title: m.vcs_toast_upload_failed(), description: uploadReason(res) });
+		await askPublish({
+			branch,
+			remotes,
+			defaultName: basename(root)
+				.trim()
+				.replace(/[^A-Za-z0-9_.-]+/g, '-'),
+			submit: (choice) => this.publishTo(root, choice)
+		});
+	};
+
+	/** Runs one choice from the Publish dialog. Resolves to the problem to show in the dialog - ''
+	 *  for none, when the author closed the sign-in prompt - or null when the dialog is done. */
+	private publishTo = async (root: string, choice: PublishChoice): Promise<string | null> => {
+		this.busy = true;
+		try {
+			if (choice.kind === 'remote') return await this.published(root, await gitPublish(root, choice.remote));
+
+			// read again rather than trusting the dialog's list: an attempt that failed after adding
+			// its remote has already changed it, and adding the same address twice would fail
+			const listed = await gitRemotes(root);
+			const current = listed.ok ? (listed.remotes ?? []) : [];
+
+			if (choice.kind === 'url') {
+				const known = current.find((r) => r.url === choice.url);
+				const name = known?.name ?? freeRemoteName(current, ['origin']);
+				if (!known) {
+					const added = await gitAddRemote(root, name, choice.url);
+					if (!added.ok) return added.error ? `${m.vcs_publish_bad_url()}\n${added.error}` : m.vcs_publish_bad_url();
+				}
+				return await this.published(root, await gitPublish(root, name));
+			}
+
+			const res = await githubPublish(root, {
+				name: choice.name,
+				isPrivate: choice.isPrivate,
+				remote: freeRemoteName(current, ['origin', 'github'])
+			});
+			if (res.ok) {
+				await refreshGitStatus(root);
+				const url = res.url;
+				toaster.success({
+					title: m.vcs_toast_published_github({ name: res.fullName ?? choice.name }),
+					action: url ? { label: m.vcs_open_on_github(), onClick: () => void window.open(url, '_blank') } : undefined
+				});
+				return null;
+			}
+			if (res.failure === 'cancelled') return '';
+			if (res.url) {
+				// The repository exists and is already this project's remote; only the upload after it
+				// failed. Trying again from here would try to create it again, so the dialog closes and
+				// Publish - which now finds exactly that one remote - retries just the upload.
+				await refreshGitStatus(root);
+				toaster.error({
+					title: m.vcs_toast_publish_failed(),
+					description: m.vcs_publish_created_not_uploaded({ name: res.fullName ?? choice.name, reason: uploadReason(res) })
+				});
+				return null;
+			}
+			if (res.failure === 'exists') return m.vcs_publish_exists({ name: choice.name });
+			if (res.failure === 'scope') return m.vcs_publish_scope();
+			if (res.failure === 'auth') return m.vcs_publish_github_auth();
+			return uploadReason({ ...res, failure: res.failure === 'network' ? 'network' : 'other', remote: 'GitHub' });
+		} finally {
+			this.busy = false;
+		}
+	};
+
+	/** after a push -u: '' when the author cancelled signing in, the reason it failed, or null */
+	private async published(root: string, res: GitPushResult): Promise<string | null> {
+		if (!res.ok) return res.failure === 'cancelled' ? '' : uploadReason(res);
+		await refreshGitStatus(root); // the branch tracks something now, and the panel shows Sync
+		toaster.success({ title: m.vcs_toast_published({ remote: res.remote ?? '' }) });
+		return null;
+	}
+
+	/**
+	 * VS Code's Sync: fetch, take in the remote's versions, send this branch's. It never leaves the
+	 * project half-combined - a conflict is undone and named, and unsaved work that would be
+	 * overwritten stops it before anything is tried.
+	 *
+	 * A typed edit still waiting to be written goes to disk first. Otherwise git cannot see it, so
+	 * cannot refuse to overwrite it, and the write landing after the sync would quietly undo what
+	 * came in.
+	 */
+	sync = async (): Promise<void> => {
+		const root = workspaceRoot.current;
+		if (!root || this.busy) return;
+		this.busy = true;
+		try {
+			if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
+			const res = await gitSync(root);
+			if (res.ok && res.pulled) {
+				// files changed on disk under the editor: the same reload a restore does
+				const loadedPath = this.deps.getLoadedPath();
+				await this.deps.refreshTree();
+				if (loadedPath) await this.deps.loadFile(loadedPath);
+				if (this.deps.isDiffMode()) this.deps.captureDiffSnapshot();
+			}
+			// even a failed sync fetched, so the counts beside the button are news either way
+			await refreshGitStatus(root);
+			if (res.ok && (res.pulled || res.pushed)) await refreshGitHistory(root);
+			const remote = res.remote ?? '';
+			if (res.ok) {
+				toaster.success(
+					res.pulled || res.pushed
+						? {
+								title: m.vcs_toast_synced({ remote }),
+								description: m.vcs_sync_counts({ pulled: res.pulled ?? 0, pushed: res.pushed ?? 0 })
+							}
+						: { title: m.vcs_toast_sync_uptodate({ remote }) }
+				);
+			} else if (res.failure !== 'cancelled') {
+				toaster.error({ title: m.vcs_toast_sync_failed(), description: uploadReason(res) });
+			}
+		} finally {
+			this.busy = false;
+		}
 	};
 
 	/** read on expand, not with the log: the answer changes as the author types */
@@ -279,4 +422,14 @@ export class ScmActions {
 		const res = await gitChangesSince(root, hash);
 		return res.ok ? (res.entries ?? []) : [];
 	};
+}
+
+/** the first of `preferred` no remote is called yet, else origin2, origin3, ... */
+function freeRemoteName(remotes: GitRemote[], preferred: string[]): string {
+	const taken = new Set(remotes.map((r) => r.name));
+	const free = preferred.find((n) => !taken.has(n));
+	if (free) return free;
+	let i = 2;
+	while (taken.has(`origin${i}`)) i++;
+	return `origin${i}`;
 }

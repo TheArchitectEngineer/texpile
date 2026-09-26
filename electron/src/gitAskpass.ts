@@ -1,0 +1,158 @@
+// git's credential questions, asked in the window. VS Code's askpass, the same way round: git (or
+// ssh) runs GIT_ASKPASS / SSH_ASKPASS with the question as its argument, that script runs a small
+// node program under Electron (ELECTRON_RUN_AS_NODE) which asks this process over a local socket,
+// and the question goes to the window that started the operation. The answer travels back the same
+// way and git reads it from the script's output.
+//
+// Without it, a push that needs a password fails with "terminal prompts disabled" unless a
+// credential manager happens to hold one - which on macOS and Linux it usually does not yet the
+// first time. Git's own helpers still come first: git only asks here when they have nothing.
+import { app, ipcMain, type WebContents } from 'electron';
+import { createServer, type Socket } from 'node:net';
+import { randomBytes } from 'node:crypto';
+import { chmodSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { describePrompt, writeAskpassScripts, askpassEnv } from './gitAskpassClient';
+import type { GitAuthEnv } from './gitRemote';
+
+/** One operation's worth of questions. `answers` is why a sign-in is typed once: publishing to
+ *  GitHub reads the credential and then pushes with it, and git asks the same two questions both
+ *  times. It lives exactly as long as the operation. */
+type Session = { sender: WebContents; cancelled: boolean; answers: Map<string, string> };
+
+const sessions = new Map<string, Session>();
+const waiting = new Map<number, { session: Session; resolve: (answer: string | null) => void }>();
+let nextId = 1;
+let bridge: Promise<{ dir: string; handle: string } | null> | null = null;
+
+function ensureBridge(): Promise<{ dir: string; handle: string } | null> {
+	bridge ??= (async () => {
+		try {
+			const dir = join(app.getPath('userData'), 'askpass');
+			writeAskpassScripts(dir);
+			// a socket path is capped near 104 bytes on macOS, which a home directory can eat into,
+			// so the socket lives in the temp directory under a short random name
+			const id = randomBytes(8).toString('hex');
+			const handle = process.platform === 'win32' ? `\\\\.\\pipe\\texpile-askpass-${id}` : join(tmpdir(), `texpile-askpass-${id}.sock`);
+			const server = createServer(onConnection);
+			await new Promise<void>((resolve, reject) => {
+				server.once('error', reject);
+				server.listen(handle, () => resolve());
+			});
+			// the per-operation token is what authorises a question; this keeps other users from even asking
+			if (process.platform !== 'win32') chmodSync(handle, 0o600);
+			app.once('will-quit', () => {
+				server.close();
+				if (process.platform !== 'win32') rmSync(handle, { force: true });
+			});
+			return { dir, handle };
+		} catch {
+			// no bridge: git still has its credential helpers, which is where things stood before it
+			return null;
+		}
+	})();
+	return bridge;
+}
+
+function onConnection(socket: Socket): void {
+	let buf = '';
+	socket.setEncoding('utf8');
+	socket.on('error', () => {});
+	socket.on('data', (chunk: string) => {
+		buf += chunk;
+		const nl = buf.indexOf('\n');
+		if (nl === -1) {
+			if (buf.length > 64 * 1024) socket.destroy();
+			return;
+		}
+		let req: { token?: unknown; kind?: unknown; prompt?: unknown; promptType?: unknown };
+		try {
+			req = JSON.parse(buf.slice(0, nl)) as typeof req;
+		} catch {
+			socket.destroy();
+			return;
+		}
+		socket.removeAllListeners('data');
+		void answer(req).then((a) => {
+			if (!socket.destroyed) socket.end(JSON.stringify(a === null ? { cancel: true } : { answer: a }) + '\n');
+		});
+	});
+}
+
+async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; promptType?: unknown }): Promise<string | null> {
+	const session = typeof req.token === 'string' ? sessions.get(req.token) : undefined;
+	if (!session || typeof req.prompt !== 'string') return null;
+	// one Cancel answers the rest of the operation: git asks for the password after a cancelled
+	// username, and a second dialog would read as the first one not having worked
+	if (session.cancelled || session.sender.isDestroyed()) return null;
+	const cached = session.answers.get(req.prompt);
+	if (cached !== undefined) return cached;
+
+	const promptType = typeof req.promptType === 'string' ? req.promptType : '';
+	// ssh's notices ("confirm user presence for key ...") want no answer and are not waited on
+	if (promptType === 'none') return '';
+	const request = describePrompt(req.kind === 'ssh' ? 'ssh' : 'https', req.prompt, promptType);
+	const id = nextId++;
+	const reply = await new Promise<string | null>((resolve) => {
+		waiting.set(id, { session, resolve });
+		session.sender.send('git:askpass', { id, ...request });
+	});
+	if (reply === null) {
+		session.cancelled = true;
+		return null;
+	}
+	session.answers.set(req.prompt, reply);
+	return reply;
+}
+
+function dropQuestions(session: Session): void {
+	const dropped: number[] = [];
+	for (const [id, w] of waiting) {
+		if (w.session !== session) continue;
+		waiting.delete(id);
+		dropped.push(id);
+		w.resolve(null);
+	}
+	// the window may still be showing one: tell it those questions are gone
+	if (dropped.length && !session.sender.isDestroyed()) session.sender.send('git:askpassClosed', dropped);
+}
+
+/**
+ * Run a git operation that may need to sign in, with its questions routed to `sender`'s window.
+ * `op` gets the environment that points git at the bridge; it is passed to the helper process with
+ * the call. A result that failed after the author closed the prompt comes back as 'cancelled'.
+ */
+export async function withAskpass<T extends { ok: boolean; failure?: string }>(
+	sender: WebContents,
+	op: (env: GitAuthEnv) => Promise<T>
+): Promise<T> {
+	const b = await ensureBridge();
+	if (!b) return op({});
+	const token = randomBytes(24).toString('hex');
+	const session: Session = { sender, cancelled: false, answers: new Map() };
+	sessions.set(token, session);
+	function onGone() {
+		dropQuestions(session);
+	}
+	sender.once('destroyed', onGone);
+	try {
+		const result = await op(askpassEnv(b.dir, b.handle, token, process.execPath));
+		return !result.ok && session.cancelled ? { ...result, failure: 'cancelled' } : result;
+	} finally {
+		sessions.delete(token);
+		dropQuestions(session);
+		if (!sender.isDestroyed()) sender.removeListener('destroyed', onGone);
+	}
+}
+
+export function registerAskpassIpc(): void {
+	// null (or anything not a string) is Cancel. Only the window that was asked can answer.
+	ipcMain.handle('git:askpassReply', (e, id: unknown, reply: unknown) => {
+		const w = typeof id === 'number' ? waiting.get(id) : undefined;
+		if (!w || w.session.sender !== e.sender) return false;
+		waiting.delete(id as number);
+		w.resolve(typeof reply === 'string' ? reply : null);
+		return true;
+	});
+}

@@ -21,8 +21,12 @@ export type GitStatusResult = {
 	tracking?: string | null;
 	/** versions here the upstream does not have; read from local refs, so no network and never stale */
 	ahead?: number;
-	/** only as fresh as the last fetch, which Texpile never runs: do not present it as current */
+	/** as fresh as the last fetch: Sync runs one, and so may a terminal */
 	behind?: number;
+	/** false before the first version, when there is nothing to publish */
+	hasCommits?: boolean;
+	/** HEAD is a commit rather than a branch: nothing to publish or sync */
+	detached?: boolean;
 };
 
 export type GitShowResult = {
@@ -194,8 +198,9 @@ export async function gitRestore(root: string, hash: string, message: string): P
 	}
 }
 
-/** why an upload did not happen; the panel turns each into a different sentence */
-export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'network' | 'other';
+/** why an upload did not happen; the panel turns each into a different sentence. 'cancelled' is
+ *  the author closing the sign-in prompt, which is not reported as a failure at all. */
+export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'network' | 'cancelled' | 'other';
 
 export type GitPushResult = {
 	ok: boolean;
@@ -216,3 +221,142 @@ export async function gitPush(root: string): Promise<GitPushResult> {
 		return { ok: false, failure: 'other', error: errMsg(e) };
 	}
 }
+
+/** write the identity commits are made with to the global git config; an empty field is left as it was */
+export async function gitSetIdentity(root: string, name: string, email: string): Promise<GitOpResult> {
+	const n = nativeBridge();
+	if (!n?.gitSetIdentity) return { ok: false, error: NO_BRIDGE };
+	try {
+		return await n.gitSetIdentity(root, name, email);
+	} catch (e) {
+		return { ok: false, error: errMsg(e) };
+	}
+}
+
+/** the name and email git will put on a commit; null where unset, or where it cannot be read */
+export async function gitIdentity(root: string): Promise<{ name: string | null; email: string | null }> {
+	try {
+		const res = await nativeBridge()?.gitIdentity?.(root);
+		return { name: res?.name ?? null, email: res?.email ?? null };
+	} catch {
+		return { name: null, email: null };
+	}
+}
+
+export type GitRemote = { name: string; url: string };
+
+export type GitRemotesResult = {
+	ok: boolean;
+	reason?: 'not-a-repo' | 'no-git';
+	error?: string;
+	remotes?: GitRemote[];
+};
+
+export async function gitRemotes(root: string): Promise<GitRemotesResult> {
+	const n = nativeBridge();
+	if (!n?.gitRemotes) return { ok: false, error: NO_BRIDGE };
+	try {
+		return await n.gitRemotes(root);
+	} catch (e) {
+		return { ok: false, error: errMsg(e) };
+	}
+}
+
+export async function gitAddRemote(root: string, name: string, url: string): Promise<GitOpResult> {
+	const n = nativeBridge();
+	if (!n?.gitAddRemote) return { ok: false, error: NO_BRIDGE };
+	try {
+		return await n.gitAddRemote(root, name, url);
+	} catch (e) {
+		return { ok: false, error: errMsg(e) };
+	}
+}
+
+/** send this branch to `remote` and make it the upstream (push -u) */
+export async function gitPublish(root: string, remote: string): Promise<GitPushResult> {
+	const n = nativeBridge();
+	if (!n?.gitPublish) return { ok: false, error: NO_BRIDGE };
+	try {
+		return await n.gitPublish(root, remote);
+	} catch (e) {
+		return { ok: false, failure: 'other', error: errMsg(e) };
+	}
+}
+
+/** 'conflict': both sides changed the same lines and the attempt was undone. 'dirty': unsaved work
+ *  is in the way and nothing was tried. */
+export type SyncFailure = PushFailure | 'conflict' | 'dirty';
+
+export type GitSyncResult = {
+	ok: boolean;
+	reason?: 'not-a-repo' | 'no-git';
+	error?: string;
+	failure?: SyncFailure;
+	remote?: string;
+	/** versions taken in from the remote */
+	pulled?: number;
+	/** versions sent to it */
+	pushed?: number;
+	/** repo-relative paths behind a 'conflict' or a 'dirty' */
+	files?: string[];
+};
+
+/** fetch, take in the upstream's versions, send this branch's */
+export async function gitSync(root: string): Promise<GitSyncResult> {
+	const n = nativeBridge();
+	if (!n?.gitSync) return { ok: false, error: NO_BRIDGE };
+	try {
+		return await n.gitSync(root);
+	} catch (e) {
+		return { ok: false, failure: 'other', error: errMsg(e) };
+	}
+}
+
+export type GithubPublishResult = {
+	ok: boolean;
+	reason?: 'not-a-repo' | 'no-git';
+	/** signing in, creating the repository ('exists', 'scope'), or the upload after it */
+	failure?: PushFailure | 'exists' | 'scope';
+	error?: string;
+	remote?: string;
+	/** the repository's page, once it exists */
+	url?: string;
+	fullName?: string;
+};
+
+/** create a GitHub repository, add it as `remote`, and publish this branch to it */
+export async function githubPublish(
+	root: string,
+	opts: { name: string; isPrivate: boolean; remote: string }
+): Promise<GithubPublishResult> {
+	const n = nativeBridge();
+	if (!n?.githubPublish) return { ok: false, error: NO_BRIDGE };
+	try {
+		return await n.githubPublish(root, opts);
+	} catch (e) {
+		return { ok: false, failure: 'other', error: errMsg(e) };
+	}
+}
+
+/** The preload's remote half (electron/src/preload.ts). Optional throughout: an older preload
+ *  predates it, and the client degrades to no publishing, sync or sign-in prompts. */
+export type GitRemoteBridge = {
+	gitSetIdentity?: (root: string, name: string, email: string) => Promise<GitOpResult>;
+	gitRemotes?: (root: string) => Promise<GitRemotesResult>;
+	gitAddRemote?: (root: string, name: string, url: string) => Promise<GitOpResult>;
+	gitPublish?: (root: string, remote: string) => Promise<GitPushResult>;
+	gitSync?: (root: string) => Promise<GitSyncResult>;
+	githubPublish?: (root: string, opts: { name: string; isPrivate: boolean; remote: string }) => Promise<GithubPublishResult>;
+	onGitAskpass?: (cb: (req: GitAskpassRequest) => void) => () => void;
+	onGitAskpassClosed?: (cb: (ids: number[]) => void) => () => void;
+	gitAskpassReply?: (id: number, answer: string | null) => Promise<boolean>;
+};
+
+/** one question git or ssh asked on the way to a remote (electron/src/gitAskpassClient.ts) */
+export type GitAskpassRequest = {
+	id: number;
+	input: 'text' | 'secret' | 'confirm';
+	subject: 'username' | 'password' | 'passphrase' | 'host-key' | 'other';
+	prompt: string;
+	host: string | null;
+};

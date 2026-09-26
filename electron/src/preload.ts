@@ -264,7 +264,36 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	/** roll the workspace back to a commit by writing that version forward as a new one. */
 	gitRestore: (root: string, hash: string, message: string) => invokeFs('git:restore', root, hash, message),
 	/** push this branch to the upstream it already tracks -> { ok, failure?, remote? }. */
-	gitPush: (root: string) => invokeFs('git:push', root)
+	gitPush: (root: string) => invokeFs('git:push', root),
+	/** write user.name / user.email to the global git config. */
+	gitSetIdentity: (root: string, name: string, email: string) => invokeFs('git:setIdentity', root, name, email),
+	/** the repository's remotes -> { ok, remotes?: { name, url }[] }. */
+	gitRemotes: (root: string) => invokeFs('git:remotes', root),
+	gitAddRemote: (root: string, name: string, url: string) => invokeFs('git:addRemote', root, name, url),
+	/** push this branch to `remote` and make it the upstream (push -u) -> { ok, failure?, remote? }. */
+	gitPublish: (root: string, remote: string) => invokeFs('git:publish', root, remote),
+	/** fetch, take in the upstream's versions, send ours -> { ok, failure?, pulled?, pushed?, files? }. */
+	gitSync: (root: string) => invokeFs('git:sync', root),
+	/** create a GitHub repository, add it as `remote`, publish the branch there -> { ok, url?, failure? }. */
+	githubPublish: (root: string, opts: { name: string; isPrivate: boolean; remote: string }) => invokeFs('git:githubPublish', root, opts),
+	/** git or ssh asking for a username, password, passphrase or host-key answer; returns an unsubscribe fn */
+	onGitAskpass: (cb: (req: unknown) => void) => {
+		function h(_e: unknown, req: unknown) {
+			cb(req);
+		}
+		ipcRenderer.on('git:askpass', h);
+		return () => ipcRenderer.removeListener('git:askpass', h);
+	},
+	/** questions that no longer need an answer (the operation ended); returns an unsubscribe fn */
+	onGitAskpassClosed: (cb: (ids: number[]) => void) => {
+		function h(_e: unknown, ids: number[]) {
+			cb(ids);
+		}
+		ipcRenderer.on('git:askpassClosed', h);
+		return () => ipcRenderer.removeListener('git:askpassClosed', h);
+	},
+	/** answer a git:askpass question; null cancels. */
+	gitAskpassReply: (id: number, answer: string | null) => ipcRenderer.invoke('git:askpassReply', id, answer)
 });
 
 // in-app updates: check/download are explicit renderer calls, events stream back per channel

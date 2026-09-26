@@ -2,7 +2,7 @@
 	// History panel, purely presentational: WorkspaceView implements the callbacks. No
 	// staged/unstaged split - the tick boxes ARE the staging, so a version's scope is visible.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { GitBranch, RefreshCw, Check, GitCommitHorizontal, ArrowUp } from '@lucide/svelte';
+	import { GitBranch, RefreshCw, Check, GitCommitHorizontal, ArrowUp, ArrowDown, ArrowDownUp, CloudUpload } from '@lucide/svelte';
 	import ChangeList from './history/ChangeList.svelte';
 	import HistoryTimeline from './history/HistoryTimeline.svelte';
 	import { pathLabels } from './history/pathLabels';
@@ -15,10 +15,16 @@
 		root: string;
 		isRepo: boolean;
 		branch: string | null;
-		/** the upstream this branch tracks; null means there is nowhere to upload to */
+		/** the upstream this branch tracks; null means there is nowhere to upload to yet */
 		tracking?: string | null;
 		/** versions saved here that the upstream does not have */
 		ahead?: number;
+		/** versions the upstream has that this branch does not, as of the last fetch */
+		behind?: number;
+		/** at least one version exists: before the first there is nothing to publish */
+		hasCommits?: boolean;
+		/** HEAD is a commit, not a branch: nothing to publish or sync */
+		detached?: boolean;
 		changes: GitStatusEntry[];
 		history: GitLogEntry[];
 		/** could not be read at all, as against having nothing in it */
@@ -41,7 +47,8 @@
 		onResizeHistoryByKey: (e: KeyboardEvent) => void;
 		onOpenDiff: (path: string) => void;
 		onRefresh: () => void;
-		onUpload: () => void;
+		onPublish: () => void;
+		onSync: () => void;
 		onIgnoreArtifacts: (() => void) | null;
 	};
 	let {
@@ -50,6 +57,9 @@
 		branch,
 		tracking = null,
 		ahead = 0,
+		behind = 0,
+		hasCommits = true,
+		detached = false,
 		changes,
 		history,
 		historyError = null,
@@ -68,7 +78,8 @@
 		onResizeHistoryByKey,
 		onOpenDiff,
 		onRefresh,
-		onUpload,
+		onPublish,
+		onSync,
 		onIgnoreArtifacts
 	}: Props = $props();
 
@@ -134,19 +145,37 @@
 			<GitBranch class="size-3.5 shrink-0" />
 			<span class="truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
 			<div class="ml-auto flex shrink-0 items-center gap-1">
-				<!-- Only with an upstream to send to, and only with something to send. The count is of
-				     local refs, so it is exact without a fetch; there is deliberately no "behind", which
-				     would be as old as a fetch nothing here runs. -->
-				{#if tracking && ahead > 0}
+				<!-- VS Code's two states. With an upstream: Sync, carrying what it would take in and send.
+				     `ahead` is counted from local refs and is exact; `behind` is as of the last fetch, which
+				     Sync itself runs, and the tooltip says so. Without one: Publish, once there is a version
+				     to publish and a branch to publish it from. -->
+				{#if tracking}
 					<button
-						class="hover:preset-tonal flex items-center gap-0.5 rounded-base px-1 py-0.5 disabled:opacity-50"
-						use:tip={ahead === 1 ? m.vcs_upload_one() : m.vcs_upload_count({ count: ahead })}
-						aria-label={m.vcs_upload_aria()}
-						onclick={onUpload}
+						class="hover:preset-tonal flex items-center gap-1 rounded-base px-1 py-0.5 disabled:opacity-50"
+						use:tip={ahead || behind ? m.vcs_sync_tip_counts({ tracking, behind, ahead }) : m.vcs_sync_tip({ tracking })}
+						aria-label={m.vcs_sync_aria()}
+						onclick={onSync}
 						disabled={busy}
 					>
-						<ArrowUp class="size-3.5" />
-						<span class="tabular-nums">{ahead}</span>
+						{#if behind > 0}
+							<span class="flex items-center tabular-nums"><ArrowDown class="size-3.5" />{behind}</span>
+						{/if}
+						{#if ahead > 0}
+							<span class="flex items-center tabular-nums"><ArrowUp class="size-3.5" />{ahead}</span>
+						{/if}
+						{#if !behind && !ahead}
+							<ArrowDownUp class="size-3.5" />
+						{/if}
+					</button>
+				{:else if hasCommits && !detached && branch}
+					<button
+						class="hover:preset-tonal flex items-center gap-1 rounded-base px-1.5 py-0.5 disabled:opacity-50"
+						use:tip={m.vcs_publish_button_tip()}
+						onclick={onPublish}
+						disabled={busy}
+					>
+						<CloudUpload class="size-3.5" />
+						<span>{m.vcs_publish_button()}</span>
 					</button>
 				{/if}
 				<button

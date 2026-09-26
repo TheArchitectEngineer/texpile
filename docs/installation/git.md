@@ -44,7 +44,7 @@ On Fedora it is `sudo dnf install git`, and on Arch `sudo pacman -S git`.
 
 ## Tell git who you are
 
-A commit carries a name and an email address. Set them once:
+A commit carries a name and an email address. Texpile asks for them the first time you save a version if git does not know them yet, or set them once yourself:
 
 ```bash
 git config --global user.name "Your Name"

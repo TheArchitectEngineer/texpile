@@ -5,6 +5,11 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: Publish sends a project to a new GitHub repository, a remote it already has, or any repository by address
+- feat: Sync takes in versions saved elsewhere and sends yours, and undoes the attempt rather than leave a conflict behind
+- feat: git's sign-in questions (a password or token, an SSH key's passphrase, a server it has not seen) are asked in the window instead of failing
+- feat: the first version saved on a computer asks for the name and email git records, once
+- fix: uploading uses the credential helpers and settings in your global git config
 - fix: `\overline`, `\sqrt`, `\hat` and similar typed in the visual math editor put the caret inside them instead of after an empty box (by @hkarlsen06)
 - feat: shift-enter in a display equation starts a new one of the same kind below it (by @hkarlsen06)
 

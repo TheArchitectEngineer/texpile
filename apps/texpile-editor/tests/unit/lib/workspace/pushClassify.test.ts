@@ -5,7 +5,7 @@
 // The strings are what git and the common hosts actually print. Authentication is the one case a
 // local bare repo cannot provoke (gitPushLive.test.ts), so it is only ever covered here.
 import { describe, it, expect } from 'vitest';
-import { classifyPushError } from '../../../../../../electron/src/gitService';
+import { classifyPushError } from '../../../../../../electron/src/gitRemote';
 
 const REJECTED = [
 	"! [rejected]        master -> master (fetch first)\nerror: failed to push some refs to 'https://github.com/a/b.git'",

@@ -23,7 +23,10 @@ vi.mock('$lib/workspace/git', () => ({
 	gitCommit,
 	gitRestore,
 	gitChangesSince: vi.fn(),
-	gitPush: vi.fn()
+	gitPush: vi.fn(),
+	// someone git already knows: the identity dialog is not what these tests are about
+	gitIdentity: vi.fn(async () => ({ name: 'Ada Lovelace', email: 'ada@example.com' })),
+	gitSetIdentity: vi.fn()
 }));
 vi.mock('$lib/modals/confirm.svelte', () => ({ confirmAsk }));
 vi.mock('$lib/modals/toaster-svelte', () => ({ toaster: { success: vi.fn(), error: vi.fn() } }));

@@ -12,9 +12,19 @@ export const gitBranch = box<string | null>(null);
 export const gitTracking = box<string | null>(null);
 
 /** versions saved here that the upstream does not have. Counted from local refs, so it is exact
- *  without a fetch, and it is the only remote number shown: `behind` is only as fresh as a fetch
- *  nothing here runs, so showing it would be claiming to know something we do not. */
+ *  without a fetch. */
 export const gitAhead = box<number>(0);
+
+/** versions the upstream has that this branch does not, as of the last fetch - which Sync runs, so
+ *  the number is fresh right after one and otherwise only as fresh as whoever fetched last. The
+ *  panel says so rather than presenting it as live. */
+export const gitBehind = box<number>(0);
+
+/** there is at least one version: before the first, a branch has nothing to publish */
+export const gitHasCommits = box<boolean>(false);
+
+/** HEAD is a commit rather than a branch, so there is no branch to publish or sync */
+export const gitDetached = box<boolean>(false);
 
 /** single-letter badges keyed by gitKey(absolutePath); drives the file tree. */
 export const gitStatusMap = box<Record<string, GitBadge>>({});
@@ -66,6 +76,9 @@ function clearGitState(): void {
 	gitBranch.current = null;
 	gitTracking.current = null;
 	gitAhead.current = 0;
+	gitBehind.current = 0;
+	gitHasCommits.current = false;
+	gitDetached.current = false;
 	gitStatusMap.current = {};
 	gitChanges.current = [];
 	gitHistory.current = [];
@@ -87,6 +100,9 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 	gitBranch.current = res.branch ?? null;
 	gitTracking.current = res.tracking ?? null;
 	gitAhead.current = res.ahead ?? 0;
+	gitBehind.current = res.behind ?? 0;
+	gitHasCommits.current = res.hasCommits ?? true;
+	gitDetached.current = !!res.detached;
 	const list = res.entries ?? [];
 	gitChanges.current = list;
 	const map: Record<string, GitBadge> = {};

@@ -9,7 +9,8 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { gitPush, gitStatus } from '../../../../../../electron/src/gitService';
+import { gitStatus } from '../../../../../../electron/src/gitService';
+import { gitPush } from '../../../../../../electron/src/gitRemote';
 
 function hasGit(): boolean {
 	try {

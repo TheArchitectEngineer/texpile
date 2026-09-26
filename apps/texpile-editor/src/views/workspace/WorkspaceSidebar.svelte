@@ -13,6 +13,9 @@
 		gitBranch,
 		gitTracking,
 		gitAhead,
+		gitBehind,
+		gitHasCommits,
+		gitDetached,
 		gitChanges,
 		gitStatusMap,
 		gitHistory,
@@ -73,7 +76,8 @@
 		scmCommit: (message: string, paths: string[]) => Promise<boolean>;
 		scmRestore: (entry: GitLogEntry) => void;
 		scmIgnoreArtifacts: () => void;
-		scmUpload: () => void;
+		scmPublish: () => void;
+		scmSync: () => void;
 		scmCompare: (entry: GitLogEntry, path: string) => void;
 		scmChangesSince: (hash: string) => Promise<GitFileChange[]>;
 		scmOpenDiff: (path: string) => void;
@@ -117,7 +121,8 @@
 		scmCommit,
 		scmRestore,
 		scmIgnoreArtifacts,
-		scmUpload,
+		scmPublish,
+		scmSync,
 		scmCompare,
 		scmChangesSince,
 		scmOpenDiff
@@ -309,6 +314,9 @@
 				branch={gitBranch.current}
 				tracking={gitTracking.current}
 				ahead={gitAhead.current}
+				behind={gitBehind.current}
+				hasCommits={gitHasCommits.current}
+				detached={gitDetached.current}
 				changes={gitChanges.current}
 				history={gitHistory.current}
 				historyError={gitHistoryError.current}
@@ -324,7 +332,8 @@
 				onLoadChanges={scmChangesSince}
 				onOpenDiff={scmOpenDiff}
 				onRefresh={onRefreshGit}
-				onUpload={scmUpload}
+				onPublish={scmPublish}
+				onSync={scmSync}
 				{historyFraction}
 				bind:splitEl={scmSplitEl}
 				{onStartHistoryResize}
