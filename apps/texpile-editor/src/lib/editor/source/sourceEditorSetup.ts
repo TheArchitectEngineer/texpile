@@ -21,13 +21,16 @@ import { latexAutocomplete, latexIntellisense } from '$lib/languages/latex/intel
 import { foldMarkerDom, foldMarkerTheme } from '$lib/languages/latex/intellisense/fold';
 import { mdSourceShortcuts } from '$lib/languages/markdown/source/sourceExtensions';
 import { typSourceShortcuts } from '$lib/languages/typst/source/sourceExtensions';
+import { typstEnterContinuation } from '$lib/languages/typst/source/enterContinuation';
+import { createProjectFile, typstColorSwatches, typstGoTo, typstQuickFix } from '$lib/languages/typst/intellisense/editorActions';
+import { guestSession } from '$lib/collab/guestSession';
 import { mdPathCompletion } from '$lib/languages/markdown/pathCompletion';
 import { cmSpellcheck } from '$lib/editor/spellcheck/cmSpellcheck';
 import { lintGutter } from '@codemirror/lint';
 import { comments, commentGutterHandlers } from '$lib/editor/visual/extensions/comments';
 import { mathPreview } from '$lib/editor/source/extensions/math-preview/mathPreview';
 import { starterGhost } from '$lib/editor/source/extensions/starter-ghost/starterGhost';
-import { synctexFlash } from '$lib/languages/latex/source/synctexFlash';
+import { flashLineEffect, synctexFlash } from '$lib/languages/latex/source/synctexFlash';
 import { latexListContinuation } from '$lib/languages/latex/source/listContinuation';
 import { bibtex } from '$lib/languages/bib/bibtexLanguage';
 import { latex } from '$lib/languages/latex/source/latexLanguage';
@@ -121,7 +124,19 @@ export function buildSourceExtensions(deps: SourceSetupDeps): Extension[] {
 						? // completion/hover/diagnostics arrive over LSP, filled into lspConf below. the fold
 							// RAIL is mounted here rather than with the language, whose parser is a dynamic
 							// import: a gutter arriving a second late shoves the text sideways on every open
-							[typSourceShortcuts(), cmSpellcheck('typst'), foldGutter({ markerDOM: foldMarkerDom }), foldMarkerTheme]
+							[
+								typSourceShortcuts(),
+								// ahead of defaultKeymap below, as latexListContinuation is
+								typstEnterContinuation(),
+								// server-backed, so inert until the LSP extension lands in lspConf
+								typstGoTo({ onOpenFileAt: deps.onOpenFileAt, flash: (pos) => flashLineEffect.of(pos) }),
+								// a guest's missing file would be created on its own disk, not the project's
+								typstQuickFix({ onCreateFile: guestSession.active ? undefined : createProjectFile }),
+								typstColorSwatches(),
+								cmSpellcheck('typst'),
+								foldGutter({ markerDOM: foldMarkerDom }),
+								foldMarkerTheme
+							]
 						: []),
 		deps.lspConf.of([]),
 		synctexFlash(), // flash the line jumped to by SyncTeX inverse search / Find-in-Files

@@ -76,6 +76,9 @@ const ALLOWED = new Set([
 	'textDocument/documentHighlight',
 	'textDocument/inlayHint',
 	'textDocument/codeAction',
+	'textDocument/documentLink',
+	'textDocument/documentColor',
+	'textDocument/colorPresentation',
 	'workspace/symbol'
 ]);
 

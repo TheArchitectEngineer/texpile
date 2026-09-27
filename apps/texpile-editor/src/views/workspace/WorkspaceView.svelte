@@ -145,8 +145,10 @@
 	// proxied by $state, so the objects themselves behave exactly as they would unwrapped.
 	let layout = $state(new PaneLayout());
 
-	// visual TOC reads PM headings (works for md too); source-mode TOC parses raw LaTeX, tex-only
-	const showToc = $derived(!!doc.path && (modes.mode === 'visual' ? hasVisualMode(kind) : modes.mode === 'source' && kind === 'tex'));
+	// visual TOC reads PM headings (works for md too); source-mode TOC parses the raw .tex or .typ
+	const showToc = $derived(
+		!!doc.path && (modes.mode === 'visual' ? hasVisualMode(kind) : modes.mode === 'source' && (kind === 'tex' || kind === 'typ'))
+	);
 	attachSourceToc(wsdoc);
 	// dock visibility/height/shrink live in lib/workspace/terminalDockState.svelte.ts
 	let termDock = $state(new TerminalDockState(() => guest));

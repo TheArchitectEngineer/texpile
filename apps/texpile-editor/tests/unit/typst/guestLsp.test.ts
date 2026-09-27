@@ -227,6 +227,19 @@ describe('the host answering a guest', () => {
 		expect((out.result as { uri?: string }).uri).toBeUndefined();
 	});
 
+	it("brings a path's link into the guest namespace, and drops one outside the project", async () => {
+		const links = [
+			{ range: { start: { line: 0, character: 7 } }, target: 'file:///C:/proj/fig.png' },
+			{ range: { start: { line: 1, character: 7 } }, target: 'file:///C:/other/secret.png' }
+		];
+		const { ctx } = hostCtx({ request: () => links });
+		const out = await serveGuestLspRequest(req('textDocument/documentLink', {}), ctx);
+		expect(out.ok).toBe(true);
+		const [inside, outside] = out.result as { target?: string }[];
+		expect(inside.target).toBe(sessionUri('fig.png'));
+		expect(outside.target).toBeUndefined();
+	});
+
 	it('answers initialize from cache instead of initialising a running server twice', async () => {
 		const { ctx, seen } = hostCtx();
 		const out = await serveGuestLspRequest(req('initialize', {}), ctx);

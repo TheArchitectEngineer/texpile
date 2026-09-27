@@ -35,8 +35,9 @@ export function relFromSessionUri(uri: string): string | null {
 	}
 }
 
-/** Keys whose string value is a document URI, across the LSP messages we relay. */
-const URI_KEYS = new Set(['uri', 'targetUri', 'rootUri', 'newUri', 'oldUri']);
+/** Keys whose string value is a document URI, across the LSP messages we relay (`target` is a
+ *  DocumentLink's: the file a path in the source names). */
+const URI_KEYS = new Set(['uri', 'targetUri', 'rootUri', 'newUri', 'oldUri', 'target']);
 
 /**
  * Rewrite every document URI inside an arbitrary LSP payload, leaving the rest untouched.

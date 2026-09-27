@@ -13,17 +13,18 @@ The combinations below are for Windows and Linux. On macOS, use Cmd wherever a t
 
 ## The app
 
-| Shortcut       | Action                           |
-| -------------- | -------------------------------- |
-| Ctrl S         | Save                             |
-| Ctrl K         | Command palette                  |
-| Ctrl T         | Go to file                       |
-| Ctrl W         | Close the tab                    |
-| Ctrl Shift T   | Reopen the last closed tab       |
-| Ctrl F         | Find in this document            |
-| Ctrl Shift F   | Find in every file in the folder |
-| Ctrl Shift N   | New window                       |
-| Ctrl Alt Enter | Start or stop a compile          |
+| Shortcut       | Action                            |
+| -------------- | --------------------------------- |
+| Ctrl S         | Save                              |
+| Ctrl K         | Command palette                   |
+| Ctrl T         | Go to file                        |
+| Ctrl W         | Close the tab                     |
+| Ctrl Shift T   | Reopen the last closed tab        |
+| Ctrl F         | Find in this document             |
+| Ctrl Shift F   | Find in every file in the folder  |
+| Ctrl Shift N   | New window                        |
+| Ctrl Alt Enter | Start or stop a compile           |
+| F8 / Shift F8  | Next or previous spelling problem |
 
 ## Visual editor
 
@@ -49,6 +50,7 @@ Each key maps to the markup you would have typed.
 | Ctrl D         | Select the next occurrence       |
 | Ctrl Space     | Open suggestions                 |
 | F12            | Go to definition (or Ctrl+Click) |
+| Alt Enter      | Quick fixes (Typst)              |
 | Esc            | Hide the math preview            |
 
 Vim and Emacs keybindings for the source editor are a setting. See [Preferences](preferences.md).

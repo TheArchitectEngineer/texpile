@@ -21,7 +21,11 @@ A .typ file opens in the same visual and source editors as a LaTeX file, and com
 
 - A label such as `<sec:intro>` shows under its heading, and @ inserts a reference to a label or a citation key.
 - Anything the visual editor cannot show stays in place as a Typst code chip.
-- Completion, hover help, and errors as you type come from tinymist, for guests in a shared session too.
+- Completion, hover help, and errors as you type come from tinymist, for guests in a shared session too. tinymist also warns about a font name it cannot find, with the names you probably meant, and a `#set` or `#show` rule that cannot take effect where it is.
+- Every file is checked as part of the main file, so a chapter's references to labels and citations elsewhere in the document resolve.
+- In source mode, the outline lists the headings. Enter continues a list, an enumeration, or a doc comment, and opens an empty `$ $` into a display equation.
+- F12, or Ctrl+Click, goes to a definition, in another file too, or opens the file a path names, such as an image or an included chapter. Alt+Enter offers tinymist's quick fixes where the caret is, such as creating a missing file or wrapping an image in a figure.
+- A swatch sits beside each color in the source. Click it to pick a new color.
 
 The [Equations](../visual-editing/math.md), [Images](../visual-editing/images.md), [Tables](../visual-editing/tables.md), and [Citations](../visual-editing/citations.md) pages each end with what differs in Typst.
 

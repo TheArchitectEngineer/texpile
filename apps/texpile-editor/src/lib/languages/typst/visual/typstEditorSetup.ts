@@ -53,7 +53,7 @@ import { tablePlaceholderPlugin } from '$lib/editor/visual/extensions/table/tabl
 import { createWordCountPlugin } from '$lib/editor/visual/extensions/wordcount/wordCountPlugin';
 import { createTocPlugin } from '$lib/editor/visual/extensions/tableofcontents/tocPlugin';
 import { createPersistentSelectionPlugin } from '$lib/editor/visual/extensions/persistentSelection/persistentSelectionPlugin';
-import { proofreadPlugin, spellClickBoundaryPlugin } from '$lib/editor/spellcheck/spellcheckplugin';
+import { proofreadPlugin, spellClickBoundaryPlugin, spellProblemKeymap } from '$lib/editor/spellcheck/spellcheckplugin';
 import { createBoundaryClickPlugin } from '$lib/editor/visual/extensions/boundary-click-plugin';
 import { wordSelectionTrim } from '$lib/editor/visual/extensions/wordSelectionTrim';
 import { createBlockHandlePlugin } from '$lib/editor/visual/extensions/block-handle-plugin.svelte';
@@ -218,6 +218,7 @@ export function typstEditorPlugins(setup: TypstEditorSetup): Plugin[] {
 		createPersistentSelectionPlugin(),
 		spellClickBoundaryPlugin, // must precede proofreadPlugin; see its comment
 		proofreadPlugin,
+		spellProblemKeymap,
 		createBoundaryClickPlugin(),
 		wordSelectionTrim(),
 		// the Notion-style + / drag / delete gutter, with the typst insert set

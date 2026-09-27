@@ -13,6 +13,7 @@ import { EditorView } from '@codemirror/view';
 import { box } from '$lib/runes/box.svelte';
 import { observe } from '$lib/runes/observe.svelte';
 import { settings } from '$lib/settings';
+import { mainFile } from '$lib/workspace/workspaceStore';
 import { applyTextEdits, type LspTextEdit } from './textEdits';
 import { normalizeCompletionJson } from './completionNormalize';
 
@@ -86,7 +87,7 @@ function createTransport(): Transport {
 	});
 	return {
 		send(message: string) {
-			bridge()?.send(message);
+			bridge()?.send(withInitializationOptions(message));
 		},
 		subscribe(handler: (value: string) => void) {
 			handlers.add(handler);
@@ -95,6 +96,21 @@ function createTransport(): Transport {
 			handlers.delete(handler);
 		}
 	};
+}
+
+/**
+ * The settings, on the `initialize` request itself.
+ *
+ * tinymist reads some settings only when it builds the project, and a later didChangeConfiguration
+ * does not rebuild it for them - the lint switch is one, so pushed after the handshake it never took
+ * effect. @codemirror/lsp-client has no initializationOptions of its own, so they are added here, on
+ * the way out.
+ */
+function withInitializationOptions(message: string): string {
+	if (!message.includes('"initialize"')) return message;
+	const msg = JSON.parse(message) as { method?: string; params?: Record<string, unknown> };
+	if (msg.method !== 'initialize') return message;
+	return JSON.stringify({ ...msg, params: { ...msg.params, initializationOptions: serverSettings } });
 }
 
 type Session = {
@@ -155,6 +171,67 @@ observe(
 );
 
 /**
+ * Texpile's tinymist settings, sent WHOLE on every push.
+ *
+ * tinymist does not merge a didChangeConfiguration into what it has: every key a push leaves out
+ * goes back to its default (config.rs, `update_by_map`). A push of the export path alone turned the
+ * formatter off, and one of the formatter alone forgot the export path - so every push goes through
+ * pushSettings, with all of them.
+ */
+const serverSettings: {
+	/** tinymist ships with the formatter disabled; typstyle is the one its VS Code extension binds */
+	formatterMode: 'typstyle';
+	/**
+	 * tinymist's own checks beyond the compiler's: a font family that does not exist (with the
+	 * nearest names), a `#set`/`#show` rule that cannot take effect where it stands, a value a
+	 * function silently throws away. Off unless asked for, and read only at startup (see
+	 * withInitializationOptions). `onType` because nothing here ever sends didSave - on its
+	 * `onSave` default the checks would never run at all.
+	 */
+	lint: { enabled: boolean; when: 'onType' };
+	/** where exportPdf writes; set per export (see exportTypstPdf) */
+	outputPath?: string;
+} = { formatterMode: 'typstyle', lint: { enabled: true, when: 'onType' } };
+
+function pushSettings(client: LSPClient): void {
+	client.notification('workspace/didChangeConfiguration', { settings: serverSettings });
+}
+
+/**
+ * Make the folder's main file tinymist's entry, whichever file is open.
+ *
+ * Unpinned, tinymist compiles whatever document was touched last, so a chapter open on its own is
+ * checked as a document of its own: every `@label` and `@citation` defined elsewhere is an error,
+ * the main's `#set` rules do not apply, and completion offers none of the main's labels. Pinned, the
+ * chapter is checked as part of the document it belongs to. A main that is not a .typ (a LaTeX
+ * project with a scratch .typ) pins nothing, which hands tinymist back its own choice.
+ */
+function pinMain(client: LSPClient, main: string | null): void {
+	const entry = main && /\.typ$/i.test(main) ? main : null;
+	client
+		.request<{ command: string; arguments: unknown[] }, unknown>('workspace/executeCommand', {
+			command: 'tinymist.pinMain',
+			arguments: [entry]
+		})
+		.catch(() => {
+			/* an old tinymist without the command: it keeps choosing its own entry, as before */
+		});
+}
+
+// the main file changed (the user picked another, or a different folder opened): re-pin the running
+// server. Module level for the same reason as the tool-folder watch above.
+observe(
+	() => mainFile.current,
+	(main) => {
+		const s = session;
+		if (!s) return;
+		void s.started.then((ok) => {
+			if (ok && session === s) void s.client.initializing.then(() => pinMain(s.client, main));
+		});
+	}
+);
+
+/**
  * How many open editors are using the server.
  *
  * It costs ~90MB resident with one document open, which is worth reclaiming when the last .typ is
@@ -209,6 +286,13 @@ export async function typstClient(root: string | null): Promise<LSPClient | null
 	const started = b.startLsp(root).then((res) => {
 		if (!res.ok) return false;
 		client.connect(createTransport());
+		// the entry, as soon as the handshake allows anything to be sent (the settings went with it)
+		client.initializing.then(
+			() => pinMain(client, mainFile.current),
+			() => {
+				/* the server died during initialize; the exit hook handles that */
+			}
+		);
 		return true;
 	});
 
@@ -220,7 +304,7 @@ export async function typstClient(root: string | null): Promise<LSPClient | null
 export async function formatTypstDocument(root: string | null, file: string, text: string): Promise<string> {
 	const client = await typstClient(root);
 	if (!client) throw new Error('tinymist is not available');
-	client.notification('workspace/didChangeConfiguration', { settings: { formatterMode: 'typstyle' } });
+	pushSettings(client);
 	const edits = await client.request<
 		{ textDocument: { uri: string }; options: { tabSize: number; insertSpaces: boolean } },
 		LspTextEdit[] | null
@@ -306,7 +390,8 @@ export async function exportTypstPdf(root: string | null, file: string, outDir?:
 	if (!client) return null;
 	const dir = (outDir ?? '').replace(/\\/g, '/').replace(/\/+$/, '');
 	const pattern = dir && dir !== '.' ? `$root/${dir}/$name` : '$root/$dir/$name';
-	client.notification('workspace/didChangeConfiguration', { settings: { outputPath: pattern } });
+	serverSettings.outputPath = pattern;
+	pushSettings(client);
 	const res = await client.request<{ command: string; arguments: unknown[] }, { path?: string | null } | null>('workspace/executeCommand', {
 		command: 'tinymist.exportPdf',
 		arguments: [file]

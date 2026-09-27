@@ -38,7 +38,7 @@ import { LabelView } from '$lib/languages/latex/visual/extensions/label/labelVie
 import { createTocPlugin } from '$lib/editor/visual/extensions/tableofcontents/tocPlugin';
 import { createPersistentSelectionPlugin } from '$lib/editor/visual/extensions/persistentSelection/persistentSelectionPlugin';
 import { createSuggestPlugin } from '$lib/editor/visual/extensions/suggest/suggestPlugin';
-import { proofreadPlugin, spellChipPlugin, spellClickBoundaryPlugin } from '$lib/editor/spellcheck/spellcheckplugin';
+import { proofreadPlugin, spellChipPlugin, spellClickBoundaryPlugin, spellProblemKeymap } from '$lib/editor/spellcheck/spellcheckplugin';
 import { createTemplateEditorSettings, createLocalImageSettings } from '$lib/editor/visual/extensions/image/imageplugin.svelte';
 import { createWordCountPlugin } from '$lib/editor/visual/extensions/wordcount/wordCountPlugin';
 import { emDashRule, enDashRule, emDashUpgradeRule } from '$lib/editor/visual/extensions/inputrules/dashRules';
@@ -193,6 +193,7 @@ export function latexEditorPlugins(setup: LatexEditorSetup): Plugin[] {
 		createPersistentSelectionPlugin(),
 		spellClickBoundaryPlugin, // must precede proofreadPlugin; see its comment
 		proofreadPlugin,
+		spellProblemKeymap,
 		spellChipPlugin,
 		createBoundaryClickPlugin(),
 		wordSelectionTrim(),

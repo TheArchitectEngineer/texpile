@@ -11,6 +11,15 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: cite a paper by its DOI or arXiv ID: paste it, check the work it names, and Texpile adds a clean BibTeX entry to your bibliography and cites it (right-click menu or Ctrl+K) (by @louisqli)
 - fix: Zotero and Cite by DOI no longer write BibTeX into a Typst project's Hayagriva .yml bibliography; the entries go to a .bib, and Texpile asks you to list it in `#bibliography` (by @louisqli)
 - feat: keys from a Hayagriva .yml bibliography are in the @ picker and show as author and year (by @louisqli)
+- fix: tinymist checks every .typ file as part of the main file, so a chapter's references to labels and citations elsewhere resolve (by @louisqli)
+- fix: F12 goes to a Typst definition, in another file too (by @louisqli)
+- feat: tinymist's Typst lints: a font name it cannot find, with the names you probably meant, and a `#set` or `#show` rule that cannot take effect (by @louisqli)
+- feat: Enter in Typst source continues a list, an enumeration or a doc comment, and opens an empty `$ $` into a display equation (by @louisqli)
+- feat: the outline lists a .typ file's headings in source mode (by @louisqli)
+- feat: Ctrl+Click (Cmd+Click on macOS) in Typst source goes to a definition or opens the file a path names, such as an image or an included chapter (by @louisqli)
+- feat: Alt+Enter shows tinymist's quick fixes in Typst source, such as creating a missing file (by @louisqli)
+- feat: a color swatch beside each Typst color, which opens a color picker (by @louisqli)
+- feat: F8 and Shift+F8 move to the next or previous spelling problem, in both editors (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 

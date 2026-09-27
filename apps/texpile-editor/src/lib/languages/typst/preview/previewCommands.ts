@@ -129,8 +129,8 @@ export async function startTypstPreview(root: string | null, file: string): Prom
  * `text` must be what the server's in-memory document holds, i.e. the open editor's buffer: the
  * server computes edits against ITS copy, and applying them to anything else would splice at the
  * wrong offsets. The caller gates this to a live source editor, whose LSP binding keeps the two
- * identical via didChange. formatterMode rides ahead as configuration exactly like exportPdf's
- * outputPath does - tinymist ships with the formatter disabled, and this is the one switch that
+ * identical via didChange. formatterMode rides ahead with the rest of the server settings (see
+ * pushSettings) - tinymist ships with the formatter disabled, and this is the one switch that
  * turns it on. Idempotent, so pushing it per call costs nothing.
  *
  * Returns the formatted document; errors propagate (the caller shows them - a formatter the user
