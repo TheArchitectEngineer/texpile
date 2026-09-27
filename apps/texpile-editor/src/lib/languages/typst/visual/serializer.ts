@@ -21,6 +21,7 @@ import {
 	isTypHandlerLeaf
 } from './typstInline';
 import { cellCall, rowCells, tableBody } from './tableSerializer';
+import { envSource, ownsLineEnd, type EnvBodyRender } from './envSerializer';
 import { mapToCrlf } from '$lib/editor/visual/sourceSpans';
 export { escTypst, renderInline } from './typstInline';
 
@@ -65,6 +66,8 @@ function lineBound(node: Node, blocks: Set<string>): boolean {
 /** may `next` follow `prev` after a single line end without merging into it on reparse? a
  *  comment island counts only as prev: after a paragraph it would join that paragraph */
 function glueSafe(prev: Node, next: Node): boolean {
+	// an environment is one only while nothing follows it in its paragraph, a list item included
+	if (prev.type.name === 'typ_env') return false;
 	if (lineBound(next, LINE_START_BLOCKS) || lineBound(prev, LINE_END_BLOCKS)) return true;
 	if (next.type.name === 'raw_latex' && declarationLine(next.textContent)) return true;
 	return prev.type.name === 'raw_latex' && islandEndsLine(prev);
@@ -91,16 +94,18 @@ function blockGap(prev: Node, next: Node, contiguous: boolean, nested: boolean):
 	return '\n\n';
 }
 
+/** a nested block as its handler writes it, trailing line ends trimmed */
+function nestedText(child: Node, parent: Node, i: number): string {
+	return serializeTypNode(child, { parent, index: i, isLastChild: i === parent.childCount - 1, inTableCell: false }).replace(/\n+$/, '');
+}
+
 /** children from index `from` on, serialized and joined on their gaps, tail trimmed. */
 function renderBlocks(parent: Node, from = 0): string {
 	let out = '';
 	let prev: Node | null = null;
 	parent.forEach((child, _offset, i) => {
 		if (i < from) return;
-		const text = serializeTypNode(child, { parent, index: i, isLastChild: i === parent.childCount - 1, inTableCell: false }).replace(
-			/\n+$/,
-			''
-		);
+		const text = nestedText(child, parent, i);
 		if (!text) return;
 		if (prev) out += blockGap(prev, child, true, true);
 		out += text;
@@ -218,6 +223,12 @@ const NODES: Record<string, NodeHandler> = {
 		const inner = renderBlocks(node);
 		if (!inner) return '';
 		return `#quote(block: true)[\n  ${indentAfterFirstLine(inner, '  ')}\n]\n\n`;
+	},
+
+	typ_env(node, ctx) {
+		const body: EnvBodyRender = { child: nestedText, gap: (prev, next) => blockGap(prev, next, true, true) };
+		const nested = !!ctx.parent && ctx.parent.type.name !== 'doc';
+		return envSource(node, body, nested) + '\n\n';
 	},
 
 	horizontal_rule() {
@@ -360,11 +371,16 @@ function atLineStart(head: string, bytes: string, tail: string): string | null {
 	return out;
 }
 
-/** what continues a child's lines inside its container: the indentation the file gave its second
- *  line, else the width of what stood before its first (a marker becomes spaces) */
+/** what continues a child's lines inside its container: the indentation of its first line when
+ *  it begins one, else the indentation the file gave its second line, else the width of what stood
+ *  before its first (a marker becomes spaces) */
 function continuation(_parent: Node, text: string, head: string): string {
+	// what a child indents inside itself (an item's second paragraph, an environment's body) its own
+	// handler writes; the container's share is where the child's line begins
+	if (/^[ \t]*$/.test(head)) return head;
 	const nl = text.indexOf('\n');
-	if (nl >= 0) return /^[ \t]*/.exec(text.slice(nl + 1))![0];
+	// a first line that opens a bracket goes on inside it: the lines after it are the child's own
+	if (nl >= 0 && !/[[({][ \t]*$/.test(text.slice(0, nl))) return /^[ \t]*/.exec(text.slice(nl + 1))![0];
 	return head.replace(/\S/g, ' ');
 }
 
@@ -375,6 +391,7 @@ const assembly = createBlockAssembly((node, ctx) => serializeTypNode(node, ctx),
 	leafBytes,
 	inlineBytes,
 	mapInlineLeaves,
+	endsLine: ownsLineEnd,
 	// the line breaks either side of a line taken out from prose would meet as a blank line, a new paragraph
 	keepApart: (bytes, tail, head, gone, parent) => {
 		if (!parent.type.spec.code && blankLineAt(head, bytes, tail)) return null;

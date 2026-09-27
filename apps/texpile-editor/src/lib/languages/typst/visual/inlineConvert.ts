@@ -3,6 +3,8 @@ import type { SyntaxNode } from '@lezer/common';
 import { buildNode, textNodes, collapseTextNodes, realMarks, type PmNode, type PmMark } from './builders';
 import { typstMathToLatex } from './mathTranslate';
 import { alignedSpans, bytesSpan, noteSpans, spansOf, standsFor } from '$lib/editor/visual/sourceSpans';
+import { refCallParts, refMarkupParts } from './refConvert';
+import { spelledAs } from './refSource';
 
 export function children(node: SyntaxNode): SyntaxNode[] {
 	const out: SyntaxNode[] = [];
@@ -106,14 +108,6 @@ function singleArgCall(call: SyntaxNode, src: string, name: string): { arg: Synt
 	const content = real[1] ?? null;
 	if (content && content.name !== 'ContentBlock') return null;
 	return { arg: real[0], content };
-}
-
-/** `#ref(<target>)`: the function form of `@target`, which the serializer writes when the
- *  next character would otherwise extend the marker. */
-export function refCallTarget(call: SyntaxNode, src: string): string | null {
-	const parts = singleArgCall(call, src, 'ref');
-	if (!parts || parts.content || parts.arg.name !== 'Label') return null;
-	return src.slice(parts.arg.from + 1, parts.arg.to - 1);
 }
 
 /** `#raw("...")`: the function form of an inline raw, used when the text holds a backtick. */
@@ -309,9 +303,10 @@ export function convertInline(nodes: SyntaxNode[], src: string, marks: PmMark[])
 				}
 				const link = linkParts(next, src);
 				const markCall = link ? null : markCallParts(next, src);
-				const refTarget = link || markCall ? null : refCallTarget(next, src);
-				const rawText = link || markCall || refTarget != null ? null : rawCallText(next, src);
-				const bareHref = link || markCall || refTarget != null || rawText != null ? null : bareLinkHref(next, src);
+				// `#ref(<target>)` is also what the serializer writes where the next character would extend `@target`
+				const refCall = link || markCall ? null : refCallParts(next, src);
+				const rawText = link || markCall || refCall ? null : rawCallText(next, src);
+				const bareHref = link || markCall || refCall || rawText != null ? null : bareLinkHref(next, src);
 				if (bareHref != null) {
 					out.push(
 						withMarks(
@@ -324,8 +319,9 @@ export function convertInline(nodes: SyntaxNode[], src: string, marks: PmMark[])
 					out.push(...convertInline(children(link.markup), src, [...marks, linkMark]));
 				} else if (markCall) {
 					out.push(...convertInline(children(markCall.markup), src, [...marks, markCall.mark]));
-				} else if (refTarget != null) {
-					out.push(withMarks(noteSpans(buildNode('typ_ref', { target: refTarget }), standsFor(1, k.from, next.to)), marks));
+				} else if (refCall) {
+					const ref = withMarks(noteSpans(buildNode('typ_ref', refCall), standsFor(1, k.from, next.to)), marks);
+					out.push(spelledAs(ref, src.slice(k.from, next.to)));
 				} else if (rawText != null) {
 					out.push(...textNodes(rawText, [...marks, { type: 'code' }], standsFor(rawText.length, k.from, next.to)));
 				} else {
@@ -356,11 +352,10 @@ export function convertInline(nodes: SyntaxNode[], src: string, marks: PmMark[])
 				break;
 			}
 			case 'Ref': {
-				// a bare @target becomes the ref/citation atom; a supplement (`@fig[Figure]`) stays
-				// a chip - the atom's serializer has no slot for it
-				const refKids = children(k);
-				if (refKids.length === 1 && refKids[0].name === 'RefMarker') {
-					out.push(withMarks(noteSpans(buildNode('typ_ref', { target: slice.slice(1) }), standsFor(1, k.from, k.to)), marks));
+				// @target becomes the ref/citation atom, a supplement (`@fig[Figure]`) riding along verbatim
+				const ref = refMarkupParts(k, src);
+				if (ref) {
+					out.push(spelledAs(withMarks(noteSpans(buildNode('typ_ref', ref), standsFor(1, k.from, k.to)), marks), slice));
 				} else {
 					out.push(...chip(slice, marks, k.from));
 				}

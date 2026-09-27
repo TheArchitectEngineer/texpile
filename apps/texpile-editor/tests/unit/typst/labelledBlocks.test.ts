@@ -44,8 +44,10 @@ export const BLOCKS: Record<string, string> = {
 	block_math: '$ x = 1 $',
 	unmodelled_call: '#lorem(20)',
 	// a real builtin the converter has no model for - the previous fixture here invented a function
-	// name, which our parser was happy to treat as raw and typst rejected outright
-	unmodelled_builtin: '#rect(width: 2cm)[body]',
+	// name, which our parser was happy to treat as raw and typst rejected outright. Two bodies are
+	// more than an environment holds
+	unmodelled_builtin: '#grid(columns: 2)[a][b]',
+	environment: '#rect(width: 2cm)[body]',
 	divider: '#line(length: 100%)'
 };
 

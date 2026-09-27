@@ -122,6 +122,7 @@
 					</MenuBarSubmenu>
 					<Menu.Separator class={separatorClass} />
 					<MenuBarSubmenu value="typst" label={m.menubar_insert_typst_source()} {select}>
+						{@render item('environment', m.menubar_insert_environment())}
 						{@render item('rawtypst', m.menubar_insert_raw_typst())}
 						{@render item('inlinetypst', m.menubar_insert_inline_typst())}
 						{@render item('comment', m.menubar_insert_source_comment())}

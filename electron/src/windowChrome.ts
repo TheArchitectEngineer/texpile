@@ -328,6 +328,7 @@ function template(win: BrowserWindow, s: MenuState): MenuItemConstructorOptions[
 					: dialect === 'typ'
 						? [
 								{ type: 'separator' as const },
+								{ ...pm, label: label(s, 'environment', 'Environment…'), click: () => fire(win, 'insert:environment') },
 								{ ...pm, label: label(s, 'includeFile', 'Include file…'), click: () => fire(win, 'insert:include') },
 								{ ...pm, label: label(s, 'sourceComment', 'Source comment'), click: () => fire(win, 'insert:comment') }
 							]

@@ -9,6 +9,8 @@ import { computeMathAttrs } from '$lib/editor/visual/extensions/mathlivebridge/m
 import { createCodeBlock } from '$lib/editor/visual/extensions/codemirrorbridge/cmcommands';
 import { createTableNode } from '$lib/editor/visual/tableUtils';
 import { typTableNode } from '$lib/languages/typst/visual/blockInsertItems';
+import { definedFunctions, environmentSuggestions, environmentsInDoc } from '$lib/languages/typst/visual/envNames';
+import { envHeadReadsBack } from '$lib/languages/typst/visual/extensions/env/envHeadEdits';
 import { mdTableNode } from '$lib/languages/markdown/visual/blockInsertItems';
 import { toggleLinkCommand } from '$lib/editor/visual/toolbar/markState';
 import { computeLink as texLink, computeWrapBlock } from '$lib/languages/latex/intellisense/shortcuts';
@@ -92,6 +94,15 @@ export function makeInsertHandlers(deps: InsertDeps): {
 	const insertDrawn = makeDrawnInserts(deps);
 	const insertTypst = makeTypstInserts(deps);
 
+	/** the function a new typst environment calls, offering the ones the document defines first; a
+	 *  name that would not read back as an environment is not taken */
+	async function askTypstEnvironment(source: string, used: string[]): Promise<string | null> {
+		const offered = environmentSuggestions(source, used);
+		const initial = definedFunctions(source)[0] ?? 'block';
+		const name = (await deps.askText(m.menubar_prompt_typst_environment_name(), initial, offered))?.trim();
+		return name && envHeadReadsBack(name, null) ? name : null;
+	}
+
 	async function insertSelect(value: string) {
 		if (deps.dialect() === 'typ' && (await insertTypst(value))) return;
 		if (await insertDrawn(value)) return;
@@ -128,7 +139,12 @@ export function makeInsertHandlers(deps: InsertDeps): {
 					break;
 				}
 				case 'environment': {
-					if (dialect !== 'tex') break; // tex-only item; unreachable elsewhere
+					if (dialect === 'typ') {
+						const name = await askTypstEnvironment(s.doc.toString(), []);
+						if (name) cmReplace(cm, `#${name}[`, ']');
+						break;
+					}
+					if (dialect !== 'tex') break; // tex and typst items; unreachable elsewhere
 					const name = (await deps.askText(m.menubar_prompt_environment_name(), 'center'))?.trim();
 					if (name) cmReplace(cm, `\\begin{${name}}\n`, `\n\\end{${name}}`);
 					break;
@@ -183,6 +199,13 @@ export function makeInsertHandlers(deps: InsertDeps): {
 				break;
 			}
 			case 'environment': {
+				if (dialect === 'typ') {
+					const doc = editorViewStore.current?.state.doc;
+					const found = doc ? environmentsInDoc(doc) : { source: '', used: [] };
+					const typName = await askTypstEnvironment(found.source, found.used);
+					if (typName) insertNode((state) => state.schema.nodes.typ_env.create({ name: typName }, state.schema.nodes.paragraph.create()));
+					break;
+				}
 				const name = await deps.askText(m.menubar_prompt_environment_name(), 'center');
 				if (name?.trim())
 					insertNode((state) => state.schema.nodes.environment.create({ name: name.trim() }, state.schema.nodes.paragraph.create()));

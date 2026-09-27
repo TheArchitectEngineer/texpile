@@ -2,6 +2,7 @@
 import type { Node, Mark } from 'prosemirror-model';
 import { latexToTypst } from './latexToTypst';
 import { codeEndsBefore } from './codeExtent';
+import { typRefSpelling } from './refSource';
 import { createShadow, markupPlaceholder } from '$lib/serializer/shadowLeaves';
 
 // nodes whose handler output is one run: their bytes come from attrs, not from text leaves
@@ -230,13 +231,16 @@ function buildRuns(parent: Node, startOfLine: boolean, extra: string, singleLine
 				});
 				break;
 			}
-			case 'typ_ref':
+			case 'typ_ref': {
+				// a supplement's `]` or a call's `)` ends the reference; only the bare marker reads on
+				const spelling = typRefSpelling(node);
 				runs.push({
-					content: typstShadow.shadowed(node, `@${String(node.attrs.target ?? '')}`),
+					content: typstShadow.shadowed(node, spelling.text),
 					marks: orderedMarks(node.marks),
-					kind: 'ref'
+					kind: spelling.plain ? 'ref' : 'other'
 				});
 				break;
+			}
 			case 'inline_math': {
 				const t = inlineMathTypst(node);
 				runs.push({ content: t.trim() ? typstShadow.shadowed(node, `$${t}$`) : '', marks: orderedMarks(node.marks), kind: 'other' });

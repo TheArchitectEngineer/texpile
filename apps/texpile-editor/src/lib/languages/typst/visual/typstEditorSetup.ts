@@ -34,7 +34,8 @@ import { selectFigureBackward, selectFigureForward } from '$lib/editor/visual/fi
 import { emDashRule, enDashRule, emDashUpgradeRule } from '$lib/editor/visual/extensions/inputrules/dashRules';
 import { search } from 'prosemirror-search';
 import { typSchema } from './schema';
-import { TypstRefView } from './extensions/typstRefView';
+import { TypstRefView } from './extensions/ref/typstRefView.svelte';
+import { typstEnvView } from './extensions/env/typstEnvView.svelte';
 import { TYP_BLOCK_INSERT_ITEMS } from './blockInsertItems';
 import { isMac } from '$lib/platform';
 import { toggleHeading } from '$lib/editor/visual/helperCommands';
@@ -255,6 +256,7 @@ export function typstNodeViews(docDir: () => string): NonNullable<EditorProps['n
 		// the shared table wrapper chrome (Table N header, gear with label + verbatim columns)
 		// in typst mode: every LaTeX-only control is gated off inside
 		table_wrapper: (node, view, getPos) => typstTableWrapperView(node, view, getPos as () => number),
-		typ_ref: (node) => new TypstRefView(node)
+		typ_ref: (node, view, getPos) => new TypstRefView(node, view, getPos),
+		typ_env: (node, view, getPos) => typstEnvView(node, view, getPos)
 	};
 }

@@ -22,7 +22,6 @@ import {
 	convertInline,
 	linkParts,
 	markCallParts,
-	refCallTarget,
 	rawCallText,
 	unquote,
 	expressionEnd,
@@ -30,6 +29,7 @@ import {
 	EXPRESSION_KINDS
 } from './inlineConvert';
 import { typstMathToLatex } from './mathTranslate';
+import { refCallParts } from './refConvert';
 import {
 	blockSpanOf,
 	bytesSpan,
@@ -44,6 +44,7 @@ import {
 import { rememberParseMap } from '$lib/editor/visual/parseOrigins';
 import { tableSeg } from './tableConvert';
 import { figureSeg } from './figureConvert';
+import { envSeg } from './envConvert';
 import { headingSeg, headingCallSeg, listSeg, termSeg, quoteSeg, aloneWithLabel, labelGapOf } from './segConvert';
 import { typstDrawnCommand } from './extensions/drawn/typstDrawn';
 
@@ -212,11 +213,16 @@ export function convertMarkup(kids: SyntaxNode[], src: string): Seg[] {
 					else segs.push({ blocks: [includeOrRaw(k, next, last, src)], from: k.from, to: last.to });
 					i = (note ? after + 2 : after) - 1;
 				} else if (next && buf.length === 0) {
-					const fig = figureSeg(kids, i, src) ?? tableSeg(kids, i, src) ?? quoteSeg(kids, i, src) ?? headingCallSeg(kids, i, src);
+					const modelled =
+						figureSeg(kids, i, src) ??
+						tableSeg(kids, i, src) ??
+						quoteSeg(kids, i, src) ??
+						headingCallSeg(kids, i, src) ??
+						(inlineCall(next, src) ? null : envSeg(kids, i, src));
 					const alone = aloneWithLabel(kids, i + 2);
-					if (fig) {
-						segs.push(fig.seg);
-						i = fig.next - 1;
+					if (modelled) {
+						segs.push(modelled.seg);
+						i = modelled.next - 1;
 					} else if (alone && !alone.label && src.slice(next.from, next.to) === 'line(length: 100%)') {
 						// the canonical full-width divider, byte-exact; any other #line stays raw. A
 						// LABELLED one stays raw too - horizontal_rule has nowhere to keep the label,
@@ -307,7 +313,7 @@ function lineEndComment(kids: SyntaxNode[], at: number, src: string): SyntaxNode
 /** the call shapes the inline walker turns into marks or atoms rather than chips */
 function inlineCall(call: SyntaxNode, src: string): boolean {
 	return (
-		linkParts(call, src) != null || markCallParts(call, src) != null || refCallTarget(call, src) != null || rawCallText(call, src) != null
+		linkParts(call, src) != null || markCallParts(call, src) != null || refCallParts(call, src) != null || rawCallText(call, src) != null
 	);
 }
 
