@@ -309,7 +309,7 @@
 				onclick={handleAddToDictionary}
 				use:tip={m.harper_add_to_dictionary_title({ word: error.text })}
 			>
-				<IconBookPlus size={13} />
+				<IconBookPlus size={13} class="-translate-y-px" />
 				<span>{m.harper_add_to_dictionary_button()}</span>
 			</button>
 		{/if}
@@ -319,7 +319,7 @@
 				onclick={() => turnOffRule(offRule)}
 				use:tip={m.harper_turn_off_rule_title({ rule: ruleName(offRule) })}
 			>
-				<IconCircleOff size={13} />
+				<IconCircleOff size={13} class="-translate-y-px" />
 				<span>{m.harper_turn_off_rule_button()}</span>
 			</button>
 		{/if}
