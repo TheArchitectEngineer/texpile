@@ -22,7 +22,9 @@ import { foldMarkerDom, foldMarkerTheme } from '$lib/languages/latex/intellisens
 import { mdSourceShortcuts } from '$lib/languages/markdown/source/sourceExtensions';
 import { typSourceShortcuts } from '$lib/languages/typst/source/sourceExtensions';
 import { typstEnterContinuation } from '$lib/languages/typst/source/enterContinuation';
-import { createProjectFile, typstColorSwatches, typstGoTo, typstQuickFix } from '$lib/languages/typst/intellisense/editorActions';
+import { typstGoTo } from '$lib/languages/typst/intellisense/goToDefinition';
+import { createProjectFile, typstQuickFix } from '$lib/languages/typst/intellisense/quickFix';
+import { typstColorSwatches } from '$lib/languages/typst/intellisense/colorSwatches';
 import { guestSession } from '$lib/collab/guestSession';
 import { mdPathCompletion } from '$lib/languages/markdown/pathCompletion';
 import { cmSpellcheck } from '$lib/editor/spellcheck/cmSpellcheck';

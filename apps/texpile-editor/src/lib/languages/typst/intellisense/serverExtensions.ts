@@ -6,7 +6,7 @@ export function typstServerExtensions() {
 	return [
 		typstCompletion(),
 		hoverTooltips(),
-		// no jumpToDefinitionKeymap: F12 is typstGoTo's (editorActions.ts), which reads tinymist's
+		// no jumpToDefinitionKeymap: F12 is typstGoTo's (goToDefinition.ts), which reads tinymist's
 		// LocationLink answers and opens other files; the client's reads neither
 		keymap.of([...formatKeymap, ...renameKeymap, ...findReferencesKeymap]),
 		signatureHelp(),

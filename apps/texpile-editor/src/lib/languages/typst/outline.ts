@@ -5,6 +5,9 @@
 import type { Parser, SyntaxNode, Tree } from '@lezer/common';
 import type { TocItem } from '$lib/editor/visual/extensions/tableofcontents/tocStore';
 
+/** the nodes whose text is a heading's words, as written */
+const WORDS = new Set(['Text', 'Space', 'SmartQuote', 'Shorthand', 'Link', 'Ref', 'Equation', 'Raw']);
+
 /** the headings in `tree` (parsed from `src`), in document order; `pos` is a char offset */
 export function typstOutline(tree: Tree, src: string): TocItem[] {
 	const items: TocItem[] = [];
@@ -24,8 +27,6 @@ export function typstOutline(tree: Tree, src: string): TocItem[] {
 function headingText(body: SyntaxNode, src: string): string {
 	return words(body, src).replace(/\s+/g, ' ').trim();
 }
-
-const WORDS = new Set(['Text', 'Space', 'SmartQuote', 'Shorthand', 'Link', 'Ref', 'Equation', 'Raw']);
 
 function words(node: SyntaxNode, src: string): string {
 	let out = '';

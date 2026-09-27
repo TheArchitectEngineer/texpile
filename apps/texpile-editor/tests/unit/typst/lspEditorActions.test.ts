@@ -8,13 +8,9 @@ import { EditorView } from '@codemirror/view';
 import { Compartment, EditorState } from '@codemirror/state';
 import { LSPClient, LSPPlugin, type Transport } from '@codemirror/lsp-client';
 import { typstLanguage } from '$lib/languages/typst/source/typstLanguage';
-import {
-	actionPlan,
-	choosePresentation,
-	snippetText,
-	typstColorSwatches,
-	typstGoTo
-} from '$lib/languages/typst/intellisense/editorActions';
+import { typstGoTo } from '$lib/languages/typst/intellisense/goToDefinition';
+import { actionPlan, snippetText } from '$lib/languages/typst/intellisense/quickFix';
+import { choosePresentation, typstColorSwatches } from '$lib/languages/typst/intellisense/colorSwatches';
 
 // jsdom lays nothing out; CodeMirror measures ranges when it scrolls a jump into view
 if (!Range.prototype.getClientRects) {
