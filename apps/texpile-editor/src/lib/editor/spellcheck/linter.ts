@@ -230,34 +230,22 @@ export async function syncDocumentDictionary(): Promise<void> {
 }
 
 export async function addWordToDocumentDictionary(word: string): Promise<void> {
+	await addWordsToDocumentDictionary([word]);
+}
+
+/** adds each of `words` not in the dictionary yet; the words it added */
+export async function addWordsToDocumentDictionary(words: readonly string[]): Promise<string[]> {
 	const currentConfig = editorConfigStore.current;
-	const currentDictionary = currentConfig?.dictionary || [];
+	if (!currentConfig) return [];
+	const currentDictionary = currentConfig.dictionary || [];
+	const fresh = [...new Set(words.map((w) => w.trim().toLowerCase()).filter((w) => w && !currentDictionary.includes(w)))];
+	if (!fresh.length) return [];
 
-	const normalizedWord = word.trim().toLowerCase();
-
-	if (!normalizedWord) {
-		console.warn('[Harper] Cannot add empty word to dictionary');
-		return;
-	}
-
-	if (currentDictionary.includes(normalizedWord)) {
-		console.log('[Harper] Word already in dictionary:', normalizedWord);
-		return;
-	}
-
-	console.log('[Harper] Adding word to dictionary:', normalizedWord);
-
-	if (!currentConfig) return;
-	const updatedConfig = {
-		...currentConfig,
-		dictionary: [...currentDictionary, normalizedWord]
-	};
-	editorConfigStore.current = updatedConfig;
-
+	editorConfigStore.current = { ...currentConfig, dictionary: [...currentDictionary, ...fresh] };
 	const linter = await getHarperLinter();
-	await linter.importWords([normalizedWord]);
-
-	lastLoadedDictionary = [...currentDictionary, normalizedWord];
+	await linter.importWords(fresh);
+	lastLoadedDictionary = [...currentDictionary, ...fresh];
+	return fresh;
 }
 
 export async function removeWordFromDocumentDictionary(word: string): Promise<void> {
