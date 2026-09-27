@@ -20,6 +20,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: cite by title or DOI, and Zotero's insert citation, are offered before a folder has a main file; the entry goes to the bibliography the open file names, else the folder's .bib (by @louisqli)
 - fix: replace across files keeps a comment on the words it rewrites in a file that is not open, and in suggestion mode makes those changes suggestions, as it does in the open file; undo puts both back (by @louisqli)
 - fix: the visual editor shows one loading bar while it renders a file, not two (by @louisqli)
+- fix: comment cards a narrow editor pane cuts off fade out at its edge, rather than stopping in a hard line mid-word (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 

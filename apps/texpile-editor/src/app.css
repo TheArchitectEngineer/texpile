@@ -966,6 +966,15 @@ html.pm-drop-refused .pm-drop-cursor {
 .comment-card-hovered {
 	border-color: var(--color-surface-300-700);
 }
+/* the cards fading into the pane where its edge cuts them; placed by CommentRail */
+.comment-rail-fade {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	z-index: 6;
+	pointer-events: none;
+	background: linear-gradient(to right, transparent, var(--comment-rail-fade-bg));
+}
 .comment-card-selected,
 .comment-card-pending {
 	left: calc(6px - var(--comment-card-shift, 0px));

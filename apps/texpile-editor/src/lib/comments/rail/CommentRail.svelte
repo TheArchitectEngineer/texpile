@@ -183,6 +183,60 @@
 		return () => ro.disconnect();
 	});
 
+	// Where the pane's visible edge cuts the cards, in the rail's own coordinates, while it cuts any:
+	// a narrow pane keeps its narrow column and its cards run on past the edge for a sideways
+	// scroll, and a card sliced there mid-word looked like a rendering fault. The cut fades into the
+	// pane's background instead. It sits at the visible edge, which is beside the column whenever it
+	// cuts a card, so it never lies over the text.
+	const FADE = 24;
+	let cut = $state<{ x: number; bg: string } | null>(null);
+	function measureCut() {
+		const box = mode === 'visual' ? scroller : cmView?.scrollDOM;
+		const el = rail;
+		if (!box || !el || !showing) return void (cut = null);
+		const edge = box.getBoundingClientRect().left + box.clientLeft + box.clientWidth;
+		let right = -Infinity;
+		for (const card of el.querySelectorAll<HTMLElement>('.comment-card')) right = Math.max(right, card.getBoundingClientRect().right);
+		if (right <= edge + 0.5) return void (cut = null);
+		const x = edge - el.getBoundingClientRect().left - el.clientLeft;
+		if (cut?.x !== x) cut = { x, bg: backdrop(box) };
+	}
+	/** the colour behind the cards: the first painted background from the scroller out */
+	function backdrop(from: HTMLElement): string {
+		for (let n: HTMLElement | null = from; n; n = n.parentElement) {
+			const bg = getComputedStyle(n).backgroundColor;
+			if (bg && bg !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(bg)) return bg;
+		}
+		return getComputedStyle(document.body).backgroundColor;
+	}
+	$effect(() => {
+		const box = mode === 'visual' ? scroller : cmView?.scrollDOM;
+		const el = rail;
+		if (!box || !el) return;
+		box.addEventListener('scroll', measureCut, { passive: true });
+		// cards slide to a new place (CSS transitions on top and left): measure where they came to rest
+		el.addEventListener('transitionend', measureCut);
+		const ro = new ResizeObserver(measureCut);
+		ro.observe(box);
+		ro.observe(el);
+		return () => {
+			box.removeEventListener('scroll', measureCut);
+			el.removeEventListener('transitionend', measureCut);
+			ro.disconnect();
+		};
+	});
+	$effect(() => {
+		// the cards moved, came or went, or one widened on selection: after they are drawn
+		void positions;
+		void placed;
+		void composing;
+		void ctl.selected;
+		void shift;
+		void inflow;
+		void showing;
+		requestAnimationFrame(() => untrack(measureCut));
+	});
+
 	let revealedSeq = 0;
 	$effect(() => {
 		const req = ctl.toReveal;
@@ -274,5 +328,12 @@
 			onCancel={() => ctl.cancelAdd()}
 			onSize={(h) => setHeight(PENDING_ANCHOR, h)}
 		/>
+	{/if}
+	{#if cut}
+		<div
+			class="comment-rail-fade"
+			style="left: {cut.x - FADE}px; width: {FADE}px; --comment-rail-fade-bg: {cut.bg}"
+			aria-hidden="true"
+		></div>
 	{/if}
 </aside>
