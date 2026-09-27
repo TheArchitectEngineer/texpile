@@ -194,12 +194,23 @@
 		const box = mode === 'visual' ? scroller : cmView?.scrollDOM;
 		const el = rail;
 		if (!box || !el || !showing) return void (cut = null);
-		const edge = box.getBoundingClientRect().left + box.clientLeft + box.clientWidth;
+		const edge = clipEdge(box);
 		let right = -Infinity;
 		for (const card of el.querySelectorAll<HTMLElement>('.comment-card')) right = Math.max(right, card.getBoundingClientRect().right);
 		if (right <= edge + 0.5) return void (cut = null);
 		const x = edge - el.getBoundingClientRect().left - el.clientLeft;
 		if (cut?.x !== x) cut = { x, bg: backdrop(box) };
+	}
+	/**
+	 * Where the scroller stops showing its content. A vertical scrollbar clips it at the scrollbar,
+	 * but the space both panes keep for one (scrollbar-gutter: stable) does not while no scrollbar is
+	 * drawn: a short file's cards run on into it, up to the border.
+	 */
+	function clipEdge(box: HTMLElement): number {
+		const r = box.getBoundingClientRect();
+		const style = getComputedStyle(box);
+		const bar = style.overflowY === 'scroll' || (style.overflowY === 'auto' && box.scrollHeight > box.clientHeight + 1);
+		return bar ? r.left + box.clientLeft + box.clientWidth : r.right - parseFloat(style.borderRightWidth);
 	}
 	/** the colour behind the cards: the first painted background from the scroller out */
 	function backdrop(from: HTMLElement): string {
