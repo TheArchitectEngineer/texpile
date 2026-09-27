@@ -27,6 +27,7 @@ import { compileLog } from '$lib/stores/compileLogStore';
 import { pdfStore } from '$lib/stores/pdfStore';
 import { filePathStore } from '$lib/stores/editorStore';
 import { references } from '$lib/workspace/citations';
+import { LiveRefChecks } from '$lib/workspace/liveRefChecks.svelte';
 import { tabs } from '$lib/workspace/tabs.svelte';
 import {
 	workspaceRoot,
@@ -167,6 +168,31 @@ export class WorkspaceIntegrations {
 			return this.registries.schedule();
 		});
 		$effect(() => this.registries.publish(this.allReferences));
+		// the open LaTeX file's labels, citations and file names, checked as it is typed
+		const refChecks = new LiveRefChecks({
+			read: (p) => d.provider.readText(p),
+			open: () => (doc.path && doc.kind === 'tex' && !activeCompare.current ? { path: doc.path, text: doc.texSource } : null),
+			main: () => mainFile.current,
+			root: () => workspaceRoot.current,
+			files: () => filePathStore.current,
+			knownKeys: () => new Set(references.current.map((r) => r.key))
+		});
+		// what the other files hold moves only when a file, the main file or the open file does
+		$effect(() => {
+			void fileTree.current;
+			void mainFile.current;
+			void doc.path;
+			void activeCompare.current;
+			void references.current;
+			void workspaceRoot.current;
+			untrack(() => void refChecks.refresh());
+		});
+		$effect(() => {
+			void doc.texSource;
+			void filePathStore.current;
+			return untrack(() => refChecks.schedule());
+		});
+		$effect(() => () => refChecks.destroy());
 		$effect(() => {
 			const tree = fileTree.current;
 			const root = workspaceRoot.current;
