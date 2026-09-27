@@ -31,6 +31,8 @@ const NOT_FOUND_RE = /repository not found|does not appear to be a git repositor
 export function classifyCloneError(message: string): CloneFailure {
 	const push = classifyPushError(message);
 	if (push === 'auth') return 'auth';
+	// a repository this account may not read looks, from outside, like one that is not there
+	if (push === 'forbidden') return 'not-found';
 	if (NOT_FOUND_RE.test(message)) return 'not-found';
 	return push === 'network' ? 'network' : 'other';
 }

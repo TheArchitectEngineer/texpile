@@ -52,6 +52,8 @@ export type PaletteActions = {
 	openFolder(): void;
 	/** absent where git cannot be run: the web build, an older desktop preload */
 	cloneRepository?: () => void;
+	/** drop the git sign-ins kept in the keychain; absent without the desktop app */
+	forgetSignIns?: () => void;
 	refreshTree(): void;
 	/** open tinymist's incremental viewer for the current .typ, in its own window */
 	openTypstPreview(): void;

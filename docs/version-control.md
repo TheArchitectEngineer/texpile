@@ -64,7 +64,11 @@ To work on a project that is already on GitHub or elsewhere, choose Clone reposi
 
 ## Signing in
 
-Texpile signs in with whatever git already uses: Git Credential Manager, the macOS keychain, `gh auth setup-git`, or an SSH key. When none of those has an answer, git's question appears in the window instead of failing: a username and password, an SSH key's passphrase, or whether to trust a server it has not seen before. For GitHub, use a personal access token with the repo scope as the password. A credential manager keeps it after it works, so it is asked for once.
+Texpile signs in with whatever git already uses: Git Credential Manager, the macOS keychain, `gh auth setup-git`, or an SSH key. When none of those has an answer, git's question appears in the window instead of failing: a username and password, an SSH key's passphrase, or whether to trust a server it has not seen before. For GitHub, use a personal access token with the repo scope as the password. A credential manager keeps it after it works, so it is asked for once. Without one, Texpile keeps the username and password (or token) in your system keychain once they have worked, and forgets them if they stop working; Forget saved Git sign-ins in the command palette removes them. On Linux this needs a keyring (GNOME Keyring or KWallet); without one nothing is kept.
+
+To publish to a new GitHub repository over SSH, tick Upload over SSH in the Publish dialog: the token only creates the repository, and uploads then use the SSH key on your GitHub account.
+
+If you upload to someone else's GitHub repository, GitHub refuses it. Texpile then offers to make your own copy of it (a fork) and upload there; from then on the project syncs with your copy.
 
 The first time you save a version on a computer where git does not know your name and email, Texpile asks for them and saves them for all your projects.
 

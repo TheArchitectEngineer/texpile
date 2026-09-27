@@ -27,6 +27,7 @@ import { askIdentity, askPublish, type PublishChoice } from './gitDialogs.svelte
 import { ScmCombine } from './scmCombine.svelte';
 import { ScmBranches } from './scmBranches.svelte';
 import { ScmMilestones } from './scmMilestones.svelte';
+import { offerFork } from './scmFork.svelte';
 import { uploadReason } from './uploadReason';
 import { basename, samePath, joinPath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
@@ -393,6 +394,7 @@ export class ScmActions {
 			const res = await githubPublish(root, {
 				name: choice.name,
 				isPrivate: choice.isPrivate,
+				ssh: choice.ssh,
 				remote: freeRemoteName(current, ['origin', 'github'])
 			});
 			if (res.ok) {
@@ -428,6 +430,8 @@ export class ScmActions {
 	/** after a push -u: '' when the author cancelled signing in, the reason it failed, or null */
 	private async published(root: string, res: GitPushResult): Promise<string | null> {
 		if (!res.ok && res.failure === 'rejected') return m.vcs_publish_rejected({ remote: res.remote ?? '' });
+		// someone else's repository: a fork is the way to publish to it
+		if (!res.ok && res.failure === 'forbidden' && (await offerFork(root, res.remote))) return null;
 		if (!res.ok) return res.failure === 'cancelled' ? '' : uploadReason(res);
 		await refreshGitStatus(root); // the branch tracks something now, and the panel shows Sync
 		toaster.success({ title: m.vcs_toast_published({ remote: res.remote ?? '' }) });
@@ -479,6 +483,8 @@ export class ScmActions {
 				);
 			} else if (res.failure === 'conflict') {
 				await this.combine.offer(root, res);
+			} else if (res.failure === 'forbidden' && (await offerFork(root, res.remote))) {
+				// someone else's repository: the fork offer was the answer
 			} else if (res.failure !== 'cancelled') {
 				toaster.error({ title: m.vcs_toast_sync_failed(), description: uploadReason(res) });
 			}

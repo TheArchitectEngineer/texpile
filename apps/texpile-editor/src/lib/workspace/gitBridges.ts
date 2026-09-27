@@ -7,5 +7,12 @@ import type { GitCloneBridge } from './gitClone';
 import type { GitVersionBridge } from './gitVersion';
 import type { GitBranchBridge } from './gitBranches';
 import type { GitMilestoneBridge } from './gitMilestones';
+import type { GithubForkBridge } from './githubFork';
 
-export type GitBridges = GitRemoteBridge & GitCombineBridge & GitCloneBridge & GitVersionBridge & GitBranchBridge & GitMilestoneBridge;
+export type GitBridges = GitRemoteBridge &
+	GitCombineBridge &
+	GitCloneBridge &
+	GitVersionBridge &
+	GitBranchBridge &
+	GitMilestoneBridge &
+	GithubForkBridge;

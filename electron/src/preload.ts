@@ -298,6 +298,10 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitMarkMilestone: (root: string, hash: string, label: string) => invokeFs('git:markMilestone', root, hash, label),
 	/** remove a milestone here and on the remote the branch syncs with -> { ok, failure? }. */
 	gitRemoveMilestone: (root: string, name: string) => invokeFs('git:removeMilestone', root, name),
+	/** fork the remote's GitHub repository, add the fork, publish the branch there -> { ok, url?, remote?, failure? }. */
+	githubFork: (root: string, remote: string) => invokeFs('git:githubFork', root, remote),
+	/** drop every sign-in Texpile kept in the keychain -> true. */
+	gitForgetSignIns: () => ipcRenderer.invoke('git:forgetSignIns'),
 	/** git clone into <parent>/<name> -> { ok, path?, failure? }; progress arrives on onGitCloneProgress. */
 	gitClone: (url: string, parent: string, name: string) => invokeFs('git:clone', url, parent, name),
 	/** stop this window's clone; git removes what it had downloaded */
@@ -311,7 +315,8 @@ contextBridge.exposeInMainWorld('texpileNative', {
 		return () => ipcRenderer.removeListener('git:cloneProgress', h);
 	},
 	/** create a GitHub repository, add it as `remote`, publish the branch there -> { ok, url?, failure? }. */
-	githubPublish: (root: string, opts: { name: string; isPrivate: boolean; remote: string }) => invokeFs('git:githubPublish', root, opts),
+	githubPublish: (root: string, opts: { name: string; isPrivate: boolean; remote: string; ssh?: boolean }) =>
+		invokeFs('git:githubPublish', root, opts),
 	/** git or ssh asking for a username, password, passphrase or host-key answer; returns an unsubscribe fn */
 	onGitAskpass: (cb: (req: unknown) => void) => {
 		function h(_e: unknown, req: unknown) {

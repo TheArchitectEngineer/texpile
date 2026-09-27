@@ -15,11 +15,32 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describePrompt, writeAskpassScripts, askpassEnv } from './gitAskpassClient';
 import type { GitAuthEnv } from './gitRemote';
+import { SignIns, keepable, keychainVault, settle } from './gitSignIns';
 
 /** One operation's worth of questions. `answers` is why a sign-in is typed once: publishing to
  *  GitHub reads the credential and then pushes with it, and git asks the same two questions both
  *  times. It lives exactly as long as the operation. */
-type Session = { sender: WebContents; cancelled: boolean; answers: Map<string, string> };
+type Session = {
+	sender: WebContents;
+	cancelled: boolean;
+	answers: Map<string, string>;
+	/** sign-ins typed this time, kept if the operation works (gitSignIns.ts) */
+	typed: Map<string, string>;
+	/** sign-ins answered from the keychain, forgotten if the operation is refused */
+	recalled: Set<string>;
+};
+
+let signIns: SignIns | null = null;
+/** made on first use: safeStorage needs the app ready */
+function signInStore(): SignIns {
+	signIns ??= new SignIns(keychainVault());
+	return signIns;
+}
+
+/** Preferences' Forget saved sign-ins */
+export function forgetSignIns(): void {
+	signInStore().forgetAll();
+}
 
 const sessions = new Map<string, Session>();
 const waiting = new Map<number, { session: Session; resolve: (answer: string | null) => void }>();
@@ -93,16 +114,27 @@ async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; 
 	// ssh's notices ("confirm user presence for key ...") want no answer and are not waited on
 	if (promptType === 'none') return '';
 	const request = describePrompt(req.kind === 'ssh' ? 'ssh' : 'https', req.prompt, promptType);
+	const keep = req.kind !== 'ssh' && keepable(request.subject);
+	if (keep) {
+		const kept = signInStore().recall(req.prompt);
+		if (kept !== null) {
+			session.recalled.add(req.prompt);
+			session.answers.set(req.prompt, kept);
+			return kept;
+		}
+	}
 	const id = nextId++;
 	const reply = await new Promise<string | null>((resolve) => {
 		waiting.set(id, { session, resolve });
-		session.sender.send('git:askpass', { id, ...request });
+		// `kept`: the prompt says the answer is remembered once it works, since it will be
+		session.sender.send('git:askpass', { id, ...request, kept: keep && signInStore().available });
 	});
 	if (reply === null) {
 		session.cancelled = true;
 		return null;
 	}
 	session.answers.set(req.prompt, reply);
+	if (keep) session.typed.set(req.prompt, reply);
 	return reply;
 }
 
@@ -130,7 +162,7 @@ export async function withAskpass<T extends { ok: boolean; failure?: string }>(
 	const b = await ensureBridge();
 	if (!b) return op({});
 	const token = randomBytes(24).toString('hex');
-	const session: Session = { sender, cancelled: false, answers: new Map() };
+	const session: Session = { sender, cancelled: false, answers: new Map(), typed: new Map(), recalled: new Set() };
 	sessions.set(token, session);
 	function onGone() {
 		dropQuestions(session);
@@ -138,6 +170,8 @@ export async function withAskpass<T extends { ok: boolean; failure?: string }>(
 	sender.once('destroyed', onGone);
 	try {
 		const result = await op(askpassEnv(b.dir, b.handle, token, process.execPath));
+		// kept only once they worked; a kept one that was refused is dropped, so the next try asks
+		settle(signInStore(), result, session.typed, session.recalled);
 		return !result.ok && session.cancelled ? { ...result, failure: 'cancelled' } : result;
 	} finally {
 		sessions.delete(token);
@@ -147,6 +181,10 @@ export async function withAskpass<T extends { ok: boolean; failure?: string }>(
 }
 
 export function registerAskpassIpc(): void {
+	ipcMain.handle('git:forgetSignIns', () => {
+		forgetSignIns();
+		return true;
+	});
 	// null (or anything not a string) is Cancel. Only the window that was asked can answer.
 	ipcMain.handle('git:askpassReply', (e, id: unknown, reply: unknown) => {
 		const w = typeof id === 'number' ? waiting.get(id) : undefined;

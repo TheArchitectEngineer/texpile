@@ -218,7 +218,7 @@ export async function gitRestore(root: string, hash: string, message: string): P
 
 /** why an upload did not happen; the panel turns each into a different sentence. 'cancelled' is
  *  the author closing the sign-in prompt, which is not reported as a failure at all. */
-export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'network' | 'cancelled' | 'other';
+export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'forbidden' | 'network' | 'cancelled' | 'other';
 
 export type GitPushResult = {
 	ok: boolean;
@@ -345,7 +345,7 @@ export type GithubPublishResult = {
 /** create a GitHub repository, add it as `remote`, and publish this branch to it */
 export async function githubPublish(
 	root: string,
-	opts: { name: string; isPrivate: boolean; remote: string }
+	opts: { name: string; isPrivate: boolean; remote: string; ssh?: boolean }
 ): Promise<GithubPublishResult> {
 	const n = nativeBridge();
 	if (!n?.githubPublish) return { ok: false, error: NO_BRIDGE };
@@ -365,10 +365,11 @@ export type GitRemoteBridge = {
 	gitAddRemote?: (root: string, name: string, url: string) => Promise<GitOpResult>;
 	gitPublish?: (root: string, remote: string) => Promise<GitPushResult>;
 	gitSync?: (root: string) => Promise<GitSyncResult>;
-	githubPublish?: (root: string, opts: { name: string; isPrivate: boolean; remote: string }) => Promise<GithubPublishResult>;
+	githubPublish?: (root: string, opts: { name: string; isPrivate: boolean; remote: string; ssh?: boolean }) => Promise<GithubPublishResult>;
 	onGitAskpass?: (cb: (req: GitAskpassRequest) => void) => () => void;
 	onGitAskpassClosed?: (cb: (ids: number[]) => void) => () => void;
 	gitAskpassReply?: (id: number, answer: string | null) => Promise<boolean>;
+	gitForgetSignIns?: () => Promise<boolean>;
 };
 
 /** one question git or ssh asked on the way to a remote (electron/src/gitAskpassClient.ts) */
@@ -378,7 +379,18 @@ export type GitAskpassRequest = {
 	subject: 'username' | 'password' | 'passphrase' | 'host-key' | 'other';
 	prompt: string;
 	host: string | null;
+	/** the answer is kept in the system keychain once it works (electron/src/gitSignIns.ts) */
+	kept?: boolean;
 };
+
+/** drop the sign-ins Texpile kept in the keychain; false where there is no desktop bridge */
+export async function gitForgetSignIns(): Promise<boolean> {
+	try {
+		return !!(await nativeBridge()?.gitForgetSignIns?.());
+	} catch {
+		return false;
+	}
+}
 
 /** forget that git was missing: "Check again" after installing it */
 export async function gitRecheck(): Promise<void> {

@@ -14,6 +14,8 @@ export function uploadReason(res: Failed): string {
 			return m.vcs_sync_rejected({ remote });
 		case 'auth':
 			return m.vcs_upload_auth({ remote });
+		case 'forbidden':
+			return m.vcs_upload_forbidden({ remote });
 		case 'network':
 			return m.vcs_upload_network({ remote });
 		case 'no-upstream':

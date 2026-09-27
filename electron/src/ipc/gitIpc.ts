@@ -6,6 +6,7 @@ import { handleFs, handleFsE } from './ipcResult';
 import { timeSpan } from '../startupStats';
 import { withAskpass, registerAskpassIpc } from '../gitAskpass';
 import { githubPublish } from '../githubPublish';
+import { githubFork } from '../githubFork';
 
 // channel -> gitService export
 const OPS: Record<string, string> = {
@@ -85,7 +86,8 @@ export function registerGitIpc(): void {
 		for (const [key, sender] of running) if (sender === e.sender) await helperCall('git.cancelClone', [key]);
 		return true;
 	});
-	handleFsE('git:githubPublish', (e, root: string, opts: { name: string; isPrivate: boolean; remote: string }) =>
+	handleFsE('git:githubFork', (e, root: string, remote: string) => timeSpan('git:githubFork', githubFork(e.sender, root, remote)));
+	handleFsE('git:githubPublish', (e, root: string, opts: { name: string; isPrivate: boolean; remote: string; ssh?: boolean }) =>
 		timeSpan('git:githubPublish', githubPublish(e.sender, root, opts))
 	);
 	registerAskpassIpc();

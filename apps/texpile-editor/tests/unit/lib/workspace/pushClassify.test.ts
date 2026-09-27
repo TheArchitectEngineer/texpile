@@ -18,9 +18,15 @@ const AUTH = [
 	"remote: Invalid username or password.\nfatal: Authentication failed for 'https://github.com/a/b.git/'",
 	"fatal: could not read Username for 'https://github.com': terminal prompts disabled",
 	'git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.',
-	'remote: Permission to a/b.git denied to someone.',
-	"fatal: unable to access 'https://github.com/a/b.git/': The requested URL returned error: 403",
 	'Host key verification failed.'
+];
+
+// signed in, as an account that may not write here: someone else's repository, where a fork is
+// the way in, or a token without write permission
+const FORBIDDEN = [
+	"remote: Permission to a/b.git denied to someone.\nfatal: unable to access 'https://github.com/a/b.git/': The requested URL returned error: 403",
+	'remote: Permission to a/b.git denied to someone.',
+	"fatal: unable to access 'https://github.com/a/b.git/': The requested URL returned error: 403"
 ];
 
 const NETWORK = [
@@ -39,14 +45,18 @@ describe('classifying why an upload failed', () => {
 		expect(classifyPushError(msg)).toBe('auth');
 	});
 
+	it.each(FORBIDDEN)('an account that may not write here: %s', (msg) => {
+		expect(classifyPushError(msg)).toBe('forbidden');
+	});
+
 	it.each(NETWORK)('a connection problem: %s', (msg) => {
 		expect(classifyPushError(msg)).toBe('network');
 	});
 
-	it('a 403 is a sign-in problem, though it also says it could not access the URL', () => {
-		// both regexes match this one, which is the reason the order is fixed rather than incidental
+	it('a 403 is a permission problem, though it also says it could not access the URL', () => {
+		// three regexes match this one, which is the reason the order is fixed rather than incidental
 		const msg = "fatal: unable to access 'https://github.com/a/b.git/': The requested URL returned error: 403";
-		expect(classifyPushError(msg)).toBe('auth');
+		expect(classifyPushError(msg)).toBe('forbidden');
 	});
 
 	it('falls back rather than guessing, so git gets to speak for itself', () => {

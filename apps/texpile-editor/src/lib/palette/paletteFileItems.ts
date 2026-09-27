@@ -1,4 +1,4 @@
-import { FilePlus2, FolderGit2, FolderOpen, Play, RefreshCw, RotateCw, Save, Settings, Users, Wrench } from '@lucide/svelte';
+import { FilePlus2, FolderGit2, FolderOpen, KeyRound, Play, RefreshCw, RotateCw, Save, Settings, Users, Wrench } from '@lucide/svelte';
 import { isDirty } from '$lib/workspace/workspaceStore';
 import { nativeBridge } from '$lib/workspace/fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
@@ -87,6 +87,16 @@ export function fileItems(a: PaletteActions): PaletteItem[] {
 			keywords: 'git github download repository remote',
 			icon: FolderGit2,
 			run: () => clone()
+		});
+	const forget = a.forgetSignIns;
+	if (a.isHostWorkspace() && forget)
+		items.push({
+			id: 'file.forgetSignIns',
+			label: m.palette_forget_signins(),
+			group,
+			keywords: 'git password token credential keychain github sign in login logout',
+			icon: KeyRound,
+			run: () => forget()
 		});
 	items.push({
 		id: 'file.refreshTree',

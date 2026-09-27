@@ -81,6 +81,10 @@
 				bind:this={inputEl}
 			/>
 		</label>
+		{#if question.kept && question.subject === 'password'}
+			<!-- said before it happens: a password that is quietly stored is one nobody knows to revoke -->
+			<p class="text-muted mt-2 text-xs">{m.vcs_signin_kept()}</p>
+		{/if}
 	{/if}
 	<ModalActions
 		class="mt-5"

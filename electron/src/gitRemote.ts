@@ -11,7 +11,7 @@ import { git, isMissingGit, errMsg, resolveRepoRoot, type GitOpResult } from './
  *  and the difference is the only part an author can act on. 'cancelled' is the author closing the
  *  sign-in prompt, an answer rather than a failure; main sets it (gitAskpass.ts), since only main
  *  saw the prompt. */
-export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'network' | 'cancelled' | 'other';
+export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'forbidden' | 'network' | 'cancelled' | 'other';
 
 export type GitPushResult = {
 	ok: boolean;
@@ -23,7 +23,10 @@ export type GitPushResult = {
 };
 
 // checked in this order: a 403 from a host says both 'unable to access' and a permissions phrase,
-// and it is an authentication problem, not a network one
+// and it is a permission problem, not a network one. 'forbidden' is a sign-in that worked for an
+// account that may not write here - someone else's repository, where a fork is the way in - and
+// is kept apart from 'auth', a password or token the host did not accept.
+const FORBIDDEN_RE = /permission to \S+ denied|returned error: 403/i;
 const AUTH_RE =
 	/authentication failed|could not read (username|password)|invalid username or password|permission denied|permission to .* denied|terminal prompts disabled|returned error: 40[13]|access denied|no such identity|host key verification failed/i;
 const REJECTED_RE = /non-fast-forward|fetch first|updates were rejected|\[rejected\]|behind its remote/i;
@@ -33,6 +36,7 @@ const NETWORK_RE =
 /** exported for the tests: this is the whole difference between a message worth reading and one
  *  that sends an author to a search engine */
 export function classifyPushError(message: string): PushFailure {
+	if (FORBIDDEN_RE.test(message)) return 'forbidden';
 	if (AUTH_RE.test(message)) return 'auth';
 	if (REJECTED_RE.test(message)) return 'rejected';
 	if (NETWORK_RE.test(message)) return 'network';

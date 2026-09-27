@@ -13,7 +13,7 @@ export type Identity = { name: string; email: string };
 /** where a branch goes: a GitHub repository made for it, a remote the repository already has, or
  *  one added by its address */
 export type PublishChoice =
-	{ kind: 'github'; name: string; isPrivate: boolean } | { kind: 'remote'; remote: string } | { kind: 'url'; url: string };
+	{ kind: 'github'; name: string; isPrivate: boolean; ssh: boolean } | { kind: 'remote'; remote: string } | { kind: 'url'; url: string };
 
 export type PublishAsk = {
 	branch: string;
