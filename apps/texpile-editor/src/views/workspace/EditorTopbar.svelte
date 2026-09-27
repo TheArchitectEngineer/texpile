@@ -14,6 +14,7 @@
 	import CompileOptionsMenu from './CompileOptionsMenu.svelte';
 	import type { ComponentProps } from 'svelte';
 	import type { FileKind } from '$lib/workspace/documentBuffer.svelte';
+	import type { ProjectWords } from '$lib/workspace/wordCount/projectWords';
 	import { m } from '$lib/paraglide/messages';
 	import { combo } from '$lib/chrome/shortcutText';
 	import EditModePicker from './EditModePicker.svelte';
@@ -66,6 +67,8 @@
 		onShowOutput: () => void;
 		outputAvailable?: boolean;
 		onShowProblems: () => void;
+		/** the open document's words by part and by file, for the word count's details */
+		onCountWords?: () => Promise<ProjectWords | null>;
 		/** open review threads in the project; 0 hides the badge, like a clean compile hides Problems */
 		commentCount?: number;
 		onShowComments?: () => void;
@@ -109,6 +112,7 @@
 		onShowOutput,
 		outputAvailable = false,
 		onShowProblems,
+		onCountWords,
 		commentCount = 0,
 		onShowComments = () => {},
 		suggesting = false,
@@ -197,7 +201,8 @@
 		{/if}
 		{#if loadedPath && (kind === 'tex' || kind === 'md' || kind === 'typ') && (viewMode === 'visual' || viewMode === 'source')}
 			<!-- hidden, not truncated, once it no longer fits beside the buttons -->
-			<span class="shrink-0" use:hideIfCramped><WordCount /></span>
+			<!-- a LaTeX or Typst document can be counted by part and file; Markdown has no parts -->
+			<span class="shrink-0" use:hideIfCramped><WordCount details={kind === 'md' ? undefined : onCountWords} /></span>
 		{/if}
 	</div>
 	<div class="flex items-center gap-2">

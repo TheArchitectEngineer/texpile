@@ -14,6 +14,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: renaming a label (its chip, or a figure, table or equation's settings), or a citation key in the bibliography editor, also updates its uses in the project's other files, with one undo (by @louisqli)
 - feat: spelling and grammar follow the English you pick (American, British, Australian, Canadian or Indian; the system's by default), any grammar rule can be turned off from its suggestion, and the rules that mostly misfire on papers (LaTeX spacing and dashes, field terms, house style) start off (by @louisqli)
 - feat: the bibliography editor warns when two entries are the same paper (the same DOI or arXiv number under two keys), and notes the entries no document in the folder cites (by @louisqli)
+- feat: click the word count for the whole document's words, from the main file through every file it includes: body text, headings, captions, footnotes and tables apart, and per file (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 

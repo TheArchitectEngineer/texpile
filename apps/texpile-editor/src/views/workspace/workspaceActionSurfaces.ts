@@ -10,6 +10,7 @@ import { uiZoomIn, uiZoomOut, uiZoomReset } from '$lib/workspace/shortcuts';
 import { workspaceRoot, isDirty, activeFilePath, activeCompare } from '$lib/workspace/workspaceStore';
 import { revealInTree } from '$lib/filetree/treeReveal.svelte';
 import { openTabContextMenu } from './tabContextMenu';
+import { countDocumentWords } from './workspaceWordCount';
 import { refreshGitStatus, refreshGitHistory } from '$lib/workspace/gitStore';
 import { preferencesOpen } from '$lib/stores/dialogStore';
 import { isDesktop, revealItem, type TreeEntry } from '$lib/workspace/fileSystem';
@@ -146,6 +147,7 @@ export function makeMainActions(d: ActionSurfaceDeps) {
 		showComments: () => toggleDockPanel(d, 'comments'),
 		insertZoteroCitation: () => d.integrations.insertZoteroCitation(),
 		citeByDoi: () => d.integrations.citeByDoi(),
+		countWords: () => countDocumentWords(d.wsdoc.doc, d.provider),
 		save: () => d.wsdoc.save(),
 		activateTab: (t: Tab) => d.editFlow().activateTab(t),
 		closeTab: (t: Tab) => d.editFlow().closeTab(t),
