@@ -377,7 +377,10 @@ contextBridge.exposeInMainWorld('texpileZotero', {
 
 // Cite by DOI: the BibTeX doi.org's registry gives for a DOI (see electron/src/doiLookup.ts)
 contextBridge.exposeInMainWorld('texpileDoi', {
-	lookup: (doi: string) => ipcRenderer.invoke('doi:lookup', { doi })
+	lookup: (doi: string) => ipcRenderer.invoke('doi:lookup', { doi }),
+	search: (query: string) => ipcRenderer.invoke('doi:search', { query }),
+	isbn: (isbn: string) => ipcRenderer.invoke('doi:isbn', { isbn }),
+	pmid: (pmid: string) => ipcRenderer.invoke('doi:pmid', { pmid })
 });
 
 // the reader's own command-line agent (Preferences > AI); main picks the command, a run only carries the prompt
