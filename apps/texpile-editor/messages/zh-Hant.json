@@ -1776,5 +1776,15 @@
 	"github_signin_browser": "在瀏覽器中登入 GitHub",
 	"github_signin_or": "或在下方回答",
 	"palette_github_sign_in": "登入 GitHub",
-	"palette_github_sign_out": "登出 GitHub（{login}）"
+	"palette_github_sign_out": "登出 GitHub（{login}）",
+	"vcs_error_conflicts_save": "有些檔案中仍有雙方都修改過的地方。請逐一選擇，然後再儲存版本。",
+	"vcs_confirm_no_trash_one": "此處無法將「{name}」移到垃圾桶。要永久刪除嗎？它從未儲存為版本，刪除後無法找回。",
+	"vcs_confirm_no_trash_other": "此處無法將 {count} 個檔案移到垃圾桶。要永久刪除嗎？它們從未儲存為版本，刪除後無法找回。",
+	"vcs_delete_permanently": "永久刪除",
+	"vcs_clone_submodules_title": "專案的一部分未能下載",
+	"vcs_clone_submodules": "專案已下載，但它從另一個儲存庫引用的資料夾（子模組）未能取得。該儲存庫可能是私人的，或需要用其他帳戶登入。",
+	"vcs_confirm_remove_milestone": "移除里程碑「{name}」？如果它已上傳，也會從遠端儲存庫中移除，所有與之同步的人都會受影響。",
+	"vcs_remove": "移除",
+	"vcs_publish_empty": "目前還沒有可發佈的內容。請先向專案新增檔案，然後再發佈。",
+	"timeline_load_more": "載入更多"
 }

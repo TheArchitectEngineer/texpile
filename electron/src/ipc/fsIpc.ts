@@ -74,12 +74,15 @@ export function registerFsIpc(): void {
 	// original to the OS recycle bin rather than unlinking it - so even a delete too large to undo in
 	// the editor is still recoverable by the user from their file manager. A null `backup` is how the
 	// renderer learns not to offer undo for this one.
-	handleFs('fs:trash', async (body: { path: string; root: string }) => {
+	// `keep`: where there is no Trash, leave the entry and say so (kept), for a caller that asks the
+	// author before deleting outright, as Source Control does (VS Code's "Delete permanently?")
+	handleFs('fs:trash', async (body: { path: string; root: string; keep?: boolean }) => {
 		const backup = await backupForUndo(body.path, undoDir(body.root), UNDO_MAX_BYTES);
 		let recycled = true;
 		try {
 			await shell.trashItem(body.path);
 		} catch {
+			if (body.keep) return { backup, recycled: false, kept: true };
 			// Network shares, and Linux boxes with no trash implementation, have nowhere to put it. The
 			// file still has to go, so it is unlinked - but the caller is TOLD, because "it is in your
 			// recycle bin" is the one thing we must not claim when it is not. With no backup either,

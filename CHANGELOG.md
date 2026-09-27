@@ -5,6 +5,17 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- fix: Timeline: a version from before a rename opens under the file's name then, and Load more reaches versions past the first 50
+- fix: Save version keeps a rename whole, takes in a file whose conflicts are all chosen after a stash, and waits while a place is still marked
+- fix: Discard puts back changes staged in a terminal; a file staged as new, or the new name of a rename, goes to the Trash; where there is no Trash it asks before deleting outright
+- fix: a repository inside the project is left out of the changes list, and a folder row that also holds ignored files is never deleted whole
+- fix: a stray `<<<<<<<` or `>>>>>>>` line keeps a file from counting as settled
+- fix: a branch deleted on the remote (a merged pull request's) offers Publish again instead of failing on every Sync
+- fix: a clone whose submodule cannot be fetched opens, and says what is missing, instead of reporting nothing at the address
+- fix: removing a milestone asks first; Publish before a first version says so instead of creating an empty GitHub repository
+- fix: an SSH key refused while publishing no longer signs you out of GitHub, a fork is reached the way the original was (SSH or HTTPS), and the palette shows who is signed in now
+- fix: Local History keeps every copy if its listing is lost, and a rename's entry holds the file as it is on disk
+
 - feat: sign in to GitHub in the browser with a one-time code (VS Code's device flow); the account answers git for Sync, Publish and Fork, and Sign out of GitHub ends it.
 - feat: local history: every save keeps a copy (as in VS Code), listed with the file's git versions in a new Timeline below Contents, with compare, restore, rename, delete and create entry; it works in projects without git
 - feat: a progress bar runs across Source Control while git works

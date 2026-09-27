@@ -12,16 +12,17 @@ const gitRestore = vi.fn(async (_root: string, _hash: string, _message: string) 
 const gitCommit = vi.fn(async (_root: string, _message: string) => ({ ok: true }));
 const gitStage = vi.fn(async (_root: string, _paths: string[]) => ({ ok: true }));
 const gitUnstage = vi.fn(async (_root: string, _paths: string[]) => ({ ok: true }));
+const gitDiscard = vi.fn(async (_root: string, _paths: string[]) => ({ ok: true }));
 const confirmAsk = vi.fn(async (_message: string, _opts?: { confirmLabel?: string }) => true);
 const gitIdentity = vi.fn(async (_root: string) => ({ name: 'Ada Lovelace' as string | null, email: 'ada@example.com' as string | null }));
 const askIdentity = vi.fn(async (_current: { name: string; email: string }) => null as { name: string; email: string } | null);
-const gitChanges = { current: [] as { path: string; x: string; y: string }[] };
+const gitChanges = { current: [] as { path: string; x: string; y: string; markers?: boolean; from?: string }[] };
 
 vi.mock('$lib/workspace/git', () => ({
 	gitInit: vi.fn(),
 	gitStage,
 	gitUnstage,
-	gitDiscard: vi.fn(),
+	gitDiscard,
 	gitCommit,
 	gitRestore,
 	gitChangesSince: vi.fn(),
@@ -34,6 +35,8 @@ vi.mock('$lib/workspace/gitDialogs.svelte', () => ({ askIdentity, askPublish: vi
 vi.mock('$lib/modals/confirm.svelte', () => ({ confirmAsk }));
 vi.mock('$lib/modals/toaster-svelte', () => ({ toaster: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('$lib/workspace/gitStore', () => ({
+	isConflicted: (x: string, y: string) => x === 'U' || y === 'U' || (x === y && (x === 'A' || x === 'D')),
+	isNewFile: (c: { x: string }) => c.x === '?' || c.x === 'A',
 	refreshGitStatus: vi.fn(),
 	refreshGitHistory: vi.fn(),
 	isGitRepo: { current: true },
@@ -49,13 +52,21 @@ const { ScmActions } = await import('$lib/workspace/scmActions.svelte');
 const flushed = vi.fn(async () => {});
 const discarded = vi.fn();
 
-function makeScm(opts: { pending?: boolean; loaded?: string } = {}) {
+function makeScm(
+	opts: {
+		pending?: boolean;
+		loaded?: string;
+		trash?: (p: string) => Promise<'trashed' | 'kept'>;
+		remove?: (p: string) => Promise<void>;
+	} = {}
+) {
 	return new ScmActions({
 		getLoadedPath: () => opts.loaded ?? null,
 		discardPendingSave: discarded,
 		hasPendingSave: () => opts.pending ?? false,
 		flushPendingSave: flushed,
-		deleteEntry: async () => {},
+		trashEntry: opts.trash ?? (async () => 'trashed' as const),
+		removeEntry: opts.remove ?? (async () => {}),
 		refreshTree: async () => {},
 		loadFile: async () => {},
 		captureDiffSnapshot: () => {},
@@ -215,5 +226,79 @@ describe('saving a version', () => {
 		await makeScm().commit('Tighten the proof', ['C:/project/main.tex']);
 		expect(flushed).not.toHaveBeenCalled();
 		expect(gitCommit).toHaveBeenCalled();
+	});
+});
+
+describe('saving a version, as VS Code would', () => {
+	beforeEach(() => {
+		gitCommit.mockClear();
+		gitStage.mockClear();
+	});
+
+	it('takes a rename in whole: the new name, and the old one it no longer has', async () => {
+		gitChanges.current = [{ path: 'C:/project/introduction.tex', x: 'R', y: ' ', from: 'C:/project/intro.tex' }];
+		await makeScm().commit('Rename', ['C:/project/introduction.tex']);
+		expect(gitStage.mock.calls.at(-1)?.[1]).toEqual(['C:/project/introduction.tex', 'C:/project/intro.tex']);
+		gitChanges.current = [];
+	});
+
+	it('waits while a file both sides changed still holds a marked place, and takes it in once chosen', async () => {
+		// a stash that did not apply cleanly: no merge under way, so nothing else stops the save
+		gitChanges.current = [{ path: 'C:/project/refs.bib', x: 'U', y: 'U', markers: true }];
+		expect(await makeScm().commit('Notes', ['C:/project/main.tex'])).toBe(false);
+		expect(gitCommit).not.toHaveBeenCalled();
+
+		gitChanges.current = [{ path: 'C:/project/refs.bib', x: 'U', y: 'U' }];
+		expect(await makeScm().commit('Notes', ['C:/project/main.tex'])).toBe(true);
+		expect(gitStage.mock.calls.at(-1)?.[1]).toEqual(['C:/project/main.tex', 'C:/project/refs.bib']);
+		gitChanges.current = [];
+	});
+});
+
+describe('throwing changes away', () => {
+	beforeEach(() => {
+		gitDiscard.mockClear();
+		gitUnstage.mockClear();
+		confirmAsk.mockClear();
+	});
+
+	it('lets go of a file staged as new and moves it to the Trash, rather than asking git for a copy it never had', async () => {
+		const trashed: string[] = [];
+		const scm = makeScm({ trash: async (p) => (trashed.push(p), 'trashed') });
+		await scm.discard([{ path: 'C:/project/new.tex', x: 'A', y: ' ' }]);
+		expect(gitUnstage.mock.calls.at(-1)?.[1]).toEqual(['C:/project/new.tex']);
+		expect(trashed).toEqual(['C:/project/new.tex']);
+		expect(gitDiscard).not.toHaveBeenCalled();
+	});
+
+	it('puts a rename back: the new name to the Trash, the old one from the last version', async () => {
+		const trashed: string[] = [];
+		await makeScm({ trash: async (p) => (trashed.push(p), 'trashed') }).discard([
+			{ path: 'C:/project/introduction.tex', x: 'R', y: ' ', from: 'C:/project/intro.tex' } as never
+		]);
+		expect(trashed).toEqual(['C:/project/introduction.tex']);
+		expect(gitDiscard.mock.calls.at(-1)?.[1]).toEqual(['C:/project/intro.tex']);
+	});
+
+	it('asks before deleting outright where there is no Trash, and keeps the file on no', async () => {
+		const removed: string[] = [];
+		const scm = makeScm({ trash: async () => 'kept', remove: async (p) => void removed.push(p) });
+		confirmAsk.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+		await scm.discard([{ path: 'C:/project/draft.tex', x: '?', y: '?' }]);
+		expect(confirmAsk).toHaveBeenCalledTimes(2);
+		expect(removed).toEqual([]);
+
+		confirmAsk.mockResolvedValueOnce(true).mockResolvedValueOnce(true);
+		await scm.discard([{ path: 'C:/project/draft.tex', x: '?', y: '?' }]);
+		expect(removed).toEqual(['C:/project/draft.tex']);
+	});
+
+	it('never deletes a folder row that also holds ignored files', async () => {
+		const trashed: string[] = [];
+		await makeScm({ trash: async (p) => (trashed.push(p), 'trashed') }).discard([
+			{ path: 'C:/project/data', x: '?', y: '?', files: 300, ignoredInside: true } as never
+		]);
+		expect(confirmAsk).not.toHaveBeenCalled();
+		expect(trashed).toEqual([]);
 	});
 });

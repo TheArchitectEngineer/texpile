@@ -107,7 +107,7 @@ export class WorkspaceFiles {
 			// afterRename because it prompts). Writes a `move` event to the log - see fileMoved.
 			afterPathMoved: (from, to) => {
 				d.commentsFileMoved(from, to);
-				void moveLocalHistory(from, to); // and so does its Local History
+				void moveLocalHistory(from, to, (p) => provider.readText(p)); // and so does its Local History
 			},
 			retargetPendingSave: (from, to) => {
 				d.saver().retarget(from, to);

@@ -1,7 +1,7 @@
 // git backing for the Source Control panel. Kept out of fsService.ts so that module stays
 // dependency-free; every function returns { ok, reason|error } and never throws
 import { simpleGit, type SimpleGit, type FileStatusResult } from 'simple-git';
-import { dirname, resolve, relative, join, isAbsolute } from 'node:path';
+import { dirname, resolve, relative, join, isAbsolute, sep } from 'node:path';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { unsafeRepoFrom } from './unsafeRepo';
@@ -32,6 +32,10 @@ export type GitStatusEntry = {
 	/** a file both sides changed that still holds a place marked for someone to choose. Only set
 	 *  on those files: once every place is chosen it is ready to finish the merge with. */
 	markers?: boolean;
+	/** a rename's old path, absolute: saving the rename takes in both, putting it back restores this */
+	from?: string;
+	/** a folder row that also holds files .gitignore leaves out: never deleted as a whole */
+	ignoredInside?: boolean;
 	/** a folder of new files shown as one row (gitStatusLimit.ts): how many files it holds */
 	files?: number;
 };
@@ -229,7 +233,27 @@ async function withFolderRows(g: SimpleGit, workspaceRoot: string, entries: GitS
 		.split('\0')
 		.filter((p) => p.endsWith('/'))
 		.map((p) => join(workspaceRoot, p));
-	return collapseUntracked(entries, folders);
+	const rows = collapseUntracked(entries, folders);
+	if (!rows.some((r) => r.files)) return rows;
+	// git calls a folder wholly new even when it also holds files .gitignore leaves out: the row
+	// says so, and is not offered for deleting, which would take those files too
+	const ignored = (await g.raw(['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z']))
+		.split('\0')
+		.filter(Boolean)
+		.map((p) => join(workspaceRoot, p));
+	return rows.map((r) => (r.files && ignored.some((p) => p.startsWith(r.path + sep)) ? { ...r, ignoredInside: true } : r));
+}
+
+/** Whether the upstream branch is still there. One deleted on the remote (a merged pull request's
+ *  branch, pruned on fetch) is `[gone]`: the branch has nowhere to sync with, and is offered to
+ *  publish again, as VS Code does. */
+export async function upstreamExists(g: SimpleGit): Promise<boolean> {
+	try {
+		// -q: a gone upstream exits 1 and prints nothing
+		return (await g.raw(['rev-parse', '--verify', '-q', '@{u}'])).trim() !== '';
+	} catch {
+		return false;
+	}
 }
 
 export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult> {
@@ -246,11 +270,15 @@ export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult>
 		const wsAbs = resolve(workspaceRoot);
 		const entries: GitStatusEntry[] = [];
 		for (const f of status.files as FileStatusResult[]) {
+			// a repository inside this one (a cloned template or class) is 'dir/': not a file of this
+			// project's, and one git cannot save as a version without making it a submodule
+			if (f.path.endsWith('/')) continue;
 			const absFromRepo = resolve(repoRoot, f.path);
 			// '' = the workspace root itself; '..'-prefixed = above it; absolute = a different drive
 			const rel = relative(wsAbs, absFromRepo);
 			if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) continue;
 			const entry: GitStatusEntry = { path: join(workspaceRoot, rel), x: f.index, y: f.working_dir };
+			if (f.from && f.index === 'R') entry.from = resolve(repoRoot, f.from);
 			if (isUnmerged(f.index, f.working_dir)) entry.markers = await stillMarked(absFromRepo);
 			entries.push(entry);
 		}
@@ -260,7 +288,7 @@ export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult>
 			branch: status.current,
 			entries: rows,
 			truncated,
-			tracking: status.tracking ?? null,
+			tracking: status.tracking && (await upstreamExists(g)) ? status.tracking : null,
 			ahead: status.ahead,
 			behind: status.behind,
 			hasCommits: head !== '',
@@ -367,8 +395,10 @@ export async function gitUnstage(workspaceRoot: string, paths: string[]): Promis
 	}
 }
 
-/** discard unstaged changes to tracked files (git checkout). Untracked-file deletion is the
- *  caller's job, via the fs service. */
+/** Put tracked files back as they are in the last version (git checkout HEAD), staged or not: the
+ *  panel is one list, and a change staged in a terminal or left staged by a failed save is still a
+ *  change to throw away. Before the first version, from the index. New files (untracked, or staged
+ *  as added) are the caller's to move to the Trash, via the fs service. */
 export async function gitDiscard(workspaceRoot: string, paths: string[]): Promise<GitOpResult> {
 	if (!paths.length) return { ok: false, error: 'No files to discard' };
 	const rr = await resolveRepoRoot(workspaceRoot);
@@ -376,7 +406,8 @@ export async function gitDiscard(workspaceRoot: string, paths: string[]): Promis
 	const root = rr.root;
 	try {
 		const rel = toRepoRel(rr.root, paths);
-		await retryLocked(() => git(root).raw(['checkout', '-q', '--', ...rel]));
+		const head = (await git(root).raw(['rev-parse', '--verify', '-q', 'HEAD'])).trim();
+		await retryLocked(() => git(root).raw(['checkout', '-q', ...(head ? ['HEAD'] : []), '--', ...rel]));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };

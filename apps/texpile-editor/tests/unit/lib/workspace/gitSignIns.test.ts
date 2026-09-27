@@ -1,7 +1,7 @@
 // Sign-ins kept between operations (electron/src/gitSignIns.ts), with a vault that seals by
 // reversing the text so a test can tell sealed from plain.
 import { it, expect } from 'vitest';
-import { SignIns, keepable, settle, type SignInVault } from '../../../../../../electron/src/gitSignIns';
+import { SignIns, keepable, refusedPassword, settle, type SignInVault } from '../../../../../../electron/src/gitSignIns';
 
 function memoryVault(): SignInVault & { data: Record<string, string> } {
 	const v = {
@@ -53,6 +53,19 @@ it('keeps nothing from an operation that failed, and drops a kept answer the hos
 	expect(store.recall(PASS)).toBe('old-token');
 	settle(store, { ok: false, failure: 'auth' }, new Map(), new Set([PASS]));
 	expect(store.recall(PASS)).toBeNull();
+});
+
+it('keeps a sign-in the host accepted before refusing the upload for another reason', () => {
+	const store = new SignIns(memoryVault());
+	// someone else's repository: the account is known, it may not write there, and a fork is offered
+	settle(store, { ok: false, failure: 'forbidden' }, new Map([[PASS, 'token']]), new Set());
+	expect(store.recall(PASS)).toBe('token');
+	// publishing over SSH: the token made the repository, then ssh refused the key
+	const ssh = { ok: false, failure: 'auth', error: 'git@github.com: Permission denied (publickey).' };
+	expect(refusedPassword(ssh)).toBe(false);
+	settle(store, ssh, new Map(), new Set([PASS]));
+	expect(store.recall(PASS)).toBe('token');
+	expect(refusedPassword({ ok: false, failure: 'auth', error: 'Authentication failed' })).toBe(true);
 });
 
 it('forgets everything on request, and keeps nothing without a keychain', () => {

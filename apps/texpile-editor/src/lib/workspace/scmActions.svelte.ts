@@ -1,12 +1,22 @@
 // source control ops: call the git client, refresh status, toast on failure. the panel is
 // presentational; WorkspaceView wires the deps.
 import { workspaceRoot } from './workspaceStore';
-import { refreshGitStatus, refreshGitHistory, isGitRepo, gitChanges, gitBranch, gitOperation, gitRunning, setGitWriting } from './gitStore';
+import {
+	refreshGitStatus,
+	refreshGitHistory,
+	isGitRepo,
+	isConflicted,
+	gitChanges,
+	gitBranch,
+	gitHasCommits,
+	gitOperation,
+	gitRunning,
+	setGitWriting
+} from './gitStore';
 import {
 	gitInit,
 	gitStage,
 	gitUnstage,
-	gitDiscard,
 	gitCommit,
 	gitRestore,
 	gitChangesSince,
@@ -28,6 +38,7 @@ import { ScmCombine } from './scmCombine.svelte';
 import { ScmBranches } from './scmBranches.svelte';
 import { ScmMilestones } from './scmMilestones.svelte';
 import { ScmIgnore } from './scmIgnore.svelte';
+import { ScmDiscard } from './scmDiscard.svelte';
 import { offerFork } from './scmFork.svelte';
 import { uploadReason } from './uploadReason';
 import { toastGitFailure } from './gitFailureToast';
@@ -47,7 +58,10 @@ export type ScmDeps = {
 	hasPendingSave(): boolean;
 	/** write that edit out and wait for it to land, so git can see it */
 	flushPendingSave(): Promise<void>;
-	deleteEntry(path: string): Promise<unknown>;
+	/** to the Trash; 'kept' where there is none, and the entry is still there */
+	trashEntry(path: string): Promise<'trashed' | 'kept'>;
+	/** deleted outright, once the author has agreed to it */
+	removeEntry(path: string): Promise<void>;
 	refreshTree(): Promise<void>;
 	loadFile(path: string): Promise<void>;
 	/** re-diff the open comparison (after a commit moved HEAD). */
@@ -86,12 +100,14 @@ export class ScmActions {
 	/** names on versions, from History */
 	readonly milestones: ScmMilestones;
 	readonly ignore: ScmIgnore;
+	readonly discarder: ScmDiscard;
 
 	constructor(private deps: ScmDeps) {
 		this.combine = new ScmCombine(this, deps);
 		this.branches = new ScmBranches(this, deps);
 		this.milestones = new ScmMilestones(this);
 		this.ignore = new ScmIgnore(this, deps);
+		this.discarder = new ScmDiscard(this, deps);
 	}
 
 	/** after installing git: forget that it was missing and look again */
@@ -146,54 +162,8 @@ export class ScmActions {
 		await refreshGitStatus(root);
 	};
 
-	discard = async (changes: GitStatusEntry[]) => {
-		const root = workspaceRoot.current;
-		// never in the middle of a save or a sync: the files it is about to put back are in flight
-		if (!root || !changes.length || this.busy) return;
-		// A file never saved as a version goes to the Trash, not away for good: a new chapter is the one
-		// thing in this panel git cannot give back. The question says which of the two will happen.
-		const allNew = changes.every((c) => c.x === '?');
-		const confirmMsg = allNew
-			? changes.length === 1
-				? m.vcs_confirm_trash_one({ name: basename(changes[0].path) })
-				: m.vcs_confirm_trash_other({ count: changes.length })
-			: changes.length === 1
-				? m.wsview_confirm_discard_one({ name: basename(changes[0].path) })
-				: m.wsview_confirm_discard_other({ count: changes.length });
-		const confirmLabel = allNew ? m.vcs_move_to_trash() : m.vcs_discard_changes();
-		if (!(await confirmAsk(confirmMsg, { confirmLabel, danger: true }))) return;
-		// if the open file is being discarded, drop its queued autosave first: otherwise a debounced
-		// write scheduled just before the confirm lands after git reverts and re-creates the changes
-		const loadedPath = this.deps.getLoadedPath();
-		if (loadedPath && changes.some((c) => samePath(c.path, loadedPath))) this.deps.discardPendingSave();
-		this.busy = true;
-		// untracked files are deleted; tracked files are reverted to their staged/committed state
-		const untracked = changes.filter((c) => c.x === '?').map((c) => c.path);
-		const tracked = changes.filter((c) => c.x !== '?').map((c) => c.path);
-		let err: string | undefined;
-		for (const p of untracked) {
-			try {
-				await this.deps.deleteEntry(p);
-			} catch (e) {
-				err = e instanceof Error ? e.message : String(e);
-			}
-		}
-		if (tracked.length) {
-			const res = await gitDiscard(root, tracked);
-			if (!res.ok) err = res.error;
-		}
-		this.busy = false;
-		if (err) toastGitFailure(m.wsview_toast_discard_failed_title(), localGitReason(err), { error: err });
-		// samePath, as two lines above: git and the file tree hand back separators and case that do
-		// not always match, and a miss here leaves the editor showing content that is no longer on disk
-		const openAffected = !!loadedPath && changes.some((c) => samePath(c.path, loadedPath));
-		await this.deps.refreshTree();
-		await refreshGitStatus(root);
-		if (openAffected && loadedPath) await this.deps.loadFile(loadedPath); // its on-disk content changed
-		// an open comparison was computed against the changes just thrown away, and went on showing
-		// them as additions and deletions that no longer exist anywhere
-		if (this.deps.isDiffMode()) this.deps.captureDiffSnapshot();
-	};
+	/** throw changes away (scmDiscard.svelte.ts) */
+	discard = (changes: GitStatusEntry[]): Promise<void> => this.discarder.run(changes);
 
 	/** the index is reset and rebuilt from the tick boxes every time, so what the button promised
 	 *  is what lands and a stale staged file cannot ride along */
@@ -224,6 +194,18 @@ export class ScmActions {
 					if (gitChanges.current.some((c) => samePath(c.path, loadedPath))) include.push(loadedPath);
 				}
 			}
+			// Files both sides changed with no merge under way: what a stash that did not apply cleanly
+			// leaves (a merge is saved by Finish combining instead). Once every place in them is chosen
+			// they go in with the version, which is what marks them settled; before that the version
+			// waits, or the reset below would turn them into ordinary edits with the markers still in.
+			const conflicted = gitChanges.current.filter((c) => isConflicted(c.x, c.y));
+			if (conflicted.some((c) => c.markers)) {
+				toastGitFailure(m.vcs_toast_save_failed(), m.vcs_error_conflicts_save(), {});
+				return false;
+			}
+			include.push(...conflicted.map((c) => c.path));
+			// a rename goes in whole: the new name, and the old one it no longer has
+			for (const c of gitChanges.current) if (c.from && include.some((p) => samePath(p, c.path))) include.push(c.from);
 			const clear = await gitUnstage(root, []);
 			if (!clear.ok) return failed(clear.error);
 			const staged = await gitStage(root, include);
@@ -334,12 +316,21 @@ export class ScmActions {
 		const root = workspaceRoot.current;
 		const branch = gitBranch.current;
 		if (!root || !branch || this.busy) return;
+		// before the first version the branch has a name and nothing on it: a GitHub repository made
+		// now would stay empty, the upload refused ("src refspec main does not match any")
+		if (!gitHasCommits.current) {
+			toaster.error({ title: m.vcs_toast_publish_failed(), description: m.vcs_publish_empty() });
+			return;
+		}
 		const listed = await gitRemotes(root);
 		const remotes = listed.ok ? (listed.remotes ?? []) : [];
 		if (remotes.length === 1) {
 			this.busy = true;
-			const res = await gitPublish(root, remotes[0].name);
-			this.busy = false;
+			gitRunning.current = 'publish';
+			const res = await gitPublish(root, remotes[0].name).finally(() => {
+				this.busy = false;
+				gitRunning.current = null;
+			});
 			const problem = await this.published(root, res);
 			if (problem) toaster.error({ title: m.vcs_toast_publish_failed(), description: problem });
 			return;

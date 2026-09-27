@@ -163,8 +163,9 @@
 		draft.excluded = off.includes(path) ? off.filter((p) => p !== path) : [...off, path];
 	}
 
-	// a version saved in the middle of a merge would record it half-done
-	const canSave = $derived(!busy && !operation && !!draft.message.trim() && selected.length > 0);
+	// a version saved in the middle of a merge would record it half-done, and one saved over a place
+	// still marked for choosing would record the markers
+	const canSave = $derived(!busy && !operation && !conflicts.some((c) => c.markers) && !!draft.message.trim() && selected.length > 0);
 
 	async function save() {
 		if (!canSave) return;

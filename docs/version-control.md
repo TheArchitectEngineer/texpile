@@ -44,7 +44,7 @@ A version in History opens to what differs between it and your files now. To see
 
 ## Milestones
 
-A version that matters, such as the draft sent to your committee or the camera-ready copy, can carry a name. Open the version's menu in History and choose Mark as milestone; the name shows on that row from then on. Milestones are git tags, so other tools see them too. Sync sends them to the remote, and removing one removes it there as well.
+A version that matters, such as the draft sent to your committee or the camera-ready copy, can carry a name. Open the version's menu in History and choose Mark as milestone; the name shows on that row from then on. Milestones are git tags, so other tools see them too. Sync sends them to the remote, and removing one removes it there as well, after asking, since everyone who syncs loses it too.
 
 ## Timeline and local history
 
@@ -68,7 +68,7 @@ The cloud button beside Sync checks the remote for new versions without taking a
 
 ## Combining two versions
 
-Combine now brings in the other side's versions and leaves each place where both sides changed the same lines marked in its file. The file opens in the source editor at the first one, whichever editor you were using: your version is tinted one colour and theirs another, and above each place are Keep mine, Keep theirs and Keep both. The words that differ between the two versions are highlighted in both, so a changed word in a long paragraph stands out. Each choice is one step in the undo history. The bar above the file goes to the previous and next marked place, and Keep all settles every place the same way at once. You can also edit the lines yourself; a place counts as chosen once its `<<<<<<<`, `=======` and `>>>>>>>` lines are gone. A file's tab carries a merge mark while places in it are waiting. For a file with no places to click, such as a figure or a PDF, or one that one side deleted, its menu in Source Control has Keep my whole file and Keep their whole file.
+Combine now brings in the other side's versions and leaves each place where both sides changed the same lines marked in its file. The file opens in the source editor at the first one, whichever editor you were using: your version is tinted one colour and theirs another, and above each place are Keep mine, Keep theirs and Keep both. The words that differ between the two versions are highlighted in both, so a changed word in a long paragraph stands out. Each choice is one step in the undo history. The bar above the file goes to the previous and next marked place, and Keep all settles every place the same way at once. You can also edit the lines yourself; a place counts as chosen once its `<<<<<<<`, `=======` and `>>>>>>>` lines are gone, and a file still holding a stray `<<<<<<<` or `>>>>>>>` line is not finished. A file's tab carries a merge mark while places in it are waiting. For a file with no places to click, such as a figure or a PDF, or one that one side deleted, its menu in Source Control has Keep my whole file and Keep their whole file.
 
 Source Control lists the files under Both changed, and marks each one Ready once every place in it is chosen. Finish combining saves the result as one version, which Sync then sends. Cancel combining puts every file back as it was before you started, and the choices go with it.
 

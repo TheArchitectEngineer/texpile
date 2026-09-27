@@ -1,7 +1,7 @@
 // The client half of electron/src/localHistory.ts: VS Code's Local History. Every save of a file
 // keeps a copy in the app's data, listed in the explorer's Timeline beside the file's git versions.
 // Never throws: history is a safety net, and a save must not fail because the net did.
-import { nativeBridge } from './fileSystem';
+import { dirname, nativeBridge } from './fileSystem';
 import { m } from '$lib/paraglide/messages';
 
 export type LocalHistoryEntry = {
@@ -78,9 +78,19 @@ export async function removeAllLocalHistory(): Promise<void> {
 	revision++;
 }
 
-/** a file or folder was renamed or moved: its entries go with it */
-export async function moveLocalHistory(from: string, to: string): Promise<void> {
+/** A file or folder was renamed or moved: its entries go with it, and each file gets an entry
+ *  saying so. That entry holds what the file holds now, as VS Code's does: the main process starts
+ *  it as a copy of the newest entry, which is stale when the file changed outside the app since
+ *  (a pull), and what is read here replaces it. */
+export async function moveLocalHistory(from: string, to: string, readText?: (path: string) => Promise<string>): Promise<void> {
 	const moved = await attempt(() => nativeBridge()?.localHistoryMove?.(from, to), [] as string[]);
+	if (readText) {
+		for (const target of moved) {
+			const was = from + target.slice(to.length);
+			const now = await readText(target).catch(() => null);
+			if (now !== null) await addLocalHistory(target, now, dirname(target) === dirname(was) ? 'renamed' : 'moved');
+		}
+	}
 	if (moved.length) revision++;
 }
 

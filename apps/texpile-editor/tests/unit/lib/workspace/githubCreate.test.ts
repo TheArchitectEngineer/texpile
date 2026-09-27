@@ -98,15 +98,18 @@ describe('forking a repository on GitHub', () => {
 			full_name: 'ada/thesis',
 			html_url: 'https://github.com/ada/thesis',
 			clone_url: 'https://github.com/ada/thesis.git',
+			ssh_url: 'git@github.com:ada/thesis.git',
 			owner: { login: 'ada' }
 		});
 		const res = await forkGithubRepo(fetchImpl, 'tok', 'babbage', 'thesis');
+		// the SSH address too, for an author whose remote is reached over SSH
 		expect(res).toEqual({
 			ok: true,
 			repo: {
 				fullName: 'ada/thesis',
 				htmlUrl: 'https://github.com/ada/thesis',
 				cloneUrl: 'https://github.com/ada/thesis.git',
+				sshUrl: 'git@github.com:ada/thesis.git',
 				owner: 'ada'
 			}
 		});

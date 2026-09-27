@@ -96,10 +96,13 @@ export class WorkspaceIntegrations {
 			hasPendingSave: () => !!d.editFlow().saver.pending,
 			flushPendingSave: () => d.editFlow().saver.flushAndWait(),
 			// the Trash where there is one: a file never saved as a version has no other copy anywhere
-			deleteEntry: async (p) => {
+			trashEntry: async (p) => {
 				const root = workspaceRoot.current;
-				if (d.provider.trash && root) await d.provider.trash(p, root);
-				else await d.provider.remove(p);
+				if (!d.provider.trash || !root) return 'kept';
+				return (await d.provider.trash(p, root, true)).kept ? 'kept' : 'trashed';
+			},
+			removeEntry: async (p) => {
+				await d.provider.remove(p);
 			},
 			refreshTree: () => d.files().refreshTree(),
 			loadFile: (path) => d.wsdoc.loadFile(path),

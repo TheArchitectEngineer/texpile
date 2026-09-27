@@ -176,7 +176,7 @@ type TexpileNative = {
 	fsTree: (root: string) => Promise<{ root: string; children: TreeEntry[] }>;
 	fsTreeScan: (root: string, exts?: string) => Promise<{ root: string; children: TreeEntry[]; files: TexFile[] }>;
 	fsOp: (body: Record<string, unknown>) => Promise<{ ok: boolean }>;
-	fsTrash: (body: { path: string; root: string }) => Promise<{ backup: string | null; recycled: boolean }>;
+	fsTrash: (body: { path: string; root: string; keep?: boolean }) => Promise<{ backup: string | null; recycled: boolean; kept?: boolean }>;
 	fsPurgeUndo: (root: string) => Promise<{ ok: boolean }>;
 	revealItem?: (path: string) => Promise<{ ok: boolean }>;
 	fsSearch: (
@@ -326,13 +326,18 @@ export function copyEntry(from: string, to: string) {
  * The undoable delete: back the entry up outside the workspace, then send it to the OS recycle bin.
  *
  * `backup` is null when the entry was too large to copy - still deleted, just not undoable here.
- * `recycled` is false when the OS had nowhere to put it and it had to be unlinked instead. Both
+ * `recycled` is false when the OS had nowhere to put it and it had to be unlinked instead - or, with
+ * `keep`, was left where it is (`kept`) for the caller to ask about. Both
  * are reported rather than inferred, because the two failures compound: neither one leaves anything
  * to recover from, and that is the only case worth interrupting the user about.
  */
-export async function trashEntry(path: string, root: string): Promise<{ backup: string | null; recycled: boolean }> {
-	const r = await ipc(requireNative().fsTrash({ path, root }));
-	return { backup: r?.backup ?? null, recycled: r?.recycled !== false };
+export async function trashEntry(
+	path: string,
+	root: string,
+	keep = false
+): Promise<{ backup: string | null; recycled: boolean; kept?: boolean }> {
+	const r = await ipc(requireNative().fsTrash({ path, root, keep }));
+	return { backup: r?.backup ?? null, recycled: r?.recycled !== false, ...(r?.kept ? { kept: true } : {}) };
 }
 
 /** copy a backed-up entry back into place; refuses rather than overwrite whatever stands at `to`. */

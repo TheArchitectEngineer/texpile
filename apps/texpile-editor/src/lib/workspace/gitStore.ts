@@ -82,6 +82,11 @@ export function gitKey(path: string): string {
 	return path.replace(/\\/g, '/').toLowerCase();
 }
 
+/** a file with no copy in the last version: untracked, or staged as added. Discarding it deletes it. */
+export function isNewFile(c: { x: string }): boolean {
+	return c.x === '?' || c.x === 'A';
+}
+
 /** git's unmerged codes (UU, AA, DD, AU, UA, DU, UD): both sides changed the file and git could not
  *  combine them. Folded into 'M' they read as an ordinary edit, ticked for the next version with
  *  the conflict markers still in them. */

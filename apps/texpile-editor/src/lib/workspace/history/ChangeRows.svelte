@@ -8,7 +8,7 @@
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { isTexpileManaged } from '$lib/comments/managed';
 	import { STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
-	import { badgeOf, gitWriting } from '$lib/workspace/gitStore';
+	import { badgeOf, gitWriting, isNewFile } from '$lib/workspace/gitStore';
 	import type { GitStatusEntry } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
 
@@ -35,9 +35,9 @@
 		['theirs', () => m.vcs_keep_file_theirs()]
 	];
 
-	/** untracked files have no committed copy, so discarding one deletes it rather than reverting it */
+	/** new files have no committed copy, so discarding one deletes it rather than reverting it */
 	function isUntracked(c: GitStatusEntry) {
-		return c.x === '?';
+		return isNewFile(c);
 	}
 </script>
 
@@ -137,7 +137,7 @@
 								{/each}
 							{/if}
 							<!-- a new file only: git keeps tracking a file it already has, whatever .gitignore says -->
-							{#if isUntracked(c) && scmHandlers.current}
+							{#if c.x === '?' && scmHandlers.current}
 								<button
 									type="button"
 									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"
@@ -152,8 +152,9 @@
 									{c.files ? m.vcs_ignore_folder() : m.vcs_ignore_file()}
 								</button>
 							{/if}
-							<!-- git cannot put back a file it is still combining: Cancel combining does that for all of them -->
-							{#if !locked}
+							<!-- git cannot put back a file it is still combining: Cancel combining does that for all of
+							     them. A folder that also holds ignored files is not deleted whole: they would go too -->
+							{#if !locked && !c.ignoredInside}
 								<div class="border-surface-200-800 my-1 border-t"></div>
 								<button
 									type="button"

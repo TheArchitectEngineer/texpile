@@ -1776,5 +1776,15 @@
 	"github_signin_browser": "Im Browser bei GitHub anmelden",
 	"github_signin_or": "oder unten antworten",
 	"palette_github_sign_in": "Bei GitHub anmelden",
-	"palette_github_sign_out": "Von GitHub abmelden ({login})"
+	"palette_github_sign_out": "Von GitHub abmelden ({login})",
+	"vcs_error_conflicts_save": "Einige Dateien enthalten noch Stellen, die beide Seiten geändert haben. Treffen Sie für jede eine Wahl und speichern Sie dann die Version.",
+	"vcs_confirm_no_trash_one": "„{name}“ kann hier nicht in den Papierkorb verschoben werden. Endgültig löschen? Die Datei wurde nie als Version gespeichert und lässt sich nicht wiederherstellen.",
+	"vcs_confirm_no_trash_other": "{count} Dateien können hier nicht in den Papierkorb verschoben werden. Endgültig löschen? Sie wurden nie als Version gespeichert und lassen sich nicht wiederherstellen.",
+	"vcs_delete_permanently": "Endgültig löschen",
+	"vcs_clone_submodules_title": "Ein Teil des Projekts konnte nicht heruntergeladen werden",
+	"vcs_clone_submodules": "Das Projekt ist da, aber ein Ordner, den es aus einem anderen Repository übernimmt (ein Submodul), konnte nicht abgerufen werden. Er ist vielleicht privat oder braucht eine andere Anmeldung.",
+	"vcs_confirm_remove_milestone": "Den Meilenstein „{name}“ entfernen? Wurde er hochgeladen, wird er auch auf dem Remote entfernt, für alle, die damit synchronisieren.",
+	"vcs_remove": "Entfernen",
+	"vcs_publish_empty": "Es gibt noch nichts zu veröffentlichen. Fügen Sie dem Projekt eine Datei hinzu und veröffentlichen Sie es dann.",
+	"timeline_load_more": "Mehr laden"
 }

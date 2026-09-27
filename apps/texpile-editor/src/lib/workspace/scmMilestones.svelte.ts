@@ -4,6 +4,7 @@ import { workspaceRoot } from './workspaceStore';
 import { refreshGitHistory } from './gitStore';
 import { gitMarkMilestone, gitRemoveMilestone, type GitTagResult } from './gitMilestones';
 import { uploadReason } from './uploadReason';
+import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
 import { m } from '$lib/paraglide/messages';
 import type { GitLogEntry } from './git';
@@ -29,9 +30,11 @@ export class ScmMilestones {
 		return null;
 	};
 
+	/** asked first: removing one that was uploaded removes it from the remote, for everyone */
 	remove = async (name: string, label: string): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return;
+		if (!(await confirmAsk(m.vcs_confirm_remove_milestone({ name: label }), { confirmLabel: m.vcs_remove(), danger: true }))) return;
 		this.host.busy = true;
 		try {
 			const res = await gitRemoveMilestone(root, name);

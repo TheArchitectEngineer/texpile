@@ -194,7 +194,7 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	fsOp: (body: Record<string, unknown>) => invokeFs('fs:op', body),
 	/** undoable delete: backs the entry up (if small enough) then sends it to the OS recycle bin.
 	 *  -> { backup } , null when it was too large to copy and so cannot be undone. */
-	fsTrash: (body: { path: string; root: string }) => invokeFs('fs:trash', body),
+	fsTrash: (body: { path: string; root: string; keep?: boolean }) => invokeFs('fs:trash', body),
 	/** discard a folder's undo backups -> { ok }. */
 	fsPurgeUndo: (root: string) => invokeFs('fs:purgeUndo', root),
 	/** select a file in the OS file manager (Explorer, Finder, ...) -> { ok }. */

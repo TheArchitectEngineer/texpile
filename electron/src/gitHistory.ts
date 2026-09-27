@@ -151,7 +151,8 @@ export async function gitFileLog(workspaceRoot: string, path: string, limit = 50
 	const root = rr.root;
 	const [rel] = toRepoRel(root, [path]);
 	if (!rel || rel.startsWith('..')) return { ok: true, entries: [] };
-	const max = `--max-count=${Math.max(1, Math.min(limit, 200))}`;
+	// the Timeline asks a page at a time, and again with a larger limit for Load more
+	const max = `--max-count=${Math.max(1, Math.min(limit, 2000))}`;
 	try {
 		const raw = await git(root).raw([
 			'log',

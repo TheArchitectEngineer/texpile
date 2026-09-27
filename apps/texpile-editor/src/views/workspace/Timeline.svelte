@@ -50,6 +50,10 @@
 
 	let local = $state<LocalHistoryEntry[]>([]);
 	let versions = $state<GitLogEntry[]>([]);
+	// VS Code's paging: a page of git versions at a time, one more asked for to know there are more
+	const PAGE = 50;
+	let gitLimit = $state(PAGE);
+	let moreGit = $state(false);
 	let openMenu = $state<string | null>(null);
 	let headerMenu = $state(false);
 	let prompt: TextPrompt;
@@ -66,26 +70,42 @@
 			if (path === p) local = entries;
 		});
 	});
+	// another file starts from the first page again
+	$effect(() => {
+		void path;
+		gitLimit = PAGE;
+	});
 	$effect(() => {
 		const p = path;
 		const root = workspaceRoot.current;
+		const limit = gitLimit;
 		void gitHead.current;
 		if (!p || !root || !isGitRepo.current) {
 			versions = [];
+			moreGit = false;
 			return;
 		}
-		void gitFileLog(root, p).then((res) => {
-			if (path === p) versions = res.ok ? (res.entries ?? []) : [];
+		void gitFileLog(root, p, limit + 1).then((res) => {
+			if (path !== p) return;
+			const all = res.ok ? (res.entries ?? []) : [];
+			moreGit = all.length > limit;
+			versions = all.slice(0, limit);
 		});
 	});
 
+	const gitItems = $derived(
+		sources.git ? versions.map((entry): Item => ({ kind: 'git', key: `g:${entry.hash}`, at: Date.parse(entry.date) || 0, entry })) : []
+	);
+	// with more git versions still to load, the list stops at the oldest one loaded, as VS Code's
+	// does: a local entry below it would read as coming right after it, with versions missing between
+	const cutoff = $derived(sources.git && moreGit ? Math.min(...gitItems.map((i) => i.at)) : -Infinity);
 	const items = $derived(
 		[
 			...(sources.local ? local.map((entry): Item => ({ kind: 'local', key: `l:${entry.id}`, at: entry.timestamp, entry })) : []),
-			...(sources.git
-				? versions.map((entry): Item => ({ kind: 'git', key: `g:${entry.hash}`, at: Date.parse(entry.date) || 0, entry }))
-				: [])
-		].sort((a, b) => b.at - a.at)
+			...gitItems
+		]
+			.filter((i) => i.at >= cutoff)
+			.sort((a, b) => b.at - a.at)
 	);
 
 	/** VS Code's short timeline times: "now", "5 mins", "3 hrs", then the date */
@@ -214,7 +234,7 @@
 								class={ROW}
 								onclick={() =>
 									run(async () => {
-										const name = await prompt.askText(m.history_rename_title(), entry.source ? sourceLabel(entry.source) : '');
+										const name = await prompt.askText(m.history_rename_title(), sourceLabel(entry.source));
 										if (name) await localHistoryActions.current?.rename(p, entry, name);
 									})}>{m.history_rename()}…</button
 							>
@@ -233,6 +253,11 @@
 					{@render menu(openMenu === item.key, (o) => (openMenu = o ? item.key : null), m.vcs_row_actions(), rowBody)}
 				</div>
 			{/each}
+			{#if sources.git && moreGit}
+				<button type="button" class="text-muted hover:text-surface-950-50 px-1 py-0.5 text-left text-xs" onclick={() => (gitLimit += PAGE)}
+					>{m.timeline_load_more()}</button
+				>
+			{/if}
 		</div>
 	{/if}
 </div>

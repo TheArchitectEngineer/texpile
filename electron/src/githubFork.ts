@@ -58,7 +58,10 @@ export function githubFork(sender: WebContents, root: string, remote: string): P
 			return { ok: false, failure: forked.failure, error: forked.error };
 		}
 		await helperCall('git.gitCredentialVerdict', [root, cred.credential, true]);
-		const { fullName, htmlUrl, cloneUrl, owner } = forked.repo;
+		const { fullName, htmlUrl, cloneUrl, sshUrl, owner } = forked.repo;
+		// the fork is reached the way the original was: an author who uploads with an SSH key keeps
+		// doing so (VS Code follows its git protocol setting the same way)
+		const address = sshUrl && !/^https?:\/\//i.test(source?.url ?? '') ? sshUrl : cloneUrl;
 
 		// a remote that already points at the fork is reused; otherwise one named after the account
 		let name = remotes.find((r) => sameRepo(r.url, cloneUrl))?.name;
@@ -67,7 +70,7 @@ export function githubFork(sender: WebContents, root: string, remote: string): P
 				remotes.map((r) => r.name),
 				[owner, 'fork']
 			);
-			const added = (await helperCall('git.gitAddRemote', [root, name, cloneUrl])) as GitOpResult;
+			const added = (await helperCall('git.gitAddRemote', [root, name, address])) as GitOpResult;
 			if (!added.ok) return { ok: false, reason: added.reason, failure: 'other', error: added.error, url: htmlUrl, fullName };
 		}
 

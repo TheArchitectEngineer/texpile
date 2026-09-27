@@ -3,7 +3,7 @@
 // command factory it shares; the helper process serves both (helper/helperWorker.ts).
 import { simpleGit, type SimpleGit, type SimpleGitOptions } from 'simple-git';
 import { spawn } from 'node:child_process';
-import { git, isMissingGit, errMsg, resolveRepoRoot, type GitOpResult } from './gitService';
+import { git, isMissingGit, errMsg, resolveRepoRoot, upstreamExists, type GitOpResult } from './gitService';
 
 // -- remotes --------------------------------------------------------------------
 
@@ -348,6 +348,9 @@ export async function gitSync(workspaceRoot: string, auth: GitAuthEnv = {}): Pro
 		remote = up.remote;
 
 		await g.fetch(up.remote);
+		// the branch was deleted on the remote (a merged pull request's) and the fetch pruned it:
+		// there is nothing to sync with, and the panel offers Publish once it refreshes
+		if (!(await upstreamExists(g))) return { ok: false, failure: 'no-upstream', remote };
 
 		stage = 'merge';
 		const [ahead, behind] = await aheadBehind(g);

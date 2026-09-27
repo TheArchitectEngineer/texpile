@@ -5,6 +5,7 @@ import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { gitStatus, gitIdentity, gitSetIdentity } from '../../../../../../electron/src/gitService';
 import { gitPublish, gitSync, gitPush, gitRemotes, gitAddRemote, gitCredentialFill } from '../../../../../../electron/src/gitRemote';
+import { gitFetch } from '../../../../../../electron/src/gitFetch';
 import { AVAILABLE, run, out, identify, commit, tempDir, removeTempDirs, makeUnpublished, makePublished } from './gitLiveFixture';
 
 afterEach(removeTempDirs);
@@ -51,6 +52,24 @@ describe.skipIf(!AVAILABLE)('publishing a branch', () => {
 });
 
 describe.skipIf(!AVAILABLE)('syncing with the remote', () => {
+	it('offers to publish again once the branch was deleted on the remote, instead of failing on every Sync', async () => {
+		const { root, other } = await makePublished();
+		const branch = out(root, 'branch', '--show-current');
+		run(root, 'checkout', '-q', '-b', 'feature');
+		run(root, 'push', '-q', '-u', 'origin', 'feature');
+		// a merged pull request's branch, deleted on GitHub; this clone prunes on fetch
+		run(other, 'push', '-q', 'origin', '--delete', 'feature');
+		run(root, 'config', 'fetch.prune', 'true');
+		expect((await gitStatus(root)).tracking).toBe('origin/feature');
+
+		expect(await gitSync(root)).toMatchObject({ ok: false, failure: 'no-upstream' });
+		expect((await gitStatus(root)).tracking).toBeNull();
+		expect(await gitFetch(root)).toMatchObject({ ok: false, failure: 'no-upstream' });
+		// the branch it came from still syncs
+		run(root, 'checkout', '-q', branch);
+		expect((await gitStatus(root)).tracking).toBe(`origin/${branch}`);
+	});
+
 	it('takes in versions made elsewhere when there is nothing to send', async () => {
 		const { root, other } = await makePublished();
 		commit(other, 'refs.bib', '@book{a,title={A}}\n', 'Add a reference');

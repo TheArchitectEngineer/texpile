@@ -1776,5 +1776,15 @@
 	"github_signin_browser": "Sign in with GitHub in your browser",
 	"github_signin_or": "or answer below",
 	"palette_github_sign_in": "Sign in to GitHub",
-	"palette_github_sign_out": "Sign out of GitHub ({login})"
+	"palette_github_sign_out": "Sign out of GitHub ({login})",
+	"vcs_error_conflicts_save": "Some files still hold places both sides changed. Choose for each of them, then save the version.",
+	"vcs_confirm_no_trash_one": "\"{name}\" can't be moved to the Trash here. Delete it permanently? It was never saved as a version, so it can't be brought back.",
+	"vcs_confirm_no_trash_other": "{count} files can't be moved to the Trash here. Delete them permanently? They were never saved as a version, so they can't be brought back.",
+	"vcs_delete_permanently": "Delete permanently",
+	"vcs_clone_submodules_title": "Part of the project could not be downloaded",
+	"vcs_clone_submodules": "The project is here, but a folder it takes from another repository (a submodule) could not be fetched. It may be private, or need a different sign-in.",
+	"vcs_confirm_remove_milestone": "Remove the milestone “{name}”? If it was uploaded, it is removed from the remote as well, for everyone who syncs with it.",
+	"vcs_remove": "Remove",
+	"vcs_publish_empty": "There is nothing to publish yet. Add a file to the project, then publish it.",
+	"timeline_load_more": "Load more"
 }

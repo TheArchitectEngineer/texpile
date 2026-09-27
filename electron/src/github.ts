@@ -121,14 +121,15 @@ export async function forkGithubRepo(fetchImpl: FetchLike, token: string, owner:
 	}
 	const body: unknown = await res.json().catch(() => null);
 	if ((res.status === 202 || res.status === 200) && body && typeof body === 'object') {
-		const b = body as { full_name?: unknown; html_url?: unknown; clone_url?: unknown; owner?: { login?: unknown } };
+		const b = body as { full_name?: unknown; html_url?: unknown; clone_url?: unknown; ssh_url?: unknown; owner?: { login?: unknown } };
 		if (
 			typeof b.full_name === 'string' &&
 			typeof b.html_url === 'string' &&
 			typeof b.clone_url === 'string' &&
 			typeof b.owner?.login === 'string'
 		) {
-			return { ok: true, repo: { fullName: b.full_name, htmlUrl: b.html_url, cloneUrl: b.clone_url, owner: b.owner.login } };
+			const repo = { fullName: b.full_name, htmlUrl: b.html_url, cloneUrl: b.clone_url, owner: b.owner.login };
+			return { ok: true, repo: typeof b.ssh_url === 'string' ? { ...repo, sshUrl: b.ssh_url } : repo };
 		}
 		return { ok: false, failure: 'other', error: 'GitHub made the fork but did not say where.' };
 	}

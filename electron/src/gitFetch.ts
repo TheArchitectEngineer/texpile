@@ -1,7 +1,7 @@
 // Check for new versions: fetch the remote this branch syncs with and report how far behind it is,
 // taking nothing in. For a co-author who wants to know whether someone uploaded before deciding to
 // Sync; Refresh stays offline. VS Code's Fetch, without fetch-all, prune or a remote picker.
-import { errMsg, isMissingGit, resolveRepoRoot } from './gitService';
+import { errMsg, isMissingGit, resolveRepoRoot, upstreamExists } from './gitService';
 import { aheadBehind, classifyPushError, netGit, upstreamOf, type GitAuthEnv, type PushFailure } from './gitRemote';
 
 export type GitFetchResult = {
@@ -27,6 +27,8 @@ export async function gitFetch(workspaceRoot: string, auth: GitAuthEnv = {}): Pr
 		if (!up) return { ok: false, failure: 'no-upstream' };
 		remote = up.remote;
 		await g.fetch(up.remote);
+		// the branch was deleted there (and pruned by this fetch): nothing to compare with
+		if (!(await upstreamExists(g))) return { ok: false, failure: 'no-upstream', remote };
 		const [ahead, behind] = await aheadBehind(g);
 		return { ok: true, remote, ahead, behind };
 	} catch (e) {

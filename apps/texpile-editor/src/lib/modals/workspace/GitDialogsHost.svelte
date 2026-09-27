@@ -3,6 +3,7 @@
 	// workspace's other modals and on the start screen, which can clone; it listens for git's
 	// questions while mounted, because they can come whenever an operation reaches a remote.
 	import { githubStatus } from '$lib/workspace/githubSignIn.svelte';
+	import { commandPalette } from '$lib/workspace/commandPalette.svelte';
 	import GitIdentityModal from './GitIdentityModal.svelte';
 	import GitPublishModal from './GitPublishModal.svelte';
 	import GitQuestionModal from './GitQuestionModal.svelte';
@@ -10,8 +11,12 @@
 	import { gitDialogs, listenForGitQuestions } from '$lib/workspace/gitDialogs.svelte';
 
 	$effect(() => listenForGitQuestions());
-	// whether GitHub's browser sign-in is offered, and who is signed in, for the palette
-	$effect(() => void githubStatus.refresh());
+	// whether GitHub's browser sign-in is offered, and who is signed in, for the palette: read again
+	// each time it opens, since a refused token or Forget saved Git sign-ins signs out on its own
+	$effect(() => {
+		void commandPalette.open;
+		void githubStatus.refresh();
+	});
 </script>
 
 {#if gitDialogs.identity}

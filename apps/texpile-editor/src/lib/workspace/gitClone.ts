@@ -11,6 +11,8 @@ export type GitCloneResult = {
 	error?: string;
 	/** the new folder, absolute */
 	path?: string;
+	/** ok, but a submodule could not be fetched: git's words for it */
+	submodules?: string;
 };
 
 /** git's stage ('receiving', 'resolving', ...) and how far through it */

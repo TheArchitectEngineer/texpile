@@ -18,6 +18,10 @@ export type GitStatusEntry = {
 	markers?: boolean;
 	/** a folder of new files shown as one row (electron/src/gitStatusLimit.ts): how many it holds */
 	files?: number;
+	/** a rename's old path: saving the rename takes in both, putting it back restores this */
+	from?: string;
+	/** a folder row that also holds files .gitignore leaves out: never deleted as a whole */
+	ignoredInside?: boolean;
 };
 
 export type GitStatusResult = {

@@ -4,6 +4,7 @@ import { askClone } from './gitDialogs.svelte';
 import { gitClone, cancelClone, type GitCloneResult } from './gitClone';
 import { dirname, joinPath, pickFolder } from './fileSystem';
 import { recentFolders } from './workspaceStore';
+import { toastGitFailure } from './gitFailureToast';
 import { m } from '$lib/paraglide/messages';
 
 const LAST_PARENT = 'texpile:cloneParent';
@@ -59,6 +60,8 @@ export async function startClone(open: (path: string) => unknown): Promise<void>
 			const res = await gitClone(c.url, c.parent, c.name, onStep);
 			if (!res.ok) return cloneReason(res);
 			rememberParent(c.parent);
+			// the project arrived, a folder it takes from another repository did not: opened all the same
+			if (res.submodules) toastGitFailure(m.vcs_clone_submodules_title(), m.vcs_clone_submodules(), { error: res.submodules });
 			return null;
 		}
 	});

@@ -28,7 +28,7 @@ export class ScmPublishNew {
 		await this.scm.ignore.artifacts(true);
 		await refreshGitStatus(root);
 		const paths = gitChanges.current.filter((c) => !c.files && !isBuildArtifact(c.path)).map((c) => c.path);
-		// an empty folder has nothing to save; Publish then says a version is needed first
+		// an empty folder has nothing to save; Publish then says so, before any repository is made
 		if (paths.length && !(await this.scm.commit(m.vcs_first_version_message(), paths))) return;
 		await this.scm.publish();
 	};

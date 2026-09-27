@@ -1,7 +1,7 @@
 // Local History as VS Code keeps it: a copy per save, saves close together from one source merged,
 // the newest 50 kept, big files skipped, and a rename taking the entries along.
 import { it, expect, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, readdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { LocalHistory } from '../../../../../../electron/src/localHistory';
@@ -83,4 +83,33 @@ it('takes the entries along when a file or its folder moves, and says where it w
 	const moved = join(tmpdir(), 'project', 'parts', 'introduction.tex');
 	expect(await h.move(join(tmpdir(), 'project', 'chapters'), join(tmpdir(), 'project', 'parts'))).toEqual([moved]);
 	expect((await h.list(moved)).at(-1)?.source).toBe('moved');
+});
+
+it('replaces the rename entry with what the file holds now, keeping where it came from', async () => {
+	const { h } = history();
+	await h.add(FILE, 'saved in the app', undefined, undefined, 1_000);
+	const renamed = join(tmpdir(), 'project', 'chapters', 'introduction.tex');
+	await h.move(FILE, renamed);
+	// what the window reads from disk after the rename: changed since by a pull
+	await h.add(renamed, 'pulled since', 'renamed');
+	const after = await h.list(renamed);
+	expect(after.map((e) => e.source)).toEqual([undefined, 'renamed']);
+	expect(after[1].sourceDescription).toBe(FILE);
+	expect(await h.read(renamed, after[1].id)).toBe('pulled since');
+});
+
+it('keeps every copy when the listing is lost, as VS Code rebuilds it from the folder', async () => {
+	const { h, home } = history();
+	await h.add(FILE, 'one', undefined, undefined, 1_000);
+	await h.add(FILE, 'two', undefined, undefined, 50_000);
+	const [folder] = readdirSync(home);
+	// a crash while entries.json was written
+	writeFileSync(join(home, folder, 'entries.json'), '{"version":1,"reso');
+	const listed = await h.list(FILE);
+	expect(listed).toHaveLength(2);
+	expect(await h.read(FILE, listed[0].id)).toBe('one');
+	// the next save lists all three, and nothing is left behind unlisted
+	await h.add(FILE, 'three', undefined, undefined, Date.now() + 60_000);
+	expect(await h.list(FILE)).toHaveLength(3);
+	expect(readdirSync(join(home, folder)).filter((n) => n !== 'entries.json')).toHaveLength(3);
 });

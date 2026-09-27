@@ -131,13 +131,17 @@ describe.skipIf(!AVAILABLE)('combining two lines of work', () => {
 });
 
 describe('the marker check on the git side', () => {
-	it('needs all three markers, in order, each at the start of a line', () => {
+	it('counts any opening or closing marker line left behind, as VS Code does', () => {
 		expect(hasConflictMarkers('a\n<<<<<<< HEAD\nx\n=======\ny\n>>>>>>> origin/main\nb\n')).toBe(true);
 		expect(hasConflictMarkers('<<<<<<< HEAD\r\nx\r\n=======\r\ny\r\n>>>>>>> b')).toBe(true);
-		expect(hasConflictMarkers('<<<<<<< HEAD\nx\n=======\ny\n')).toBe(false);
-		expect(hasConflictMarkers('=======\n<<<<<<< HEAD\n>>>>>>> b\n')).toBe(false);
-		expect(hasConflictMarkers(' <<<<<<< HEAD\nx\n=======\ny\n>>>>>>> b\n')).toBe(false);
-		expect(hasConflictMarkers('<<<<<<<< HEAD\nx\n=======\ny\n>>>>>>> b\n')).toBe(false);
+		// only the first line of a place deleted: the other two would go into the version
+		expect(hasConflictMarkers('x\n=======\ny\n>>>>>>> origin/main\n')).toBe(true);
+		expect(hasConflictMarkers('<<<<<<< HEAD\nx\n=======\ny\n')).toBe(true);
+		expect(hasConflictMarkers('<<<<<<<\nx\n')).toBe(true);
+		// not a marker: indented, too long, or a Markdown heading's underline on its own
+		expect(hasConflictMarkers(' <<<<<<< HEAD\nx\n')).toBe(false);
+		expect(hasConflictMarkers('<<<<<<<< HEAD\nx\n')).toBe(false);
+		expect(hasConflictMarkers('Title\n=======\n')).toBe(false);
 		expect(hasConflictMarkers('plain text\n')).toBe(false);
 	});
 });

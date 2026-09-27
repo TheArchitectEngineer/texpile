@@ -18,6 +18,8 @@ export type GitCloneResult = {
 	error?: string;
 	/** the new folder, absolute */
 	path?: string;
+	/** ok, but a submodule could not be fetched (a private one, most often): git's words for it */
+	submodules?: string;
 };
 
 /** how far along a clone is: git's own stage ('receiving', 'resolving', ...) and its percentage */
@@ -51,10 +53,21 @@ async function occupied(dir: string): Promise<boolean> {
 	}
 }
 
+/** a clone whose own files are there: git exits non-zero for a submodule it could not fetch, but
+ *  leaves the project checked out */
+async function checkedOut(dir: string): Promise<boolean> {
+	try {
+		return (await simpleGit(dir).raw(['rev-parse', '--verify', '-q', 'HEAD'])).trim() !== '' && (await occupied(join(dir, '.git')));
+	} catch {
+		return false;
+	}
+}
+
 /**
  * `git clone` the address into `<parent>/<name>`. The folder must not exist yet, or be empty:
  * git refuses anything else, and saying so first means nothing is downloaded to be refused.
- * git removes a folder it created when the clone fails, so a failure leaves nothing behind.
+ * git removes a folder it created when the clone fails, so a failure leaves nothing behind - except
+ * when the project itself arrived and a submodule did not: then it is opened, and the author told.
  */
 export async function gitClone(
 	url: string,
@@ -91,6 +104,7 @@ export async function gitClone(
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
 		if (signal?.aborted) return { ok: false, failure: 'cancelled' };
 		const msg = errMsg(e);
+		if (await checkedOut(target)) return { ok: true, path: target, submodules: msg };
 		return { ok: false, failure: classifyCloneError(msg), error: msg };
 	}
 }

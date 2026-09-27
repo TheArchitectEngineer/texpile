@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describePrompt, writeAskpassScripts, askpassEnv } from './gitAskpassClient';
 import type { GitAuthEnv } from './gitRemote';
-import { SignIns, keepable, keychainVault, settle } from './gitSignIns';
+import { SignIns, keepable, keychainVault, refusedPassword, settle } from './gitSignIns';
 import { forgetGithubSession, githubSession, registerGithubAuthIpc } from './githubSession';
 import { githubSignInAvailable } from './githubAuth';
 
@@ -180,7 +180,7 @@ function dropQuestions(session: Session): void {
  * `op` gets the environment that points git at the bridge; it is passed to the helper process with
  * the call. A result that failed after the author closed the prompt comes back as 'cancelled'.
  */
-export async function withAskpass<T extends { ok: boolean; failure?: string }>(
+export async function withAskpass<T extends { ok: boolean; failure?: string; error?: string }>(
 	sender: WebContents,
 	op: (env: GitAuthEnv) => Promise<T>
 ): Promise<T> {
@@ -198,7 +198,7 @@ export async function withAskpass<T extends { ok: boolean; failure?: string }>(
 		// kept only once they worked; a kept one that was refused is dropped, so the next try asks
 		settle(signInStore(), result, session.typed, session.recalled);
 		// a token GitHub refused (revoked, expired) is signed out, so the next try asks again
-		if (session.usedGithub && !result.ok && result.failure === 'auth') forgetGithubSession();
+		if (session.usedGithub && refusedPassword(result)) forgetGithubSession();
 		return !result.ok && session.cancelled ? { ...result, failure: 'cancelled' } : result;
 	} finally {
 		sessions.delete(token);

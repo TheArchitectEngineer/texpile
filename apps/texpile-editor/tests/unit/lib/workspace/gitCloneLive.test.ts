@@ -1,10 +1,11 @@
 // Cloning into a new folder, against a real bare repository (gitLiveFixture.ts): what arrives, what
 // is refused before anything downloads, and what a stopped clone leaves behind (nothing).
 import { describe, it, expect, afterEach } from 'vitest';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gitClone, classifyCloneError, isFolderName, type CloneProgress } from '../../../../../../electron/src/gitClone';
-import { AVAILABLE, out, tempDir, removeTempDirs, makePublished } from './gitLiveFixture';
+import { AVAILABLE, out, run, identify, commit, tempDir, removeTempDirs, makePublished } from './gitLiveFixture';
 
 afterEach(removeTempDirs);
 
@@ -32,6 +33,25 @@ describe.skipIf(!AVAILABLE)('cloning a repository', () => {
 		// an empty folder is fine: it is what someone makes first and then clones into
 		mkdirSync(join(parent, 'empty'));
 		expect((await gitClone(remote, parent, 'empty')).ok).toBe(true);
+	});
+
+	it('opens a project whose submodule could not be fetched, and says so, rather than calling it missing', async () => {
+		const { root, remote } = await makePublished();
+		// a style the project takes from another repository, which has since gone (or is private)
+		const style = join(tempDir('texpile-style-'), 'style');
+		execFileSync('git', ['init', '-q', style], { stdio: 'ignore' });
+		identify(style);
+		commit(style, 'thesis.cls', '% class\n', 'Class');
+		run(root, '-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', style, 'style');
+		run(root, 'commit', '-q', '-m', 'Use the style');
+		run(root, 'push', '-q');
+		rmSync(style, { recursive: true, force: true });
+
+		const parent = tempDir('texpile-clone-');
+		const res = await gitClone(remote, parent, 'thesis');
+		expect(res).toMatchObject({ ok: true, path: join(parent, 'thesis') });
+		expect(res.submodules).toBeTruthy();
+		expect(readFileSync(join(parent, 'thesis', 'main.tex'), 'utf8')).toBe('First line.\nSecond line.\n');
 	});
 
 	it('names a missing repository as missing, and leaves no folder behind', async () => {

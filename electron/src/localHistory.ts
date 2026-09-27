@@ -10,7 +10,7 @@
 // Nothing here reads the file being tracked: the window hands over what it saved, so a path can
 // never be used to pull an arbitrary file into the history and read it back out.
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 
 export type LocalHistoryEntry = {
@@ -67,16 +67,38 @@ export class LocalHistory {
 		return join(this.home, folderName(resource));
 	}
 
+	/**
+	 * The file's entries, rebuilt from the copies in its folder as VS Code rebuilds them: entries.json
+	 * adds the labels and times. A listing lost or cut short (a crash while it was written) then
+	 * costs only labels; the copies stay listed, and are trimmed and removed like any other.
+	 */
 	private async load(resource: string): Promise<Model> {
+		const dir = this.folder(resource);
+		let names: string[];
 		try {
-			const parsed = JSON.parse(await readFile(join(this.folder(resource), ENTRIES_FILE), 'utf8')) as Model;
-			if (parsed && Array.isArray(parsed.entries)) {
-				return { version: 1, resource: parsed.resource, entries: parsed.entries.filter((e) => ID_RE.test(e.id)) };
-			}
+			names = (await readdir(dir)).filter((n) => n !== ENTRIES_FILE && ID_RE.test(n));
 		} catch {
-			// no history yet, or a listing that cannot be read: start again rather than fail the save
+			return { version: 1, resource: resolve(resource), entries: [] };
 		}
-		return { version: 1, resource: resolve(resource), entries: [] };
+		let listed: LocalHistoryEntry[] = [];
+		let stored = resolve(resource);
+		try {
+			const parsed = JSON.parse(await readFile(join(dir, ENTRIES_FILE), 'utf8')) as Model;
+			if (parsed && Array.isArray(parsed.entries)) listed = parsed.entries.filter((e) => ID_RE.test(e.id));
+			if (typeof parsed?.resource === 'string') stored = parsed.resource;
+		} catch {
+			// no listing, or one that cannot be read: the copies alone, timed by when they were written
+		}
+		const present = new Set(names);
+		const entries = listed.filter((e) => present.has(e.id));
+		const known = new Set(entries.map((e) => e.id));
+		for (const id of names) {
+			if (known.has(id)) continue;
+			const written = await stat(join(dir, id)).catch(() => null);
+			if (written) entries.push({ id, timestamp: written.mtimeMs });
+		}
+		entries.sort((a, b) => a.timestamp - b.timestamp);
+		return { version: 1, resource: stored, entries };
 	}
 
 	private async store(resource: string, model: Model): Promise<void> {
@@ -86,7 +108,10 @@ export class LocalHistory {
 			return;
 		}
 		await mkdir(dir, { recursive: true });
-		await writeFile(join(dir, ENTRIES_FILE), JSON.stringify(model));
+		// written aside and renamed over the old one, so a crash leaves one listing or the other
+		const aside = join(dir, `.${ENTRIES_FILE}.${randomBytes(4).toString('hex')}`);
+		await writeFile(aside, JSON.stringify(model));
+		await rename(aside, join(dir, ENTRIES_FILE));
 	}
 
 	/** drop the oldest past the limit, files and all */
@@ -119,7 +144,8 @@ export class LocalHistory {
 				if (timestamp - last.timestamp <= this.limits.mergeWindowMs) {
 					await writeFile(join(dir, last.id), content);
 					last.timestamp = timestamp;
-					last.sourceDescription = sourceDescription;
+					// the window replacing a rename's entry with what is on disk keeps where it came from
+					last.sourceDescription = sourceDescription ?? last.sourceDescription;
 					await this.store(resource, model);
 					return last;
 				}
@@ -185,8 +211,10 @@ export class LocalHistory {
 
 	/**
 	 * A file or folder was renamed or moved: every file under `from` takes its entries to its new
-	 * path, merged with any the new path already had, and gets one more entry saying where it was
-	 * (a copy of its newest one: nothing is read from disk here). Resolves to the new paths.
+	 * path, merged with any the new path already had, and gets one more entry saying where it was.
+	 * Nothing is read from disk here, so that entry starts as a copy of the newest one; the window
+	 * then hands over what the file holds now (moveLocalHistory), which replaces it inside the merge
+	 * window, as VS Code's entry is a copy of the file itself. Resolves to the new paths.
 	 */
 	move(from: string, to: string): Promise<string[]> {
 		return this.queue(async () => {
@@ -208,10 +236,11 @@ export class LocalHistory {
 				const key = resourceKey(model.resource);
 				if (key !== src && !key.startsWith(src + sep)) continue;
 				const target = resolve(to) + resolve(model.resource).slice(resolve(from).length);
+				const carried = (await this.load(model.resource)).entries;
 				const into = await this.load(target);
 				const targetDir = this.folder(target);
 				await mkdir(targetDir, { recursive: true });
-				for (const entry of model.entries.filter((e) => ID_RE.test(e.id))) {
+				for (const entry of carried) {
 					const bytes = await readFile(join(this.home, name, entry.id)).catch(() => null);
 					if (!bytes || into.entries.some((e) => e.id === entry.id)) continue;
 					await writeFile(join(targetDir, entry.id), bytes);
