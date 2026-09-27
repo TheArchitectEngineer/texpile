@@ -5,7 +5,7 @@ import { NO_BRIDGE, errMsg, type PushFailure } from './git';
 
 export type GithubForkResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	failure?: PushFailure | 'exists' | 'scope' | 'not-github';
 	error?: string;
 	remote?: string;

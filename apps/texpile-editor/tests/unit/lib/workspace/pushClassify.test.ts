@@ -6,6 +6,7 @@
 // local bare repo cannot provoke (gitPushLive.test.ts), so it is only ever covered here.
 import { describe, it, expect } from 'vitest';
 import { classifyPushError } from '../../../../../../electron/src/gitRemote';
+import { uploadReason, secretLocations, secretAllowUrl } from '$lib/workspace/uploadReason';
 
 const REJECTED = [
 	"! [rejected]        master -> master (fetch first)\nerror: failed to push some refs to 'https://github.com/a/b.git'",
@@ -62,5 +63,43 @@ describe('classifying why an upload failed', () => {
 	it('falls back rather than guessing, so git gets to speak for itself', () => {
 		expect(classifyPushError('error: src refspec main does not match any')).toBe('other');
 		expect(classifyPushError('')).toBe('other');
+	});
+});
+
+// what GitHub prints when push protection stops an upload, trimmed to the lines that matter
+const PUSH_PROTECTION = [
+	'remote: error: GH013: Repository rule violations found for refs/heads/main.',
+	'remote: - GITHUB PUSH PROTECTION',
+	'remote:     Resolve the following violations before pushing again',
+	'remote:     - Push cannot contain secrets',
+	'remote:       —— GitHub Personal Access Token ——————————————————————',
+	'remote:        locations:',
+	'remote:          - commit: 8728dbe67f5d3a8a4b25eb7b5d23bdd8dd4b0b6d',
+	'remote:            path: chapters/data.tex:12',
+	'remote:          - commit: 8728dbe67f5d3a8a4b25eb7b5d23bdd8dd4b0b6d',
+	'remote:            path: chapters/data.tex:12',
+	'remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.',
+	'remote:        https://github.com/ada/thesis/security/secret-scanning/unblock-secret/2eMd3zNcZm6j4Bbnr1pFbnRbYfA',
+	' ! [remote rejected] main -> main (push declined due to repository rule violations)',
+	"error: failed to push some refs to 'https://github.com/ada/thesis'"
+].join('\n');
+
+describe("GitHub's own refusals", () => {
+	it('names a secret push protection found, where it is, and the page that allows it', () => {
+		expect(classifyPushError(PUSH_PROTECTION)).toBe('secret');
+		expect(secretLocations(PUSH_PROTECTION)).toEqual(['chapters/data.tex:12']);
+		expect(secretAllowUrl(PUSH_PROTECTION)).toBe(
+			'https://github.com/ada/thesis/security/secret-scanning/unblock-secret/2eMd3zNcZm6j4Bbnr1pFbnRbYfA'
+		);
+		expect(uploadReason({ failure: 'secret', error: PUSH_PROTECTION, remote: 'origin' })).toContain('chapters/data.tex:12');
+	});
+
+	it('tells a protected branch from a missing permission', () => {
+		const msg = [
+			'remote: error: GH006: Protected branch update failed for refs/heads/main.',
+			'remote: error: Changes must be made through a pull request.',
+			' ! [remote rejected] main -> main (protected branch hook declined)'
+		].join('\n');
+		expect(classifyPushError(msg)).toBe('protected');
 	});
 });

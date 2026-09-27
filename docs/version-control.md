@@ -76,6 +76,16 @@ If you upload to someone else's GitHub repository, GitHub refuses it. Texpile th
 
 The first time you save a version on a computer where git does not know your name and email, Texpile asks for them and saves them for all your projects.
 
+## When something goes wrong
+
+A failed save, sync or publish says what happened in plain words, and Details shows git's own output, with Copy for a bug report or for someone who knows git. Buttons say Saving…, Syncing… or Publishing… while they work.
+
+- **The folder belongs to another account.** A project on a USB or network drive, or one copied from another user, may belong to a different account on your computer. Git will not work in it until you say you trust it, because a repository's own settings can run programs. Source Control says so and offers Trust this folder, which asks first and then adds the folder to git's `safe.directory` list.
+- **A folder full of new files.** A folder of 200 or more new files, such as a data dump or a Python environment, is one row that says how many files it holds. It starts unticked, and its menu can add it to .gitignore. Past 2,000 changes the list stops and says how many there were.
+- **GitHub found a secret.** GitHub's push protection refuses an upload that contains what looks like a password, token or key, and Texpile names the file and line. The version that is not uploaded yet still holds it, so taking it out of the file is not enough. If it is not really a secret, Open GitHub's page lets you allow it.
+- **A protected branch.** A branch that only takes pull requests refuses uploads. Start a new branch from the branch menu and publish that.
+- **Another git is busy.** When another program holds the repository's lock, Texpile tries once more after a moment, then says what to do if the lock was left behind.
+
 > [!NOTE]
 > This covers the everyday loop, from the first version to GitHub. For combining branches and rewriting history, use the built-in terminal. It needs git installed.
 

@@ -11,11 +11,13 @@ import { git, isMissingGit, errMsg, resolveRepoRoot, type GitOpResult } from './
  *  and the difference is the only part an author can act on. 'cancelled' is the author closing the
  *  sign-in prompt, an answer rather than a failure; main sets it (gitAskpass.ts), since only main
  *  saw the prompt. */
-export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'forbidden' | 'network' | 'cancelled' | 'other';
+/** 'secret': GitHub's push protection found what looks like a password or key in a version.
+ *  'protected': the branch only takes changes a rule allows (a pull request, a review). */
+export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'forbidden' | 'secret' | 'protected' | 'network' | 'cancelled' | 'other';
 
 export type GitPushResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	failure?: PushFailure;
 	/** the remote it went to, or would have, so the message can name it */
@@ -27,6 +29,9 @@ export type GitPushResult = {
 // account that may not write here - someone else's repository, where a fork is the way in - and
 // is kept apart from 'auth', a password or token the host did not accept.
 const FORBIDDEN_RE = /permission to \S+ denied|returned error: 403/i;
+// GH009 and GH013 are GitHub's push protection; GH006 and the rest of GH013 are branch rules
+const SECRET_RE = /GH009|push cannot contain secrets|secret scanning/i;
+const PROTECTED_RE = /GH006|GH013|protected branch|repository rule violations/i;
 const AUTH_RE =
 	/authentication failed|could not read (username|password)|invalid username or password|permission denied|permission to .* denied|terminal prompts disabled|returned error: 40[13]|access denied|no such identity|host key verification failed/i;
 const REJECTED_RE = /non-fast-forward|fetch first|updates were rejected|\[rejected\]|behind its remote/i;
@@ -36,6 +41,9 @@ const NETWORK_RE =
 /** exported for the tests: this is the whole difference between a message worth reading and one
  *  that sends an author to a search engine */
 export function classifyPushError(message: string): PushFailure {
+	// GitHub's rule refusals come first: they arrive with a valid sign-in, and say so in words of their own
+	if (SECRET_RE.test(message)) return 'secret';
+	if (PROTECTED_RE.test(message)) return 'protected';
 	if (FORBIDDEN_RE.test(message)) return 'forbidden';
 	if (AUTH_RE.test(message)) return 'auth';
 	if (REJECTED_RE.test(message)) return 'rejected';
@@ -122,7 +130,7 @@ export type GitRemote = { name: string; url: string };
 
 export type GitRemotesResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	remotes?: GitRemote[];
 };
@@ -216,7 +224,7 @@ export type SyncFailure = PushFailure | 'conflict' | 'dirty';
 
 export type GitSyncResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	failure?: SyncFailure;
 	remote?: string;

@@ -1,7 +1,7 @@
 // source control ops: call the git client, refresh status, toast on failure. the panel is
 // presentational; WorkspaceView wires the deps.
 import { workspaceRoot } from './workspaceStore';
-import { refreshGitStatus, refreshGitHistory, isGitRepo, gitChanges, gitBranch, gitOperation, setGitWriting } from './gitStore';
+import { refreshGitStatus, refreshGitHistory, isGitRepo, gitChanges, gitBranch, gitOperation, gitRunning, setGitWriting } from './gitStore';
 import {
 	gitInit,
 	gitStage,
@@ -27,10 +27,12 @@ import { askIdentity, askPublish, type PublishChoice } from './gitDialogs.svelte
 import { ScmCombine } from './scmCombine.svelte';
 import { ScmBranches } from './scmBranches.svelte';
 import { ScmMilestones } from './scmMilestones.svelte';
+import { ScmIgnore } from './scmIgnore.svelte';
 import { offerFork } from './scmFork.svelte';
 import { uploadReason } from './uploadReason';
-import { basename, samePath, joinPath, relativeTo } from './fileSystem';
-import { ignoreLineFor, withIgnoreLines } from './gitignore';
+import { toastGitFailure } from './gitFailureToast';
+import { localGitReason } from './gitLocalReason';
+import { basename, samePath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
 import { m } from '$lib/paraglide/messages';
@@ -82,11 +84,13 @@ export class ScmActions {
 	readonly branches: ScmBranches;
 	/** names on versions, from History */
 	readonly milestones: ScmMilestones;
+	readonly ignore: ScmIgnore;
 
 	constructor(private deps: ScmDeps) {
 		this.combine = new ScmCombine(this, deps);
 		this.branches = new ScmBranches(this, deps);
 		this.milestones = new ScmMilestones(this);
+		this.ignore = new ScmIgnore(this, deps);
 	}
 
 	/** after installing git: forget that it was missing and look again */
@@ -112,7 +116,9 @@ export class ScmActions {
 		const res = await gitInit(root);
 		this.busy = false;
 		if (!res.ok) {
-			toaster.error({ title: m.wsview_toast_git_init_failed_title(), description: res.error });
+			// git missing has no error text of its own: the toast used to have an empty description
+			const why = res.reason === 'no-git' ? m.vcs_git_missing() : localGitReason(res.error);
+			toastGitFailure(m.wsview_toast_git_init_failed_title(), why, res);
 			return;
 		}
 		await refreshGitStatus(root);
@@ -125,7 +131,7 @@ export class ScmActions {
 		this.busy = true;
 		const res = await gitStage(root, paths);
 		this.busy = false;
-		if (!res.ok) toaster.error({ title: m.wsview_toast_stage_failed_title(), description: res.error });
+		if (!res.ok) toastGitFailure(m.vcs_toast_save_failed(), localGitReason(res.error), res);
 		await refreshGitStatus(root);
 	};
 
@@ -135,13 +141,14 @@ export class ScmActions {
 		this.busy = true;
 		const res = await gitUnstage(root, paths);
 		this.busy = false;
-		if (!res.ok) toaster.error({ title: m.wsview_toast_unstage_failed_title(), description: res.error });
+		if (!res.ok) toastGitFailure(m.vcs_toast_save_failed(), localGitReason(res.error), res);
 		await refreshGitStatus(root);
 	};
 
 	discard = async (changes: GitStatusEntry[]) => {
 		const root = workspaceRoot.current;
-		if (!root || !changes.length) return;
+		// never in the middle of a save or a sync: the files it is about to put back are in flight
+		if (!root || !changes.length || this.busy) return;
 		// A file never saved as a version goes to the Trash, not away for good: a new chapter is the one
 		// thing in this panel git cannot give back. The question says which of the two will happen.
 		const allNew = changes.every((c) => c.x === '?');
@@ -175,7 +182,7 @@ export class ScmActions {
 			if (!res.ok) err = res.error;
 		}
 		this.busy = false;
-		if (err) toaster.error({ title: m.wsview_toast_discard_failed_title(), description: err });
+		if (err) toastGitFailure(m.wsview_toast_discard_failed_title(), localGitReason(err), { error: err });
 		// samePath, as two lines above: git and the file tree hand back separators and case that do
 		// not always match, and a miss here leaves the editor showing content that is no longer on disk
 		const openAffected = !!loadedPath && changes.some((c) => samePath(c.path, loadedPath));
@@ -194,35 +201,42 @@ export class ScmActions {
 		if (!root || !paths.length) return false;
 		// busy from the start: Save version must not be pressable again behind the identity dialog
 		this.busy = true;
-		if (!(await this.ensureIdentity(root))) {
+		gitRunning.current = 'save';
+		try {
+			if (!(await this.ensureIdentity(root))) return false;
+			function failed(error?: string): boolean {
+				toastGitFailure(m.vcs_toast_save_failed(), localGitReason(error), { error });
+				return false;
+			}
+			// an edit still waiting for autosave is what the author means by this version; written out
+			// first, as Restore and Sync already do, or the version quietly leaves it behind
+			const include = [...paths];
+			const loadedPath = this.deps.getLoadedPath();
+			if (this.deps.hasPendingSave()) {
+				// a file that was not listed until now could not have been unticked, so it goes in too
+				const listed = loadedPath !== null && gitChanges.current.some((c) => samePath(c.path, loadedPath));
+				await this.deps.flushPendingSave();
+				if (loadedPath && !listed) {
+					this.busy = false; // the status read waits while Source Control is writing
+					await refreshGitStatus(root);
+					this.busy = true;
+					if (gitChanges.current.some((c) => samePath(c.path, loadedPath))) include.push(loadedPath);
+				}
+			}
+			const clear = await gitUnstage(root, []);
+			if (!clear.ok) return failed(clear.error);
+			const staged = await gitStage(root, include);
+			if (!staged.ok) return failed(staged.error);
+			const res = await gitCommit(root, message);
+			if (!res.ok) return failed(res.error);
+		} finally {
 			this.busy = false;
-			return false;
-		}
-		// an edit still waiting for autosave is what the author means by this version; written out
-		// first, as Restore and Sync already do, or the version quietly leaves it behind
-		if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
-		const clear = await gitUnstage(root, []);
-		if (!clear.ok) {
-			this.busy = false;
-			toaster.error({ title: m.wsview_toast_unstage_failed_title(), description: clear.error });
-			return false;
-		}
-		const staged = await gitStage(root, paths);
-		if (!staged.ok) {
-			this.busy = false;
-			toaster.error({ title: m.wsview_toast_stage_failed_title(), description: staged.error });
-			return false;
-		}
-		const res = await gitCommit(root, message);
-		this.busy = false;
-		if (!res.ok) {
-			toaster.error({ title: m.wsview_toast_commit_failed_title(), description: res.error });
-			return false;
+			gitRunning.current = null;
 		}
 		await refreshGitStatus(root);
 		await refreshGitHistory(root);
 		if (this.deps.isDiffMode()) this.deps.captureDiffSnapshot(); // the open diff now compares against the new HEAD
-		toaster.success({ title: m.wsview_toast_commit_created_title() });
+		toaster.success({ title: m.vcs_toast_version_saved() });
 		return true;
 	};
 
@@ -284,7 +298,7 @@ export class ScmActions {
 		const res = await gitRestore(root, entry.hash, m.vcs_restore_message({ name: entry.subject }));
 		this.busy = false;
 		if (!res.ok) {
-			toaster.error({ title: m.vcs_toast_restore_failed(), description: res.error });
+			toastGitFailure(m.vcs_toast_restore_failed(), localGitReason(res.error), res);
 			return false;
 		}
 		const loadedPath = this.deps.getLoadedPath();
@@ -296,40 +310,9 @@ export class ScmActions {
 		return true;
 	};
 
-	/** Appends, never replaces, and skips lines already present, so an existing .gitignore is not
-	 *  rewritten out from under the project. The output PDF is deliberately not among them. */
-	ignoreArtifacts = (): Promise<void> => this.#appendIgnore(this.deps.ignoreLines(), m.vcs_toast_ignored());
-
-	/** new files from a change row's menu: VS Code's Add to .gitignore. The project folder's own
-	 *  .gitignore, which git reads for everything below it wherever the repository starts. */
-	ignoreFiles = (paths: string[]): Promise<void> => {
-		const root = workspaceRoot.current;
-		if (!root || !paths.length) return Promise.resolve();
-		const lines = paths.map((p) => ignoreLineFor(relativeTo(root, p)));
-		const title =
-			paths.length === 1 ? m.vcs_toast_ignored_file({ name: basename(paths[0]) }) : m.vcs_toast_ignored_files({ count: paths.length });
-		return this.#appendIgnore(lines, title);
-	};
-
-	async #appendIgnore(lines: string[], done: string): Promise<void> {
-		const root = workspaceRoot.current;
-		if (!root) return;
-		const path = joinPath(root, '.gitignore');
-		this.busy = true;
-		try {
-			const next = withIgnoreLines(await this.deps.readTextIfPresent(path), lines);
-			// null: every pattern is already there
-			if (next !== null) await this.deps.writeText(path, next);
-		} catch (e) {
-			this.busy = false;
-			toaster.error({ title: m.vcs_toast_ignore_failed(), description: e instanceof Error ? e.message : String(e) });
-			return;
-		}
-		this.busy = false;
-		await this.deps.refreshTree();
-		await refreshGitStatus(root);
-		toaster.success({ title: done });
-	}
+	/** build output and new files into .gitignore (scmIgnore.svelte.ts) */
+	ignoreArtifacts = (): Promise<void> => this.ignore.artifacts();
+	ignoreFiles = (paths: string[]): Promise<void> => this.ignore.files(paths);
 
 	/** against the last saved version, in its own tab */
 	openDiff = (path: string) => {
@@ -374,6 +357,7 @@ export class ScmActions {
 	 *  for none, when the author closed the sign-in prompt - or null when the dialog is done. */
 	private publishTo = async (root: string, choice: PublishChoice): Promise<string | null> => {
 		this.busy = true;
+		gitRunning.current = 'publish';
 		try {
 			if (choice.kind === 'remote') return await this.published(root, await gitPublish(root, choice.remote));
 
@@ -425,6 +409,7 @@ export class ScmActions {
 			return uploadReason({ ...res, failure: res.failure === 'network' ? 'network' : 'other', remote: 'GitHub' });
 		} finally {
 			this.busy = false;
+			gitRunning.current = null;
 		}
 	};
 
@@ -453,6 +438,7 @@ export class ScmActions {
 		if (!root || this.busy) return;
 		if (this.blockedByOperation()) return;
 		this.busy = true;
+		gitRunning.current = 'sync';
 		try {
 			// joining two histories writes a merge version, which git refuses without a name and email
 			if (!(await this.ensureIdentity(root))) return;
@@ -487,10 +473,11 @@ export class ScmActions {
 			} else if (res.failure === 'forbidden' && (await offerFork(root, res.remote))) {
 				// someone else's repository: the fork offer was the answer
 			} else if (res.failure !== 'cancelled') {
-				toaster.error({ title: m.vcs_toast_sync_failed(), description: uploadReason(res) });
+				toastGitFailure(m.vcs_toast_sync_failed(), uploadReason(res), res);
 			}
 		} finally {
 			this.busy = false;
+			gitRunning.current = null;
 		}
 	};
 

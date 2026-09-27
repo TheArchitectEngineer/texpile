@@ -4,7 +4,7 @@ import { NO_BRIDGE, errMsg } from './git';
 
 export type GitTagResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	name?: string;
 	failure?: 'invalid' | 'missing' | 'cancelled' | 'auth' | 'network' | 'other';

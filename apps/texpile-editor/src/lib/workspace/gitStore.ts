@@ -40,6 +40,8 @@ export const gitOperation = box<GitOperation | null>(null);
 /** git itself is not installed, as against the folder not being a repository: the panel says
  *  which, since the one thing it can offer for "not a repository" fails without git */
 export const gitMissing = box<boolean>(false);
+/** the repository git will not work in because another account owns its folder, as git names it */
+export const gitUnsafe = box<string | null>(null);
 /** where the repository starts, which is above the open folder when it sits inside a larger one */
 export const gitRepoRoot = box<string | null>(null);
 /** the commit HEAD points at; it moves when a version is saved, synced in, or a branch switched */
@@ -50,6 +52,10 @@ export const gitStatusMap = box<Record<string, GitBadge>>({});
 
 /** raw staged/unstaged porcelain codes; drives the Source Control panel. */
 export const gitChanges = box<GitStatusEntry[]>([]);
+/** what Source Control is doing right now, for the button that started it to say so */
+export const gitRunning = box<'save' | 'sync' | 'publish' | null>(null);
+/** gitChanges was cut short: how many changes there were; 0 when it is whole */
+export const gitTruncated = box<number>(0);
 
 /** commits touching the workspace, newest first; drives the history timeline. */
 export const gitHistory = box<GitLogEntry[]>([]);
@@ -102,11 +108,14 @@ export function takeNoGitHint(): boolean {
 // middle of a Save version or Sync used to race it for .git/index.lock; it now runs once the write
 // is over, for the folder it was asked about.
 let writing = false;
+/** the same, for the rows whose actions must wait for it: a discard in the middle of a save */
+export const gitWriting = box<boolean>(false);
 let waitingRoot: string | null | undefined;
 
 /** ScmActions says when it starts and stops writing to the repository */
 export function setGitWriting(on: boolean): void {
 	writing = on;
+	gitWriting.current = on;
 	if (on || waitingRoot === undefined) return;
 	const root = waitingRoot;
 	waitingRoot = undefined;
@@ -131,6 +140,7 @@ function clearGitState(): void {
 	gitDetached.current = false;
 	gitStatusMap.current = {};
 	gitChanges.current = [];
+	gitTruncated.current = 0;
 	gitHistory.current = [];
 	gitHistoryError.current = null;
 }
@@ -140,6 +150,7 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 	if (!root) {
 		clearGitState();
 		gitMissing.current = false;
+		gitUnsafe.current = null;
 		return { missingGit: false };
 	}
 	if (writing) {
@@ -148,6 +159,7 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 	}
 	const res = await fetchGitStatus(root);
 	gitMissing.current = !res.ok && res.reason === 'no-git';
+	gitUnsafe.current = !res.ok && res.reason === 'unsafe' ? (res.unsafe ?? root) : null;
 	if (!res.ok) {
 		clearGitState();
 		return { missingGit: gitMissing.current };
@@ -169,6 +181,7 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 	gitDetached.current = !!res.detached;
 	const list = res.entries ?? [];
 	gitChanges.current = list;
+	gitTruncated.current = res.truncated ?? 0;
 	const map: Record<string, GitBadge> = {};
 	for (const e of list) map[gitKey(e.path)] = badgeOf(e.x, e.y);
 	gitStatusMap.current = map;

@@ -13,7 +13,7 @@ import type { GitCredentialResult, GitPushResult, PushFailure } from './gitRemot
 
 export type GithubPublishResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	/** signing in, creating the repository, or the upload that followed it */
 	failure?: GithubFailure | PushFailure;
 	error?: string;

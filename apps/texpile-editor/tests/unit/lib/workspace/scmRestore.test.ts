@@ -39,6 +39,7 @@ vi.mock('$lib/workspace/gitStore', () => ({
 	isGitRepo: { current: true },
 	gitChanges,
 	gitOperation: { current: null },
+	gitRunning: { current: null },
 	setGitWriting: vi.fn()
 }));
 vi.mock('$lib/workspace/workspaceStore', () => ({ workspaceRoot: { current: 'C:/project' }, isDirty: { current: false } }));
@@ -48,9 +49,9 @@ const { ScmActions } = await import('$lib/workspace/scmActions.svelte');
 const flushed = vi.fn(async () => {});
 const discarded = vi.fn();
 
-function makeScm(opts: { pending?: boolean } = {}) {
+function makeScm(opts: { pending?: boolean; loaded?: string } = {}) {
 	return new ScmActions({
-		getLoadedPath: () => null,
+		getLoadedPath: () => opts.loaded ?? null,
 		discardPendingSave: discarded,
 		hasPendingSave: () => opts.pending ?? false,
 		flushPendingSave: flushed,
@@ -189,6 +190,25 @@ describe('saving a version', () => {
 		gitStage.mockImplementationOnce(async () => (order.push('stage'), { ok: true }));
 		expect(await makeScm({ pending: true }).commit('Tighten the proof', ['C:/project/main.tex'])).toBe(true);
 		expect(order).toEqual(['flush', 'stage']);
+	});
+
+	// the open file had no changes on disk, so it was not in the list the ticks were read from: its
+	// waiting edit is what the author is saving, and it could not have been unticked
+	it('takes in the open file once its waiting edit shows it changed', async () => {
+		gitChanges.current = [];
+		flushed.mockImplementationOnce(async () => {
+			gitChanges.current = [{ path: 'C:/project/intro.tex', x: ' ', y: 'M' }];
+		});
+		await makeScm({ pending: true, loaded: 'C:/project/intro.tex' }).commit('Tighten the proof', ['C:/project/main.tex']);
+		expect(gitStage.mock.calls.at(-1)?.[1]).toEqual(['C:/project/main.tex', 'C:/project/intro.tex']);
+		gitChanges.current = [];
+	});
+
+	it('leaves the open file out when it was listed and the author unticked it', async () => {
+		gitChanges.current = [{ path: 'C:/project/intro.tex', x: ' ', y: 'M' }];
+		await makeScm({ pending: true, loaded: 'C:/project/intro.tex' }).commit('Tighten the proof', ['C:/project/main.tex']);
+		expect(gitStage.mock.calls.at(-1)?.[1]).toEqual(['C:/project/main.tex']);
+		gitChanges.current = [];
 	});
 
 	it('writes nothing when nothing is waiting', async () => {

@@ -5,6 +5,12 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- fix: a repository in a folder another account owns (a USB or network drive) is no longer called "not a repository"; Source Control explains it and offers Trust this folder
+- feat: a folder of 200 or more new files is one row with its count and Add folder to .gitignore; past 2,000 changes the list stops and says so
+- feat: GitHub's push protection and protected branches are explained in plain words, with the file and line push protection found
+- feat: failed saves, syncs and publishes say what to do next, with git's own output behind Details; Save version, Sync and Publish say Saving…, Syncing… and Publishing… while they work
+- fix: a Save version or discard that meets another git's lock tries once more before failing
+- fix: an edit waiting for autosave in a file that was not changed on disk yet is included in the version being saved
 - feat: clicking a change mark in the source editor's margin shows what those lines were in the last version, with Undo this change
 - feat: a new file's menu in Source Control adds it to .gitignore; a version's menu in History copies its ID or its full message
 - feat: Publish sends a project to a new GitHub repository, a remote it already has, or any repository by address

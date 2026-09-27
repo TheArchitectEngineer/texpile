@@ -8,6 +8,7 @@ import type { GitVersionBridge } from './gitVersion';
 import type { GitBranchBridge } from './gitBranches';
 import type { GitMilestoneBridge } from './gitMilestones';
 import type { GithubForkBridge } from './githubFork';
+import type { GitTrustBridge } from './gitTrust';
 
 export type GitBridges = GitRemoteBridge &
 	GitCombineBridge &
@@ -15,4 +16,5 @@ export type GitBridges = GitRemoteBridge &
 	GitVersionBridge &
 	GitBranchBridge &
 	GitMilestoneBridge &
-	GithubForkBridge;
+	GithubForkBridge &
+	GitTrustBridge;

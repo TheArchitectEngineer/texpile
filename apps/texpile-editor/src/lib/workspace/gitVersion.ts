@@ -5,7 +5,7 @@ import { NO_BRIDGE, errMsg, type GitFileChange, type GitShowResult } from './git
 
 export type GitVersionChangesResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	entries?: GitFileChange[];
 	/** the version it is compared with; null for a project's first version */

@@ -10,6 +10,7 @@
 	import ChangeGroup from './ChangeGroup.svelte';
 	import { pathLabels } from './pathLabels';
 	import type { GitStatusEntry } from '$lib/workspace/git';
+	import { gitWriting } from '$lib/workspace/gitStore';
 	import { m } from '$lib/paraglide/messages';
 
 	type Props = {
@@ -103,9 +104,10 @@
 			{#if onIgnoreArtifacts}
 				<!-- the permanent fix, one click: unticking these every time is a chore nobody should repeat -->
 				<button
-					class="hover:preset-tonal text-primary-ink shrink-0 rounded-base px-1 text-[11px] opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100"
+					class="hover:preset-tonal text-primary-ink shrink-0 rounded-base px-1 text-[11px] opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-50"
 					use:tip={m.vcs_ignore_artifacts_title()}
 					onclick={onIgnoreArtifacts}
+					disabled={gitWriting.current}
 				>
 					{m.vcs_ignore_artifacts()}
 				</button>

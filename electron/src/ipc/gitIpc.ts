@@ -28,6 +28,7 @@ const OPS: Record<string, string> = {
 	'git:remotes': 'gitRemotes',
 	'git:addRemote': 'gitAddRemote',
 	'git:recheck': 'gitRecheck',
+	'git:trustRepo': 'gitTrustRepo',
 	'git:combine': 'gitCombine',
 	'git:finishCombine': 'gitFinishCombine',
 	'git:cancelCombine': 'gitCancelCombine',

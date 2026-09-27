@@ -4,6 +4,8 @@ import { simpleGit, type SimpleGit, type FileStatusResult } from 'simple-git';
 import { dirname, resolve, relative, join, isAbsolute } from 'node:path';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { unsafeRepoFrom } from './unsafeRepo';
+import { FOLDER_ROW_AT, capRows, collapseUntracked } from './gitStatusLimit';
 import { hasConflictMarkers } from './conflictMarkers';
 
 // once git is confirmed missing (ENOENT), stop retrying
@@ -30,12 +32,18 @@ export type GitStatusEntry = {
 	/** a file both sides changed that still holds a place marked for someone to choose. Only set
 	 *  on those files: once every place is chosen it is ready to finish the merge with. */
 	markers?: boolean;
+	/** a folder of new files shown as one row (gitStatusLimit.ts): how many files it holds */
+	files?: number;
 };
 
 export type GitStatusResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
+	/** reason 'unsafe': the repository git will not work in, as git names it */
+	unsafe?: string;
 	error?: string;
+	/** the list was cut (gitStatusLimit.ts MAX_ROWS): how many rows there were */
+	truncated?: number;
 	branch?: string | null;
 	entries?: GitStatusEntry[];
 	/** the upstream this branch tracks ('origin/master'), or null if it tracks nothing */
@@ -62,7 +70,7 @@ export type GitOperation = 'merge' | 'rebase' | 'cherry-pick' | 'revert';
 
 export type GitShowResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	/** false when the file has no committed baseline (unborn HEAD, or an untracked/new file);
 	 *  the caller diffs against empty content. */
@@ -72,7 +80,7 @@ export type GitShowResult = {
 
 export type GitOpResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 };
 
@@ -89,6 +97,21 @@ export function git(baseDir: string): SimpleGit {
 	});
 }
 
+// another git holds the lock: a terminal, another editor's own status poll. Texpile's own status
+// takes no lock (GIT_OPTIONAL_LOCKS in helper/helperWorker.ts), but it cannot speak for them.
+const LOCKED_RE = /index\.lock|unable to create '[^']*\.lock'|cannot lock ref/i;
+
+/** once more after a moment when the repository was locked, which is usually over by then */
+export async function retryLocked<T>(run: () => Promise<T>, wait = 400): Promise<T> {
+	try {
+		return await run();
+	} catch (e) {
+		if (!LOCKED_RE.test(errMsg(e))) throw e;
+		await new Promise((r) => setTimeout(r, wait));
+		return run();
+	}
+}
+
 export function isMissingGit(e: unknown): boolean {
 	if ((e as { code?: string })?.code === 'ENOENT') return true;
 	const msg = e instanceof Error ? e.message : String(e);
@@ -101,7 +124,9 @@ export function errMsg(e: unknown): string {
 
 /** resolves the enclosing repo's root, cached. Flat shape (root|null + optional reason), not a
  *  discriminated union: the union form tripped svelte-check's cross-config narrowing. */
-export async function resolveRepoRoot(dir: string): Promise<{ root: string | null; reason?: 'not-a-repo' | 'no-git' }> {
+export async function resolveRepoRoot(
+	dir: string
+): Promise<{ root: string | null; reason?: 'not-a-repo' | 'no-git' | 'unsafe'; unsafe?: string }> {
 	if (gitBinaryMissing) return { root: null, reason: 'no-git' };
 	// case-fold the cache key only on case-insensitive filesystems; on Linux /proj/Foo
 	// and /proj/foo are different directories and must not collide
@@ -129,6 +154,9 @@ export async function resolveRepoRoot(dir: string): Promise<{ root: string | nul
 			gitBinaryMissing = true;
 			return { root: null, reason: 'no-git' };
 		}
+		// a folder another account owns: git will say which, and gitTrust.ts can list it as safe
+		const unsafe = unsafeRepoFrom(errMsg(e));
+		if (unsafe) return { root: null, reason: 'unsafe', unsafe };
 		// permissions or a corrupt repo: treat as not-a-repo but don't cache, could be transient
 		return { root: null, reason: 'not-a-repo' };
 	}
@@ -192,10 +220,22 @@ export async function stillMarked(abs: string): Promise<boolean> {
 	}
 }
 
+/** big folders of new files as one row each; git is asked which folders are wholly new only when
+ *  there are enough new files for one to qualify */
+async function withFolderRows(g: SimpleGit, workspaceRoot: string, entries: GitStatusEntry[]): Promise<GitStatusEntry[]> {
+	if (entries.filter((e) => e.x === '?').length < FOLDER_ROW_AT) return entries;
+	const raw = await g.raw(['ls-files', '--others', '--exclude-standard', '--directory', '--no-empty-directory', '-z']);
+	const folders = raw
+		.split('\0')
+		.filter((p) => p.endsWith('/'))
+		.map((p) => join(workspaceRoot, p));
+	return collapseUntracked(entries, folders);
+}
+
 export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult> {
 	if (!workspaceRoot) return { ok: false, error: 'Missing path' };
 	const rr = await resolveRepoRoot(workspaceRoot);
-	if (!rr.root) return { ok: false, reason: rr.reason };
+	if (!rr.root) return { ok: false, reason: rr.reason, unsafe: rr.unsafe };
 	const repoRoot = rr.root;
 	try {
 		const g = git(workspaceRoot);
@@ -214,10 +254,12 @@ export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult>
 			if (isUnmerged(f.index, f.working_dir)) entry.markers = await stillMarked(absFromRepo);
 			entries.push(entry);
 		}
+		const { rows, truncated } = capRows(await withFolderRows(g, workspaceRoot, entries));
 		return {
 			ok: true,
 			branch: status.current,
-			entries,
+			entries: rows,
+			truncated,
 			tracking: status.tracking ?? null,
 			ahead: status.ahead,
 			behind: status.behind,
@@ -286,9 +328,10 @@ export async function gitInit(dir: string): Promise<GitOpResult> {
 export async function gitStage(workspaceRoot: string, paths: string[]): Promise<GitOpResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
+	const root = rr.root;
 	try {
 		const rel = toRepoRel(rr.root, paths);
-		await git(rr.root).add(rel.length ? rel : ['.']);
+		await retryLocked(() => git(root).add(rel.length ? rel : ['.']));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -304,7 +347,7 @@ export async function gitUnstage(workspaceRoot: string, paths: string[]): Promis
 	const g = git(rr.root);
 	const rel = toRepoRel(rr.root, paths);
 	try {
-		await g.raw(['reset', '-q', 'HEAD', '--', ...(rel.length ? rel : ['.'])]);
+		await retryLocked(() => g.raw(['reset', '-q', 'HEAD', '--', ...(rel.length ? rel : ['.'])]));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -330,9 +373,10 @@ export async function gitDiscard(workspaceRoot: string, paths: string[]): Promis
 	if (!paths.length) return { ok: false, error: 'No files to discard' };
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
+	const root = rr.root;
 	try {
 		const rel = toRepoRel(rr.root, paths);
-		await git(rr.root).raw(['checkout', '-q', '--', ...rel]);
+		await retryLocked(() => git(root).raw(['checkout', '-q', '--', ...rel]));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -391,8 +435,9 @@ export async function gitCommit(workspaceRoot: string, message: string): Promise
 	if (!message || !message.trim()) return { ok: false, error: 'A commit message is required' };
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
+	const root = rr.root;
 	try {
-		await git(rr.root).commit(message);
+		await retryLocked(() => git(root).commit(message));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };

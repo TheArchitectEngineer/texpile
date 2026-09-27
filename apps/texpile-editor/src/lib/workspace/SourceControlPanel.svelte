@@ -2,16 +2,19 @@
 	// History panel, purely presentational: WorkspaceView implements the callbacks. No
 	// staged/unstaged split - the tick boxes ARE the staging, so a version's scope is visible.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { GitBranch, RefreshCw, Check, GitCommitHorizontal, ArrowUp, ArrowDown, ArrowDownUp, CloudUpload, PackageX } from '@lucide/svelte';
+	import { GitBranch, RefreshCw, Check, GitCommitHorizontal, PackageX, LoaderCircle } from '@lucide/svelte';
 	import ChangeList from './history/ChangeList.svelte';
 	import BranchPicker from './history/BranchPicker.svelte';
 	import OperationBanner from './history/OperationBanner.svelte';
+	import SyncControls from './history/SyncControls.svelte';
 	import ParentRepoGate from './history/ParentRepoGate.svelte';
+	import UnsafeRepoGate from './history/UnsafeRepoGate.svelte';
 	import type { GitBranchesResult } from '$lib/workspace/gitBranches';
 	import HistoryTimeline from './history/HistoryTimeline.svelte';
 	import { pathLabels } from './history/pathLabels';
 	import { isBuildArtifact } from '$lib/workspace/buildArtifacts';
-	import { isConflicted } from '$lib/workspace/gitStore';
+	// what is going on in git that only the display needs: not callbacks, so read here, not passed down
+	import { isConflicted, gitRunning, gitUnsafe, gitTruncated } from '$lib/workspace/gitStore';
 	import { scmDraftFor } from '$lib/workspace/scmDraft.svelte';
 	import type { GitStatusEntry, GitLogEntry, GitFileChange, GitOperation } from '$lib/workspace/git';
 	import { combo } from '$lib/chrome/shortcutText';
@@ -128,16 +131,6 @@
 	// what the author has chosen but not saved, kept outside the panel so it survives the panel
 	const draft = $derived(scmDraftFor(root));
 
-	// what Sync would do, naming versions and leaving out the side with nothing on it. `behind` is
-	// only as fresh as the last fetch, and its phrase says so.
-	const syncTip = $derived(
-		[
-			m.vcs_sync_tip({ tracking: tracking ?? '' }),
-			...(behind > 0 ? [behind === 1 ? m.vcs_sync_to_receive_one() : m.vcs_sync_to_receive_count({ count: behind })] : []),
-			...(ahead > 0 ? [ahead === 1 ? m.vcs_sync_to_send_one() : m.vcs_sync_to_send_count({ count: ahead })] : [])
-		].join(' · ')
-	);
-
 	// one implementation of how a path is written, shared by the changes and a version's files
 	const labels = $derived(pathLabels(root));
 
@@ -148,13 +141,18 @@
 	const artifacts = $derived(changes.filter((c) => !isConflicted(c.x, c.y) && isBuildArtifact(c.path)));
 	const sources = $derived(changes.filter((c) => !isConflicted(c.x, c.y) && !isBuildArtifact(c.path)));
 
-	const selected = $derived([
-		...sources.filter((c) => !draft.excluded.includes(c.path)).map((c) => c.path),
-		...artifacts.filter((c) => draft.artifactsOptedIn.includes(c.path)).map((c) => c.path)
-	]);
+	// build output and whole folders of new files start unticked: ticking one is an opt-in
+	function optIn(c: GitStatusEntry): boolean {
+		return !!c.files || isBuildArtifact(c.path);
+	}
+	const selected = $derived(
+		[...sources, ...artifacts]
+			.filter((c) => (optIn(c) ? draft.artifactsOptedIn.includes(c.path) : !draft.excluded.includes(c.path)))
+			.map((c) => c.path)
+	);
 
 	function toggle(path: string) {
-		if (artifacts.some((a) => a.path === path)) {
+		if (changes.some((c) => c.path === path && optIn(c))) {
 			const on = draft.artifactsOptedIn;
 			draft.artifactsOptedIn = on.includes(path) ? on.filter((p) => p !== path) : [...on, path];
 			return;
@@ -197,6 +195,8 @@
 			{m.vcs_check_again()}
 		</button>
 	</div>
+{:else if gitUnsafe.current && root}
+	<UnsafeRepoGate {root} repo={gitUnsafe.current} />
 {:else if !isRepo}
 	<div class="flex flex-col items-center gap-3 p-6 text-center">
 		<GitBranch class="text-faint size-8" />
@@ -221,39 +221,7 @@
 				<span class="truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
 			{/if}
 			<div class="ml-auto flex shrink-0 items-center gap-1">
-				<!-- VS Code's two states. With an upstream: Sync, carrying what it would take in and send.
-				     `ahead` is counted from local refs and is exact; `behind` is as of the last fetch, which
-				     Sync itself runs, and the tooltip says so. Without one: Publish, once there is a version
-				     to publish and a branch to publish it from. -->
-				{#if tracking}
-					<button
-						class="hover:preset-tonal flex items-center gap-1 rounded-base px-1 py-0.5 disabled:opacity-50"
-						use:tip={syncTip}
-						aria-label={m.vcs_sync_aria()}
-						onclick={onSync}
-						disabled={busy || !!operation}
-					>
-						{#if behind > 0}
-							<span class="flex items-center tabular-nums"><ArrowDown class="size-3.5" />{behind}</span>
-						{/if}
-						{#if ahead > 0}
-							<span class="flex items-center tabular-nums"><ArrowUp class="size-3.5" />{ahead}</span>
-						{/if}
-						{#if !behind && !ahead}
-							<ArrowDownUp class="size-3.5" />
-						{/if}
-					</button>
-				{:else if hasCommits && !detached && branch}
-					<button
-						class="hover:preset-tonal flex items-center gap-1 rounded-base px-1.5 py-0.5 disabled:opacity-50"
-						use:tip={m.vcs_publish_button_tip()}
-						onclick={onPublish}
-						disabled={busy}
-					>
-						<CloudUpload class="size-3.5" />
-						<span>{m.vcs_publish_button()}</span>
-					</button>
-				{/if}
+				<SyncControls place="header" {tracking} {ahead} {behind} {hasCommits} {detached} {branch} {operation} {busy} {onSync} {onPublish} />
 				<button
 					class="btn-icon btn-icon-xs hover:preset-tonal"
 					use:tip={m.vcs_refresh_title()}
@@ -277,8 +245,13 @@
 						     tick box and no chevron, so a summary cannot be mistaken for what it summarises. -->
 						<div class="border-surface-200-800 text-muted flex items-center gap-2 border-t px-3 py-1 text-xs">
 							<span class="font-medium">{m.vcs_total_changes()}</span>
-							<span class="tabular-nums">{changes.length}</span>
+							<span class="tabular-nums">{gitTruncated.current || changes.length}</span>
 						</div>
+						{#if gitTruncated.current}
+							<p class="text-warning-ink px-3 py-1 text-xs" role="status">
+								{m.vcs_truncated({ shown: changes.length.toLocaleString(), count: gitTruncated.current.toLocaleString() })}
+							</p>
+						{/if}
 						<div class="px-1.5">
 							<ChangeList
 								{root}
@@ -300,23 +273,19 @@
 						</div>
 						<!-- VS Code's action button: with nothing to save, what is left to do is send and receive
 						     versions, or give the branch somewhere to go -->
-						{#if !operation && tracking && (ahead > 0 || behind > 0)}
-							<div class="px-2">
-								<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={onSync} disabled={busy} use:tip={syncTip}>
-									<ArrowDownUp class="size-3.5" />
-									{m.vcs_action_sync()}
-									{#if behind > 0}<span class="flex items-center tabular-nums"><ArrowDown class="size-3" />{behind}</span>{/if}
-									{#if ahead > 0}<span class="flex items-center tabular-nums"><ArrowUp class="size-3" />{ahead}</span>{/if}
-								</button>
-							</div>
-						{:else if !operation && !tracking && hasCommits && !detached && branch}
-							<div class="px-2">
-								<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={onPublish} disabled={busy}>
-									<CloudUpload class="size-3.5" />
-									{m.vcs_action_publish({ branch })}
-								</button>
-							</div>
-						{/if}
+						<SyncControls
+							place="action"
+							{tracking}
+							{ahead}
+							{behind}
+							{hasCommits}
+							{detached}
+							{branch}
+							{operation}
+							{busy}
+							{onSync}
+							{onPublish}
+						/>
 					{/if}
 				</div>
 
@@ -332,8 +301,13 @@
 							bind:value={draft.message}
 							onkeydown={onKeydown}></textarea>
 						<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={save} disabled={!canSave}>
-							<Check class="size-4" />
-							{selected.length === 1 ? m.vcs_save_version_one() : m.vcs_save_version_count({ count: selected.length })}
+							{#if gitRunning.current === 'save'}
+								<LoaderCircle class="size-4 animate-spin" />
+								{m.vcs_running_save()}
+							{:else}
+								<Check class="size-4" />
+								{selected.length === 1 ? m.vcs_save_version_one() : m.vcs_save_version_count({ count: selected.length })}
+							{/if}
 						</button>
 					</div>
 				{/if}

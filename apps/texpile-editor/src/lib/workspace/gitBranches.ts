@@ -7,7 +7,7 @@ export type GitRemoteBranch = { name: string; remote: string; branch: string; da
 
 export type GitBranchesResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	current?: string | null;
 	local?: GitBranch[];
@@ -16,7 +16,7 @@ export type GitBranchesResult = {
 
 export type GitSwitchResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	failure?: 'dirty' | 'busy' | 'exists' | 'invalid' | 'missing';
 	files?: string[];

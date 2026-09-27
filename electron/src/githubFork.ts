@@ -10,7 +10,7 @@ import type { GitCredentialResult, GitPushResult, GitRemotesResult, PushFailure 
 
 export type GithubForkPublishResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	/** 'not-github': the remote is not a GitHub repository, so there is nothing to fork */
 	failure?: GithubFailure | PushFailure | 'not-github';
 	error?: string;

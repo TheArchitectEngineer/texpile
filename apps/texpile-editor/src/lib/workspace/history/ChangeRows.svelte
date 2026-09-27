@@ -3,12 +3,12 @@
 	// saturated ticks would be the loudest thing in the panel while saying the least. The control
 	// picks up the accent on hover and focus, where it means something.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { Info, MoreHorizontal, Undo2, Trash2, GitCompare, Check, EyeOff } from '@lucide/svelte';
+	import { Info, MoreHorizontal, Undo2, Trash2, GitCompare, Check, EyeOff, FolderPlus } from '@lucide/svelte';
 	import { canIgnore, ignoreFiles } from '$lib/workspace/ignoreFiles.svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { isTexpileManaged } from '$lib/comments/managed';
 	import { STATUS_COLOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
-	import { badgeOf } from '$lib/workspace/gitStore';
+	import { badgeOf, gitWriting } from '$lib/workspace/gitStore';
 	import type { GitStatusEntry } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
 
@@ -49,11 +49,18 @@
 		/>
 		<button
 			class="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-			onclick={() => (onOpen ?? onOpenDiff)(c.path)}
+			onclick={() => !c.files && (onOpen ?? onOpenDiff)(c.path)}
 			use:tip={relPath(c.path)}
 		>
-			<span class="truncate {STATUS_COLOR[badge]}" use:tip={STATUS_TITLE[badge]}>{baseName(c.path)}</span>
-			{#if dirName(c.path)}<span class="text-muted truncate text-xs">{dirName(c.path)}</span>{/if}
+			{#if c.files}
+				<!-- a folder of new files, as one row: there is no one comparison to open -->
+				<FolderPlus class="size-3.5 shrink-0 {STATUS_COLOR[badge]}" />
+				<span class="max-w-[60%] shrink-0 truncate {STATUS_COLOR[badge]}">{baseName(c.path)}/</span>
+				<span class="text-muted truncate text-xs tabular-nums">{m.vcs_folder_files({ count: c.files.toLocaleString() })}</span>
+			{:else}
+				<span class="truncate {STATUS_COLOR[badge]}" use:tip={STATUS_TITLE[badge]}>{baseName(c.path)}</span>
+			{/if}
+			{#if dirName(c.path) && !c.files}<span class="text-muted truncate text-xs">{dirName(c.path)}</span>{/if}
 			<!-- every marked place in it is chosen: nothing more to do here before Finish -->
 			{#if locked && c.markers === false}
 				<span class="text-success-ink flex shrink-0 items-center gap-0.5 text-xs" use:tip={m.vcs_conflict_ready_tip()}>
@@ -93,29 +100,33 @@
 				<Popover.Positioner class="z-floating-ui">
 					<Popover.Content class="card bg-surface-50-950 border-surface-300-700 min-w-[190px] border shadow-lg">
 						<div class="py-1">
-							<button
-								type="button"
-								class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
-								onclick={() => {
-									openMenu = null;
-									onOpenDiff(c.path);
-								}}
-							>
-								<GitCompare class="size-4 shrink-0" />
-								{m.wsview_diff_heading()}
-							</button>
-							<!-- a new file only: git keeps tracking a file it already has, whatever .gitignore says -->
-							{#if isUntracked(c) && canIgnore()}
+							{#if !c.files}
 								<button
 									type="button"
 									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
 									onclick={() => {
 										openMenu = null;
-										ignoreFiles([c.path]);
+										onOpenDiff(c.path);
+									}}
+								>
+									<GitCompare class="size-4 shrink-0" />
+									{m.wsview_diff_heading()}
+								</button>
+							{/if}
+							<!-- a new file only: git keeps tracking a file it already has, whatever .gitignore says -->
+							{#if isUntracked(c) && canIgnore()}
+								<button
+									type="button"
+									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"
+									disabled={gitWriting.current}
+									onclick={() => {
+										openMenu = null;
+										// a folder's line ends in a slash, so it cannot match a file of that name
+										ignoreFiles([c.files ? `${c.path}/` : c.path]);
 									}}
 								>
 									<EyeOff class="size-4 shrink-0" />
-									{m.vcs_ignore_file()}
+									{c.files ? m.vcs_ignore_folder() : m.vcs_ignore_file()}
 								</button>
 							{/if}
 							<!-- git cannot put back a file it is still combining: Cancel combining does that for all of them -->
@@ -123,7 +134,8 @@
 								<div class="border-surface-200-800 my-1 border-t"></div>
 								<button
 									type="button"
-									class="hover:preset-tonal text-error-ink flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
+									class="hover:preset-tonal text-error-ink flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"
+									disabled={gitWriting.current}
 									onclick={() => {
 										openMenu = null;
 										onDiscard([c]);
@@ -131,7 +143,7 @@
 								>
 									{#if isUntracked(c)}
 										<Trash2 class="size-4 shrink-0" />
-										{m.vcs_delete_untracked()}
+										{c.files ? m.vcs_delete_folder() : m.vcs_delete_untracked()}
 									{:else}
 										<Undo2 class="size-4 shrink-0" />
 										{m.vcs_discard_changes()}

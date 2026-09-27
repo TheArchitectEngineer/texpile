@@ -30,7 +30,7 @@ export type GitLogEntry = {
 
 export type GitLogResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	entries?: GitLogEntry[];
 	/** the history is longer than what was asked for, so `entries` is the newest slice of it */
@@ -128,7 +128,7 @@ export async function gitLog(workspaceRoot: string, limit = 100): Promise<GitLog
 
 export type GitChangesResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	entries?: GitFileChange[];
 };

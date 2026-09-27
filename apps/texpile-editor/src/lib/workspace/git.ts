@@ -16,12 +16,18 @@ export type GitStatusEntry = {
 	/** a file both sides changed that still holds a place marked for someone to choose; set only
 	 *  on those files */
 	markers?: boolean;
+	/** a folder of new files shown as one row (electron/src/gitStatusLimit.ts): how many it holds */
+	files?: number;
 };
 
 export type GitStatusResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
+	/** reason 'unsafe': the repository git will not work in because another account owns it */
+	unsafe?: string;
 	error?: string;
+	/** the list was cut short: how many changes there were */
+	truncated?: number;
 	branch?: string;
 	entries?: GitStatusEntry[];
 	/** the upstream this branch tracks ('origin/master'), or null if it tracks nothing */
@@ -44,7 +50,7 @@ export type GitStatusResult = {
 
 export type GitShowResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	hasHead: boolean;
 	content?: string;
@@ -52,7 +58,7 @@ export type GitShowResult = {
 
 export type GitOpResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 };
 
@@ -160,7 +166,7 @@ export type GitLogEntry = {
 
 export type GitLogResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	entries?: GitLogEntry[];
 	/** the history is longer than what was asked for, so `entries` is the newest slice of it */
@@ -180,7 +186,7 @@ export async function gitLog(root: string, limit?: number): Promise<GitLogResult
 
 export type GitChangesResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	entries?: GitFileChange[];
 };
@@ -220,11 +226,13 @@ export async function gitRestore(root: string, hash: string, message: string): P
 
 /** why an upload did not happen; the panel turns each into a different sentence. 'cancelled' is
  *  the author closing the sign-in prompt, which is not reported as a failure at all. */
-export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'forbidden' | 'network' | 'cancelled' | 'other';
+/** 'secret': GitHub's push protection found what looks like a password or key in a version;
+ *  'protected': the branch only takes changes a rule allows */
+export type PushFailure = 'no-upstream' | 'rejected' | 'auth' | 'forbidden' | 'secret' | 'protected' | 'network' | 'cancelled' | 'other';
 
 export type GitPushResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	failure?: PushFailure;
 	/** the remote it went to, or would have */
@@ -267,7 +275,7 @@ export type GitRemote = { name: string; url: string };
 
 export type GitRemotesResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	remotes?: GitRemote[];
 };
@@ -309,7 +317,7 @@ export type SyncFailure = PushFailure | 'conflict' | 'dirty';
 
 export type GitSyncResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	failure?: SyncFailure;
 	remote?: string;
@@ -334,7 +342,7 @@ export async function gitSync(root: string): Promise<GitSyncResult> {
 
 export type GithubPublishResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	/** signing in, creating the repository ('exists', 'scope'), or the upload after it */
 	failure?: PushFailure | 'exists' | 'scope';
 	error?: string;

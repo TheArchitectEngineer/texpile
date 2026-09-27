@@ -1,0 +1,49 @@
+<script lang="ts">
+	// A repository git will not work in because another account on this computer owns its folder: a
+	// USB or network drive, or a project copied from another user. It used to read as "not a
+	// repository", with an Initialize that did nothing. Trusting it is asked, not assumed: git's
+	// check exists because a repository's own settings can run programs.
+	import { tip } from '$lib/components/tooltip.svelte';
+	import { ShieldAlert } from '@lucide/svelte';
+	import { promptAsk } from '$lib/modals/confirm.svelte';
+	import { toaster } from '$lib/modals/toaster-svelte';
+	import { canTrustRepo, gitTrustRepo } from '$lib/workspace/gitTrust';
+	import { refreshGitStatus, refreshGitHistory } from '$lib/workspace/gitStore';
+	import { m } from '$lib/paraglide/messages';
+
+	let { root, repo }: { root: string; repo: string } = $props();
+	let trusting = $state(false);
+
+	async function trust() {
+		const answer = await promptAsk({
+			title: m.vcs_unsafe_confirm_title(),
+			message: m.vcs_unsafe_confirm({ path: repo }),
+			detail: m.vcs_unsafe_confirm_detail(),
+			buttons: [
+				{ id: 'trust', label: m.vcs_unsafe_trust(), primary: true },
+				{ id: 'cancel', label: m.vcs_cancel() }
+			],
+			cancelId: 'cancel'
+		});
+		if (answer !== 'trust') return;
+		trusting = true;
+		const res = await gitTrustRepo(root);
+		trusting = false;
+		if (!res.ok) {
+			toaster.error({ title: m.vcs_unsafe_failed(), description: res.error });
+			return;
+		}
+		await refreshGitStatus(root);
+		await refreshGitHistory(root);
+	}
+</script>
+
+<div class="flex flex-col items-center gap-3 p-6 text-center">
+	<ShieldAlert class="text-warning-ink size-8" />
+	<p class="text-sm">{m.vcs_unsafe()}</p>
+	<p class="bg-surface-200-800 max-w-full truncate rounded-base px-2 py-0.5 font-mono text-xs" use:tip={repo}>{repo}</p>
+	<p class="text-muted text-xs">{m.vcs_unsafe_detail()}</p>
+	{#if canTrustRepo()}
+		<button class="btn btn-xs preset-filled-primary-500 w-full" onclick={trust} disabled={trusting}>{m.vcs_unsafe_trust()}</button>
+	{/if}
+</div>

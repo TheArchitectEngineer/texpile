@@ -24,7 +24,7 @@ export type GitRemoteBranch = {
 
 export type GitBranchesResult = {
 	ok: boolean;
-	reason?: 'not-a-repo' | 'no-git';
+	reason?: 'not-a-repo' | 'no-git' | 'unsafe';
 	error?: string;
 	/** null when HEAD is a commit rather than a branch */
 	current?: string | null;
