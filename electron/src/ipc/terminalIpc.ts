@@ -60,16 +60,13 @@ function defaultShell(): string {
  *
  * Nothing else needs adding: the user's own installs are on PATH, and shellEnvReady() has already
  * recovered the login-shell PATH this process was launched without.
+ *
+ * LAST on PATH, as resolveTinymist tries it last: a tinymist of the user's own must compile what
+ * it also serves intellisense for. Added even before it exists, so a terminal opened before the
+ * one-click install finds the copy the install puts there.
  */
 function terminalEnv(): NodeJS.ProcessEnv {
-	const dirs: string[] = [];
-	try {
-		const managed = typstService.managedTinymistPath(app.getPath('userData'));
-		if (fs.existsSync(managed)) dirs.push(path.dirname(managed));
-	} catch {
-		// an unreadable userData dir must never stop a terminal from opening
-	}
-	return withPathDirs(process.env, dirs);
+	return withPathDirs(process.env, [path.dirname(typstService.managedTinymistPath(app.getPath('userData')))], true);
 }
 
 type TerminalSpawnOpts = {

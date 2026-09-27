@@ -130,27 +130,35 @@ export function candidateBinDirs(places: DistroPlaces, extra: string[] = []): { 
 export function distroName(family: DistroFamily, out: string): string | null {
 	if (family === 'typst') {
 		const v = parseTinymistVersion(out);
-		return v.typstVersion === 'unknown' ? null : `Typst ${v.typstVersion}, tinymist ${v.version}`;
+		if (v.typstVersion === 'unknown') return null;
+		return v.version === 'unknown' ? `Typst ${v.typstVersion}` : `Typst ${v.typstVersion}, tinymist ${v.version}`;
 	}
 	const line = firstInformativeLine(out);
 	if (!line) return null;
 	return /\((TeX Live [^)]*|MiKTeX [^)]*)\)/.exec(line)?.[1] ?? line;
 }
 
-function probeDir(
+function versionOutput(command: string, flag: string): Promise<string | null> {
+	return new Promise((resolve) => {
+		execFile(command, [flag], { timeout: 10000, windowsHide: true }, (err, stdout, stderr) => resolve(err ? null : `${stdout}\n${stderr}`));
+	});
+}
+
+async function probeDir(
 	family: DistroFamily,
 	program: string,
 	{ dir, dirs, onPath }: { dir: string; dirs: string[]; onPath: boolean }
 ): Promise<ToolDistro | null> {
-	return new Promise((resolve) => {
-		execFile(path.join(dir, program + EXE), ['--version'], { timeout: 10000, windowsHide: true }, (err, stdout, stderr) => {
-			const out = `${stdout}\n${stderr}`;
-			const name = err ? null : distroName(family, out);
-			if (!name) return resolve(null);
-			// tinymist's first version-shaped line is a build timestamp, so the name says more
-			resolve({ family, name, dir, dirs, detail: family === 'typst' ? name : (firstInformativeLine(out) ?? name), onPath });
-		});
-	});
+	const command = path.join(dir, program + EXE);
+	const long = await versionOutput(command, '--version');
+	if (long === null) return null;
+	// a tinymist release build names its own version only in the short form (see parseTinymistVersion)
+	const short = family === 'typst' && parseTinymistVersion(long).version === 'unknown' ? await versionOutput(command, '-V') : null;
+	const out = short === null ? long : `${long}\n${short}`;
+	const name = distroName(family, out);
+	if (!name) return null;
+	// tinymist's first version-shaped line is a build timestamp, so the name says more
+	return { family, name, dir, dirs, detail: family === 'typst' ? name : (firstInformativeLine(out) ?? name), onPath };
 }
 
 /** `configured` is the folder list as settings hold it */

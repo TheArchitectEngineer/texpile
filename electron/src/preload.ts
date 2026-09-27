@@ -320,6 +320,28 @@ contextBridge.exposeInMainWorld('texpileTypst', {
 	distros: () => ipcRenderer.invoke('toolchain:distros'),
 	/** a tool folder as absolute, relative (portable app, same drive) and real path, plus whether it exists */
 	dirForms: (entry: string) => ipcRenderer.invoke('toolchain:dirForms', entry),
+	/** Texpile's own copy of tinymist: the pinned release, whether this machine has a build, what is installed */
+	tinymistStatus: () => ipcRenderer.invoke('typst:tinymist:status'),
+	/** download, check and install the pinned tinymist; joins an install already under way */
+	installTinymist: () => ipcRenderer.invoke('typst:tinymist:install'),
+	cancelTinymistInstall: () => ipcRenderer.send('typst:tinymist:cancel'),
+	removeTinymist: () => ipcRenderer.invoke('typst:tinymist:remove'),
+	/** an install's progress, whichever window started it; returns an unsubscribe fn */
+	onTinymistProgress: (cb: (step: unknown) => void) => {
+		function h(_e: unknown, step: unknown) {
+			cb(step);
+		}
+		ipcRenderer.on('typst:tinymist:progress', h);
+		return () => ipcRenderer.removeListener('typst:tinymist:progress', h);
+	},
+	/** an install or removal ended, in any window; returns an unsubscribe fn */
+	onTinymistFinished: (cb: (result: unknown) => void) => {
+		function h(_e: unknown, result: unknown) {
+			cb(result);
+		}
+		ipcRenderer.on('typst:tinymist:finished', h);
+		return () => ipcRenderer.removeListener('typst:tinymist:finished', h);
+	},
 	/** fetch tinymist's preview page, theme it, and re-serve it; resolves to a typstpreview:// URL. */
 	preparePreview: (host: string, background: string, foreground: string) =>
 		ipcRenderer.invoke('typst:preview:prepare', { host, background, foreground }),

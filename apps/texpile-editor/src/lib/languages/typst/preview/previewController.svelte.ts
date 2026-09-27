@@ -5,9 +5,9 @@
 import { workspaceRoot, mainFile } from '$lib/workspace/workspaceStore';
 import { compileLog } from '$lib/stores/compileLogStore';
 import { sourceCmView } from '$lib/stores/editorStore';
-import { openToolchainPrefs } from '$lib/stores/dialogStore';
 import { settings } from '$lib/settings';
 import { toaster } from '$lib/modals/toaster-svelte';
+import { toastMissingTool } from '$lib/workspace/toolMissing';
 import { trailingDebounce } from '$lib/trailingDebounce';
 import { collabHost } from '$lib/collab/hostStore.svelte';
 import { collabGuest } from '$lib/collab/guestStore.svelte';
@@ -113,16 +113,11 @@ export class TypstPreviewController {
 			const target = await startTypstPreview(root, file);
 			if (!target) {
 				// "tinymist isn't installed" gets the same tool-missing toast the shell compile
-				// shows (name + the Toolchain prefs action); only a resolved-but-failed start
-				// falls through to the generic failure below
+				// shows (name + the install); only a resolved-but-failed start falls through to
+				// the generic failure below
 				if (!(await tinymistResolved())) {
 					this.tinymistMissing = true;
-					toaster.error({
-						title: m.compile_tool_missing_title(),
-						description: m.compile_tool_missing({ tool: 'tinymist' }),
-						duration: 8000,
-						action: { label: m.compile_tool_missing_action(), onClick: openToolchainPrefs }
-					});
+					await toastMissingTool('tinymist');
 					return;
 				}
 				throw new Error('tinymist did not return a preview address');
@@ -352,6 +347,8 @@ export class TypstPreviewController {
 			const gen = typstServerGen.current;
 			if (gen === this.seenServerGen) return;
 			this.seenServerGen = gen;
+			// a server that could not start is also tried again this way, once tinymist is installed
+			this.tinymistMissing = false;
 			if (this.host === null) return;
 			this.sendCaretScroll.cancel();
 			this.attachedFile = null;

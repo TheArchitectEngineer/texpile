@@ -166,6 +166,20 @@ function hookExit(): void {
 		dropSession();
 		typstServerGen.current += 1;
 	});
+	// a server running the copy that changed hears about it as an exit (main stops it); one that
+	// never started for want of tinymist only hears this, and tries again
+	b.onTinymistFinished?.((result) => {
+		if (result.ok) retryUnstartedSession();
+	});
+}
+
+function retryUnstartedSession(): void {
+	const tried = session;
+	void tried?.started.then((up) => {
+		if (up || session !== tried) return;
+		dropSession();
+		typstServerGen.current += 1;
+	});
 }
 
 // the folders in Preferences moved PATH: the running server is the old pick, the next start is the new one.

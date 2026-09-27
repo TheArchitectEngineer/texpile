@@ -23,6 +23,10 @@ it('names an install the way its own program does', () => {
 		'Typst 0.13.1, tinymist 0.13.24'
 	);
 	expect(distroName('typst', 'v24.19.0')).toBeNull();
+	// a release build names its own version only in `tinymist -V`, which the probe appends
+	const release = 'tinymist \nBuild Git Describe:  VERGEN_IDEMPOTENT_OUTPUT\nTypst Version:       0.15.1';
+	expect(distroName('typst', release)).toBe('Typst 0.15.1');
+	expect(distroName('typst', `${release}\ntinymist 0.15.8`)).toBe('Typst 0.15.1, tinymist 0.15.8');
 });
 
 it('finds every bin folder holding the program, the PATH one first and each of them once', () => {

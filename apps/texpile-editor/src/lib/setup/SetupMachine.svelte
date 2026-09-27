@@ -4,6 +4,8 @@
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { toolchainProbe } from '$lib/modals/window/toolchainProbe.svelte';
 	import { toolDirs } from '$lib/modals/window/toolDirs.svelte';
+	import { tinymistInstaller } from '$lib/modals/window/tinymistInstall.svelte';
+	import TinymistInstallProgress from '$lib/modals/window/TinymistInstallProgress.svelte';
 	import { engineRows } from './typesetterStatus.svelte';
 	import type { WritingFormats } from './setupSteps';
 	import { m } from '$lib/paraglide/messages';
@@ -12,6 +14,7 @@
 
 	void toolchainProbe.run();
 	void toolDirs.refresh();
+	void tinymistInstaller.refresh();
 
 	async function addFolder(): Promise<void> {
 		await toolDirs.browse();
@@ -23,17 +26,40 @@
 
 <div class="border-surface-200-800 divide-surface-200-800 rounded-container divide-y border">
 	{#each engines as e (e.kind)}
+		<!-- Typst is the one typesetter Texpile can fetch for the reader: one program, no installer of its own -->
+		{@const installable = e.kind === 'Typst' && !e.found && tinymistInstaller.offered}
 		<div class="flex items-center justify-between gap-4 px-4 py-3">
-			<div class="min-w-0">
+			<div class="min-w-0 flex-1">
 				<div class="text-sm font-medium">{e.kind}</div>
 				{#if e.detail}
 					<div class="text-muted truncate text-xs">{e.detail}</div>
+				{/if}
+				{#if installable}
+					<TinymistInstallProgress />
 				{/if}
 			</div>
 			{#if toolchainProbe.probing && !e.found}
 				<LoaderCircle class="text-muted size-4 shrink-0 animate-spin" />
 			{:else if e.found}
 				<span class="badge preset-tonal-success shrink-0 text-xs">{m.setup_found()}</span>
+			{:else if installable && tinymistInstaller.step}
+				<button
+					type="button"
+					class="btn preset-tonal shrink-0 text-xs"
+					onclick={() => tinymistInstaller.cancel()}
+					disabled={tinymistInstaller.step.phase !== 'download'}
+				>
+					{m.tinymist_install_cancel()}
+				</button>
+			{:else if installable}
+				<button
+					type="button"
+					class="btn preset-tonal shrink-0 text-xs"
+					onclick={() => void tinymistInstaller.install()}
+					disabled={tinymistInstaller.busy}
+				>
+					{m.tinymist_install()}
+				</button>
 			{:else}
 				<span class="badge preset-tonal-warning shrink-0 text-xs">{m.prefs_toolchain_missing()}</span>
 			{/if}

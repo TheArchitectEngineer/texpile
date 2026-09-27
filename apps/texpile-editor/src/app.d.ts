@@ -61,9 +61,39 @@ declare global {
 		onPath: boolean;
 	};
 
+	/** how far an install of Texpile's own tinymist has got; received/total are bytes while downloading */
+	type TinymistInstallStep = { phase: 'download' | 'verify' | 'extract'; received: number; total: number };
+
+	type TinymistInstallFailure = 'unsupported' | 'offline' | 'download' | 'checksum' | 'extract' | 'disk' | 'broken' | 'cancelled';
+
+	/** an install's outcome; a removal's success carries no command */
+	type TinymistInstallResult =
+		{ ok: true; command?: string; version?: string; typstVersion?: string } | { ok: false; reason: TinymistInstallFailure; detail: string };
+
+	type ManagedTinymistStatus = {
+		/** the release Install fetches */
+		pinned: string;
+		/** tinymist publishes a build for this OS and CPU */
+		supported: boolean;
+		/** Texpile's copy when there is one; version null when it no longer runs */
+		installed: { command: string; version: string | null; typstVersion: string | null } | null;
+		/** the step an install under way has reached */
+		step: TinymistInstallStep | null;
+	};
+
 	type TexpileTypstBridge = {
 		/** Locate tinymist; null when it isn't installed. */
 		resolve(): Promise<TinymistInfo | null>;
+		/** Texpile's own copy of tinymist (absent from an older main process). */
+		tinymistStatus?(): Promise<ManagedTinymistStatus>;
+		/** Download, check and install the pinned tinymist; joins an install already under way. */
+		installTinymist?(): Promise<TinymistInstallResult>;
+		cancelTinymistInstall?(): void;
+		removeTinymist?(): Promise<TinymistInstallResult>;
+		/** An install's progress, whichever window started it; returns an unsubscribe fn. */
+		onTinymistProgress?(cb: (step: TinymistInstallStep) => void): () => void;
+		/** An install or removal ended, in any window; returns an unsubscribe fn. */
+		onTinymistFinished?(cb: (result: TinymistInstallResult) => void): () => void;
 		/** Probe every external program the app shells out to. */
 		probeToolchain(): Promise<ToolProbe[]>;
 		/** each result as it lands, ahead of probeToolchain resolving; returns an unsubscribe fn */
