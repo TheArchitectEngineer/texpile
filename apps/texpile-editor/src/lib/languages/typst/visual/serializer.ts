@@ -36,6 +36,9 @@ function indentAfterFirstLine(text: string, indent: string): string {
 const LINE_START_BLOCKS = new Set(['list', 'heading', 'code_block', 'term_item', 'includedoc']);
 // blocks whose last line ends them: anything may follow on the next line
 const LINE_END_BLOCKS = new Set(['heading', 'list', 'code_block', 'term_item', 'includedoc']);
+// a content block's markup starts afresh: right after its `[` (a table cell, a caption), spaces
+// included, a marker binds as at a line start
+const BODY_START = /(^|[^\\])(\\\\)*\[[ \t]*$/;
 
 function declarationLine(line: string): boolean {
 	return /^#(set|let|show|import|include)\b/.test(line);
@@ -363,13 +366,16 @@ function unbound(head: string, bytes: string, tail: string, gone: string): boole
 // line start of the kept ones are escaped as the inline renderer escapes a line start, and
 // kept bytes that a fresh line end moves to a line start give the splice up
 function atLineStart(head: string, bytes: string, tail: string): string | null {
-	const out = /(^|\n)[ \t]*$/.test(head) && head !== '' ? escLineStart(bytes) : bytes;
+	const bodyStart = BODY_START.test(head);
+	const out = (/(^|\n)[ \t]*$/.test(head) && head !== '') || bodyStart ? escLineStart(bytes) : bytes;
 	// a marker the file kept mid-line now begins a line: with fresh bytes ending the line above
 	// it, or with the bytes before it taken out
 	const opens = /^(?:[-+/=]|\d+\.)\s/.test(tail) || /^[-+/=]$/.test(tail);
 	const startsLine = /\n[ \t]*$/.test(out) || (bytes === '' && /(^|\n)[ \t]*$/.test(head));
 	// so does a space the kept bytes begin with: it indents the line, and after a list that is more of the item
 	if ((opens || /^[ \t]/.test(tail)) && startsLine) return null;
+	// or begins a content block, what stood before it in the block taken out or made spaces
+	if (bodyStart && /^[ \t]*$/.test(bytes) && /^[ \t]*(?:[-+/=]|\d+\.)\s/.test(tail)) return null;
 	return out;
 }
 

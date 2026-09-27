@@ -106,6 +106,19 @@ describe('line-start markers inside brackets (T11)', () => {
 		const term = n.term_item.create(null, [n.term_title.create(null, text('a: b')), para(text('desc'))]);
 		expect(out(term)).toBe('/ a\\: b: desc');
 	});
+
+	it('a cell ending in a line break or a line comment has its closing bracket on the next line', () => {
+		const note = n.inline_latex.create({ lang: 'typst' }, typSchema.text('// note'));
+		const ends = [[para(), para(text('1'), n.hard_break.create({ lineBreak: true }))], [para(text('x '), note)]];
+		for (const content of ends) {
+			const row = n.table_row.create(null, [n.table_cell.create(null, content), n.table_cell.create(null, para(text('z')))]);
+			const src = out(n.table.create(null, row));
+			expect(src).toContain('\n], [z]');
+			const back = typstToProseMirror(src + '\n').doc.child(0);
+			expect(back.type.name).toBe('table');
+			expect(back.child(0).childCount).toBe(2);
+		}
+	});
 });
 
 describe('intraword emphasis (T15)', () => {

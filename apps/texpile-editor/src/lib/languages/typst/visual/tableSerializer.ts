@@ -1,6 +1,7 @@
 // #table(...) assembly: cells, column widths, and the colspec
 import type { Node } from 'prosemirror-model';
 import { renderInline } from './typstInline';
+import { ownsLineEnd } from './envSerializer';
 import { parseTracks, distribute, toFrTracks } from './tracks';
 
 /** a cell on its own, inside its row's frame: a bare [..], or table.cell(..)[..] for a merged one */
@@ -9,7 +10,9 @@ export function cellCall(cell: Node, renderBlocks: (parent: Node) => string): st
 	const rowspan = Number(cell.attrs.rowspan ?? 1);
 	const spans = [...(colspan > 1 ? [`colspan: ${colspan}`] : []), ...(rowspan > 1 ? [`rowspan: ${rowspan}`] : [])];
 	// a `[` body is fresh markup: a marker at its start would open a list or heading
-	const text = cell.childCount === 1 && cell.child(0).type.name === 'paragraph' ? renderInline(cell.child(0), true) : renderBlocks(cell);
+	const written = cell.childCount === 1 && cell.child(0).type.name === 'paragraph' ? renderInline(cell.child(0), true) : renderBlocks(cell);
+	// a line break or a line comment ending the cell owns its line end: the bracket goes on the next line
+	const text = ownsLineEnd(written) ? written + '\n' : written;
 	return spans.length ? `table.cell(${spans.join(', ')})[${text}]` : `[${text}]`;
 }
 

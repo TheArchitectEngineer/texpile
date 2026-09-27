@@ -439,6 +439,28 @@ describe('typst: markup that a seam would open', () => {
 		expect(parseTypstFile(out).doc.child(1).toString()).toBe(doc.child(1).toString());
 	});
 
+	const FIGURE_TABLE =
+		'Intro line.\n\n#figure(\n  table(\n    columns: 2,\n    [A], [x - y],\n    [B], [4.2],\n  ),\n  caption: [Tables are numbered.],\n)\n';
+
+	it('a marker typed at the start of a cell or a caption is escaped, as a content block starts its markup afresh', () => {
+		const parsed = parseTypstFile(FIGURE_TABLE);
+		const s = parsed.doc.type.schema;
+		const tr = new Transform(parsed.doc).insert(posOf(parsed.doc, 'A'), s.text('- '));
+		const typed = tr.insert(tr.mapping.map(posOf(parsed.doc, 'Tables')), s.text('= ')).doc;
+		const out = serializeTypstFile(parsed, typed);
+		expect(out).toBe(FIGURE_TABLE.replace('[A]', '[\\- A]').replace('[Tables', '[\\= Tables'));
+		expect(parseTypstFile(out).doc.child(1).toString()).toBe(typed.child(1).toString());
+	});
+
+	it('a deletion leaving a marker the file kept at the start of a cell writes the block afresh', () => {
+		const parsed = parseTypstFile(FIGURE_TABLE);
+		const at = posOf(parsed.doc, 'x - y');
+		const doc = new Transform(parsed.doc).delete(at, at + 2).doc;
+		const out = serializeTypstFile(parsed, doc);
+		expect(out).toContain('[\\- y]');
+		expect(parseTypstFile(out).doc.child(1).toString()).toBe(doc.child(1).toString());
+	});
+
 	const SNAKE = 'Intro line.\n\n== Raw blocks snake_case_words\n<sec:raw>\n\nTail line.\n';
 
 	it('bytes put after an underscore the file keeps inside a word write the block afresh, the underscore escaped', () => {
