@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describePrompt, writeAskpassScripts, askpassEnv } from './gitAskpassClient';
 import type { GitAuthEnv } from './gitRemote';
-import { SignIns, keepable, keychainVault, refusedPassword, settle } from './gitSignIns';
+import { SignIns, keepable, keychainVault, memoryVault, refusedPassword, settle } from './gitSignIns';
 import { forgetGithubSession, githubSession, registerGithubAuthIpc } from './githubSession';
 import { githubSignInAvailable } from './githubAuth';
 
@@ -39,7 +39,10 @@ type Session = {
 let signIns: SignIns | null = null;
 /** made on first use: safeStorage needs the app ready */
 function signInStore(): SignIns {
-	signIns ??= new SignIns(keychainVault());
+	if (!signIns) {
+		const keychain = keychainVault();
+		signIns = keychain ? new SignIns(keychain) : new SignIns(memoryVault(), false);
+	}
 	return signIns;
 }
 
@@ -152,6 +155,8 @@ async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; 
 			id,
 			...request,
 			kept: keep && signInStore().available,
+			// no keychain: remembered only until Texpile quits, and the prompt says so
+			keptUntilQuit: keep && !signInStore().lasting,
 			github: forGithub && githubSignInAvailable()
 		});
 	});

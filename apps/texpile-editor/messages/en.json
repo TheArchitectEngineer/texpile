@@ -1821,5 +1821,6 @@
 	"vcs_branch_delete_remote_confirm": "Delete \"{name}\" from {remote}? Everyone who syncs with {remote} loses it too.",
 	"vcs_branch_delete_current": "The branch you are on can't be deleted. Switch to another branch first.",
 	"vcs_toast_branch_deleted": "Deleted branch {name}",
-	"vcs_toast_remote_branch_deleted": "Deleted {name} from {remote}"
+	"vcs_toast_remote_branch_deleted": "Deleted {name} from {remote}",
+	"vcs_signin_kept_session": "Once it works, Texpile remembers it until you quit, so you are not asked again on every Sync. This computer has no keychain to keep it in for longer."
 }

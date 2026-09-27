@@ -5,6 +5,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: on Linux without a keyring, a sign-in that worked is remembered until you quit Texpile (never written to disk) instead of being asked for on every Sync
 - feat: delete branches from the branch list, as VS Code does: a branch whose versions are elsewhere goes at once, one with versions nowhere else asks first, and a branch on the remote is deleted there after asking
 - feat: Publish to GitHub from a folder with no .gitignore asks which files and folders to include, as VS Code does; unticked ones are added to .gitignore
 - fix: a repository in a folder above the project colours nothing, counts nothing and marks nothing until you choose to use it, as in VS Code

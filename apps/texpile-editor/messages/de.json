@@ -1821,5 +1821,6 @@
 	"vcs_branch_delete_remote_confirm": "„{name}“ von {remote} löschen? Alle, die mit {remote} synchronisieren, verlieren ihn ebenfalls.",
 	"vcs_branch_delete_current": "Der Zweig, auf dem Sie sind, kann nicht gelöscht werden. Wechseln Sie zuerst zu einem anderen Zweig.",
 	"vcs_toast_branch_deleted": "Zweig {name} gelöscht",
-	"vcs_toast_remote_branch_deleted": "{name} von {remote} gelöscht"
+	"vcs_toast_remote_branch_deleted": "{name} von {remote} gelöscht",
+	"vcs_signin_kept_session": "Sobald es funktioniert, merkt sich Texpile es bis zum Beenden, damit Sie nicht bei jeder Synchronisierung erneut gefragt werden. Dieser Computer hat keinen Schlüsselbund, um es länger aufzubewahren."
 }

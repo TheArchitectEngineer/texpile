@@ -400,6 +400,8 @@ export type GitAskpassRequest = {
 	host: string | null;
 	/** the answer is kept in the system keychain once it works (electron/src/gitSignIns.ts) */
 	kept?: boolean;
+	/** no keychain here: kept only until Texpile quits */
+	keptUntilQuit?: boolean;
 	/** a github.com question that signing in to GitHub in the browser can answer (githubSignIn.ts) */
 	github?: boolean;
 };

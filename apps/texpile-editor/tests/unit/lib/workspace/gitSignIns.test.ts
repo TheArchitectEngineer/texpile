@@ -1,7 +1,14 @@
 // Sign-ins kept between operations (electron/src/gitSignIns.ts), with a vault that seals by
 // reversing the text so a test can tell sealed from plain.
 import { it, expect } from 'vitest';
-import { SignIns, keepable, refusedPassword, settle, type SignInVault } from '../../../../../../electron/src/gitSignIns';
+import {
+	SignIns,
+	keepable,
+	memoryVault as untilQuit,
+	refusedPassword,
+	settle,
+	type SignInVault
+} from '../../../../../../electron/src/gitSignIns';
 
 function memoryVault(): SignInVault & { data: Record<string, string> } {
 	const v = {
@@ -87,4 +94,14 @@ it('keeps usernames and passwords, never passphrases or host keys', () => {
 	expect(keepable('passphrase')).toBe(false);
 	expect(keepable('host-key')).toBe(false);
 	expect(keepable('other')).toBe(false);
+});
+
+it('keeps sign-ins in memory where there is no keychain, until Texpile quits', () => {
+	const store = new SignIns(untilQuit(), false);
+	expect(store.available).toBe(true);
+	expect(store.lasting).toBe(false);
+	settle(store, { ok: true }, new Map([[PASS, 'token']]), new Set());
+	expect(store.recall(PASS)).toBe('token');
+	// a fresh one, as after a restart, knows nothing
+	expect(new SignIns(untilQuit(), false).recall(PASS)).toBeNull();
 });

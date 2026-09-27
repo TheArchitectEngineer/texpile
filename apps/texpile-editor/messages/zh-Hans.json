@@ -1821,5 +1821,6 @@
 	"vcs_branch_delete_remote_confirm": "要从 {remote} 删除“{name}”吗？所有与 {remote} 同步的人也会失去它。",
 	"vcs_branch_delete_current": "无法删除你当前所在的分支。请先切换到其他分支。",
 	"vcs_toast_branch_deleted": "已删除分支 {name}",
-	"vcs_toast_remote_branch_deleted": "已从 {remote} 删除 {name}"
+	"vcs_toast_remote_branch_deleted": "已从 {remote} 删除 {name}",
+	"vcs_signin_kept_session": "验证通过后，Texpile 会记住它直到你退出，这样每次同步时都不会再询问。这台电脑没有钥匙串，无法保存更久。"
 }

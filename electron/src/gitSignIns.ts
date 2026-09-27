@@ -21,7 +21,11 @@ export type SignInVault = {
 /** keyed by git's own question ("Password for 'https://ada@github.com': "), which names the host
  *  and, for a password, the account: exactly the scope an answer is good for */
 export class SignIns {
-	constructor(private vault: SignInVault | null) {}
+	/** `lasting`: kept across restarts (the keychain); false for the in-memory one, until quit */
+	constructor(
+		private vault: SignInVault | null,
+		readonly lasting = true
+	) {}
 
 	get available(): boolean {
 		return !!this.vault;
@@ -87,6 +91,23 @@ export function settle(
 /** the questions worth keeping an answer to */
 export function keepable(subject: string): boolean {
 	return subject === 'username' || subject === 'password';
+}
+
+/**
+ * Where there is no keychain (Linux without one): kept in memory until Texpile quits, never
+ * written anywhere, so a writer is not asked for the same password on every Sync, and the
+ * automatic check can run. VS Code keeps nothing and asks each time.
+ */
+export function memoryVault(): SignInVault {
+	let all: Record<string, string> = {};
+	return {
+		encrypt: (plain) => plain,
+		decrypt: (sealed) => sealed,
+		read: () => ({ ...all }),
+		write: (next) => {
+			all = { ...next };
+		}
+	};
 }
 
 /** the keychain-backed vault, or null where there is no keychain to seal with: on Linux without
