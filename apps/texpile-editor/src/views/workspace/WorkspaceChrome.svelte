@@ -199,7 +199,14 @@
 			scmMarkMilestone={canMarkMilestones() ? scm.milestones.mark : undefined}
 			scmRemoveMilestone={canMarkMilestones() ? scm.milestones.remove : undefined}
 			scmBranches={canSwitchBranch()
-				? { list: scm.branches.list, onSwitch: scm.branches.switchTo, onCreate: scm.branches.create, onTrack: scm.branches.track }
+				? {
+						list: scm.branches.list,
+						onSwitch: scm.branches.switchTo,
+						onCreate: scm.branches.create,
+						onTrack: scm.branches.track,
+						onDelete: scm.branches.remove,
+						onDeleteRemote: scm.branches.removeRemote
+					}
 				: null}
 			scmFinishCombine={canCombine() ? scm.combine.finish : undefined}
 			scmCancelCombine={canCombine() ? scm.combine.cancel : undefined}

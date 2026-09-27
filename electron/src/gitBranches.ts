@@ -2,7 +2,7 @@
 // starting one, and taking up one that exists only on a remote. VS Code's Git: Checkout to...,
 // with the refusals said in words: git will not switch over unsaved work it would overwrite.
 import { git, errMsg, isMissingGit, resolveRepoRoot, retryLocked, gitDirsOf, operationIn, type GitOpResult } from './gitService';
-import { OVERWRITE_RE, parseBlockingFiles } from './gitRemote';
+import { OVERWRITE_RE, classifyPushError, netGit, parseBlockingFiles, type GitAuthEnv, type PushFailure } from './gitRemote';
 import { resolve } from 'node:path';
 
 export type GitBranch = {
@@ -147,4 +147,76 @@ export function gitTrackBranch(workspaceRoot: string, remoteName: string): Promi
 			? ['switch', '--track', remoteName]
 			: { ok: false, failure: 'missing' };
 	});
+}
+
+export type GitDeleteBranchResult = GitOpResult & {
+	/** 'unmerged': it has versions no other branch has, and git keeps it (branch -d). 'current': the
+	 *  branch checked out, or the one it syncs with. 'missing': no such branch. */
+	failure?: 'unmerged' | 'current' | 'missing' | PushFailure;
+	/** the remote a remote branch was deleted from */
+	remote?: string;
+};
+
+function localNames(root: string): Promise<string[]> {
+	return git(root)
+		.raw(['for-each-ref', '--format=%(refname:short)', 'refs/heads'])
+		.then((raw) => raw.split('\n').filter(Boolean));
+}
+
+/**
+ * VS Code's Delete Branch: `git branch -d`, which keeps a branch whose versions are on no other
+ * branch and says so ('unmerged'); `force` is the -D the author agreed to after that. Never the
+ * branch checked out.
+ */
+export async function gitDeleteBranch(workspaceRoot: string, name: string, force = false): Promise<GitDeleteBranchResult> {
+	const rr = await resolveRepoRoot(workspaceRoot);
+	if (!rr.root) return { ok: false, reason: rr.reason };
+	const root = rr.root;
+	const g = git(root);
+	try {
+		if (name.startsWith('-') || !(await localNames(root)).includes(name)) return { ok: false, failure: 'missing' };
+		// with -q, a detached HEAD prints nothing and exits 1, which simple-git resolves as ''
+		if ((await g.raw(['symbolic-ref', '-q', '--short', 'HEAD'])).trim() === name) return { ok: false, failure: 'current' };
+		await retryLocked(() => g.raw(['branch', force ? '-D' : '-d', name]));
+		return { ok: true };
+	} catch (e) {
+		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
+		const msg = errMsg(e);
+		if (/not fully merged/i.test(msg)) return { ok: false, failure: 'unmerged', error: msg };
+		return { ok: false, error: msg };
+	}
+}
+
+/**
+ * VS Code's Delete Remote Branch: `git push <remote> --delete <branch>`, for a branch the remote
+ * has ('origin/camera-ready'). Never the one the current branch syncs with. Signs in like any
+ * upload; the picker asks first, since everyone who syncs with that remote loses it too.
+ */
+export async function gitDeleteRemoteBranch(
+	workspaceRoot: string,
+	remoteName: string,
+	auth: GitAuthEnv = {}
+): Promise<GitDeleteBranchResult> {
+	const rr = await resolveRepoRoot(workspaceRoot);
+	if (!rr.root) return { ok: false, reason: rr.reason };
+	const root = rr.root;
+	const g = netGit(root, auth);
+	let remote: string | undefined;
+	try {
+		const refs = (await g.raw(['for-each-ref', '--format=%(refname)', 'refs/remotes'])).split('\n');
+		if (!refs.includes(`refs/remotes/${remoteName}`) || remoteName.endsWith('/HEAD')) return { ok: false, failure: 'missing' };
+		// a remote's name can hold a slash too: the longest one that starts the ref is it
+		const remotes = (await g.raw(['remote'])).split('\n').filter(Boolean);
+		remote = remotes.filter((r) => remoteName.startsWith(`${r}/`)).sort((a, b) => b.length - a.length)[0];
+		if (!remote) return { ok: false, failure: 'missing' };
+		const branch = remoteName.slice(remote.length + 1);
+		const upstream = await g.raw(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']).catch(() => '');
+		if (upstream.trim() === remoteName) return { ok: false, failure: 'current', remote };
+		await g.raw(['push', remote, '--delete', `refs/heads/${branch}`]);
+		return { ok: true, remote };
+	} catch (e) {
+		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
+		const msg = errMsg(e);
+		return { ok: false, failure: classifyPushError(msg), error: msg, remote };
+	}
 }

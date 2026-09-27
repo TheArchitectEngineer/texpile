@@ -5,6 +5,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: delete branches from the branch list, as VS Code does: a branch whose versions are elsewhere goes at once, one with versions nowhere else asks first, and a branch on the remote is deleted there after asking
 - feat: Publish to GitHub from a folder with no .gitignore asks which files and folders to include, as VS Code does; unticked ones are added to .gitignore
 - fix: a repository in a folder above the project colours nothing, counts nothing and marks nothing until you choose to use it, as in VS Code
 - fix: a leftover `=======` line also keeps a file from counting as settled, as in VS Code; a file being combined shows no change marks in the margin

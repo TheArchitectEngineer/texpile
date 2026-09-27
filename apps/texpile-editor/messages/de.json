@@ -1814,5 +1814,12 @@
 	"prefs_check_new_versions_note": "Fragt alle paar Minuten, solange Texpile im Vordergrund ist, beim Remote dieses Projekts nach, ob jemand etwas hochgeladen hat. Übernommen wird erst beim Synchronisieren, und nach einer Anmeldung wird nie gefragt.",
 	"vcs_toast_combine_whole_desc": "Wählen Sie in der Versionskontrolle für jede Datei, welche Version bleibt, und klicken Sie dann auf „Zusammenführen abschließen“.",
 	"vcs_publish_files_title": "Auswählen, was veröffentlicht wird",
-	"vcs_publish_files_desc": "Alles Angehakte kommt in die erste Version und zu GitHub. Was Sie abwählen, wird in .gitignore eingetragen und bleibt nur auf diesem Computer."
+	"vcs_publish_files_desc": "Alles Angehakte kommt in die erste Version und zu GitHub. Was Sie abwählen, wird in .gitignore eingetragen und bleibt nur auf diesem Computer.",
+	"vcs_branch_delete": "Zweig löschen",
+	"vcs_branch_delete_remote_tip": "Von {remote} löschen",
+	"vcs_branch_delete_unmerged": "„{name}“ enthält Versionen, die auf keinem anderen Zweig sind. Trotzdem löschen? Diese Versionen gehen verloren.",
+	"vcs_branch_delete_remote_confirm": "„{name}“ von {remote} löschen? Alle, die mit {remote} synchronisieren, verlieren ihn ebenfalls.",
+	"vcs_branch_delete_current": "Der Zweig, auf dem Sie sind, kann nicht gelöscht werden. Wechseln Sie zuerst zu einem anderen Zweig.",
+	"vcs_toast_branch_deleted": "Zweig {name} gelöscht",
+	"vcs_toast_remote_branch_deleted": "{name} von {remote} gelöscht"
 }

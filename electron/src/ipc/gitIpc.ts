@@ -38,6 +38,7 @@ const OPS: Record<string, string> = {
 	'git:switch': 'gitSwitch',
 	'git:createBranch': 'gitCreateBranch',
 	'git:trackBranch': 'gitTrackBranch',
+	'git:deleteBranch': 'gitDeleteBranch',
 	'git:markMilestone': 'gitMarkMilestone'
 };
 
@@ -49,7 +50,8 @@ const NET_OPS: Record<string, [string, number]> = {
 	'git:publish': ['gitPublish', 2],
 	'git:sync': ['gitSync', 1],
 	'git:fetch': ['gitFetch', 1],
-	'git:removeMilestone': ['gitRemoveMilestone', 2]
+	'git:removeMilestone': ['gitRemoveMilestone', 2],
+	'git:deleteRemoteBranch': ['gitDeleteRemoteBranch', 2]
 };
 
 export function registerGitIpc(): void {

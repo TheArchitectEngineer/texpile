@@ -4,7 +4,20 @@
 import { workspaceRoot } from './workspaceStore';
 import { refreshGitStatus, refreshGitHistory, gitOperation, gitBranch } from './gitStore';
 import { saveChangesFirst } from './scmSaveFirst';
-import { gitBranches, gitSwitch, gitCreateBranch, gitTrackBranch, type GitBranchesResult, type GitSwitchResult } from './gitBranches';
+import {
+	gitBranches,
+	gitSwitch,
+	gitCreateBranch,
+	gitTrackBranch,
+	gitDeleteBranch,
+	gitDeleteRemoteBranch,
+	type GitBranchesResult,
+	type GitDeleteBranchResult,
+	type GitRemoteBranch,
+	type GitSwitchResult
+} from './gitBranches';
+import { uploadReason } from './uploadReason';
+import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { basename } from './fileSystem';
 import { toaster } from '$lib/modals/toaster-svelte';
 import { m } from '$lib/paraglide/messages';
@@ -33,6 +46,16 @@ export function switchReason(res: GitSwitchResult, name: string): string {
 	}
 }
 
+/** what the picker says when a delete did not happen */
+function deleteReason(res: GitDeleteBranchResult): string {
+	if (res.reason === 'no-git') return m.vcs_git_missing();
+	if (res.failure === 'current') return m.vcs_branch_delete_current();
+	if (res.failure === 'missing') return m.vcs_branch_failed();
+	// a remote branch's failure is an upload's: sign-in, network, a branch GitHub protects
+	if (res.remote && res.failure !== 'unmerged') return uploadReason({ ...res, failure: res.failure });
+	return res.error || m.vcs_branch_failed();
+}
+
 export class ScmBranches {
 	constructor(
 		private host: BranchHost,
@@ -49,6 +72,47 @@ export class ScmBranches {
 	create = (name: string): Promise<string | null> => this.change(name, (root) => gitCreateBranch(root, name), m.vcs_toast_branch_created);
 	track = (remoteName: string): Promise<string | null> =>
 		this.change(remoteName, (root) => gitTrackBranch(root, remoteName), m.vcs_toast_switched);
+
+	/**
+	 * VS Code's Delete Branch: at once when its versions are on another branch too, and after asking
+	 * when they are not (it is "not fully merged"), since they go with it. Resolves as the picker's
+	 * other actions do: why it did not happen, '' when the author backed out, null once deleted.
+	 */
+	remove = async (name: string): Promise<string | null> => {
+		const root = workspaceRoot.current;
+		if (!root || this.host.busy) return '';
+		let res = await this.#busyWith(() => gitDeleteBranch(root, name));
+		if (!res.ok && res.failure === 'unmerged') {
+			if (!(await confirmAsk(m.vcs_branch_delete_unmerged({ name }), { confirmLabel: m.vcs_branch_delete(), danger: true }))) return '';
+			res = await this.#busyWith(() => gitDeleteBranch(root, name, true));
+		}
+		if (!res.ok) return deleteReason(res);
+		await refreshGitHistory(root); // its name came off the versions it marked
+		toaster.success({ title: m.vcs_toast_branch_deleted({ name }) });
+		return null;
+	};
+
+	/** VS Code's Delete Remote Branch, asked first here: everyone who syncs with the remote loses it */
+	removeRemote = async (b: GitRemoteBranch): Promise<string | null> => {
+		const root = workspaceRoot.current;
+		if (!root || this.host.busy) return '';
+		const ask = m.vcs_branch_delete_remote_confirm({ name: b.branch, remote: b.remote });
+		if (!(await confirmAsk(ask, { confirmLabel: m.vcs_branch_delete(), danger: true }))) return '';
+		const res = await this.#busyWith(() => gitDeleteRemoteBranch(root, b.name));
+		if (!res.ok) return res.failure === 'cancelled' ? '' : deleteReason(res);
+		await refreshGitHistory(root);
+		toaster.success({ title: m.vcs_toast_remote_branch_deleted({ name: b.branch, remote: b.remote }) });
+		return null;
+	};
+
+	async #busyWith<T>(run: () => Promise<T>): Promise<T> {
+		this.host.busy = true;
+		try {
+			return await run();
+		} finally {
+			this.host.busy = false;
+		}
+	}
 
 	/**
 	 * The switch would overwrite changes not saved as a version: offer to save them on this branch

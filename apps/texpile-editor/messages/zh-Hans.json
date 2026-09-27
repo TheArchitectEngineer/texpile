@@ -1814,5 +1814,12 @@
 	"prefs_check_new_versions_note": "当 Texpile 在前台时，每隔几分钟询问此项目同步的远程仓库是否有人上传了内容。在你同步之前不会取入任何内容，也不会要求你登录。",
 	"vcs_toast_combine_whole_desc": "请在源代码管理中为每个文件选择要保留的版本，然后点击“完成合并”。",
 	"vcs_publish_files_title": "选择要发布的内容",
-	"vcs_publish_files_desc": "勾选的内容会进入第一个版本并上传到 GitHub。取消勾选的内容会加入 .gitignore，只保留在这台电脑上。"
+	"vcs_publish_files_desc": "勾选的内容会进入第一个版本并上传到 GitHub。取消勾选的内容会加入 .gitignore，只保留在这台电脑上。",
+	"vcs_branch_delete": "删除分支",
+	"vcs_branch_delete_remote_tip": "从 {remote} 删除",
+	"vcs_branch_delete_unmerged": "“{name}”包含其他分支上没有的版本。仍要删除吗？这些版本将会丢失。",
+	"vcs_branch_delete_remote_confirm": "要从 {remote} 删除“{name}”吗？所有与 {remote} 同步的人也会失去它。",
+	"vcs_branch_delete_current": "无法删除你当前所在的分支。请先切换到其他分支。",
+	"vcs_toast_branch_deleted": "已删除分支 {name}",
+	"vcs_toast_remote_branch_deleted": "已从 {remote} 删除 {name}"
 }

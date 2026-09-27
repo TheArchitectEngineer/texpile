@@ -303,6 +303,8 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitCreateBranch: (root: string, name: string) => invokeFs('git:createBranch', root, name),
 	/** a local branch tracking 'origin/name' -> { ok, branch?, failure? }. */
 	gitTrackBranch: (root: string, remoteName: string) => invokeFs('git:trackBranch', root, remoteName),
+	gitDeleteBranch: (root: string, name: string, force?: boolean) => invokeFs('git:deleteBranch', root, name, !!force),
+	gitDeleteRemoteBranch: (root: string, remoteName: string) => invokeFs('git:deleteRemoteBranch', root, remoteName),
 	/** name a version (an annotated tag) -> { ok, name? }. */
 	gitMarkMilestone: (root: string, hash: string, label: string) => invokeFs('git:markMilestone', root, hash, label),
 	/** remove a milestone here and on the remote the branch syncs with -> { ok, failure? }. */

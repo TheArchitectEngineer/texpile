@@ -1,7 +1,7 @@
 <script lang="ts">
 	// The left sidebar: folder header + explorer / source-control / find-in-files, with the file
 	// tree and (in explorer) a resizable table-of-contents. Presentational — logic stays in the view.
-	import type { GitBranchesResult } from '$lib/workspace/gitBranches';
+	import type { BranchActions } from '$lib/workspace/gitBranches';
 	import { parentRepoToConfirm } from '$lib/workspace/parentRepo.svelte';
 	import { untrack } from 'svelte';
 	import { tip } from '$lib/components/tooltip.svelte';
@@ -90,12 +90,7 @@
 		scmOpenConflict?: (path: string) => void;
 		scmMarkMilestone?: (entry: GitLogEntry, label: string) => Promise<string | null>;
 		scmRemoveMilestone?: (name: string, label: string) => void;
-		scmBranches?: {
-			list: () => Promise<GitBranchesResult>;
-			onSwitch: (name: string) => Promise<string | null>;
-			onCreate: (name: string) => Promise<string | null>;
-			onTrack: (remoteName: string) => Promise<string | null>;
-		} | null;
+		scmBranches?: BranchActions | null;
 		scmFinishCombine?: () => void;
 		scmCancelCombine?: () => void;
 		scmCompare: (entry: GitLogEntry, path: string) => void;

@@ -2,7 +2,15 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { gitBranches, gitSwitch, gitCreateBranch, gitTrackBranch, parseRefs } from '../../../../../../electron/src/gitBranches';
+import {
+	gitBranches,
+	gitSwitch,
+	gitCreateBranch,
+	gitTrackBranch,
+	gitDeleteBranch,
+	gitDeleteRemoteBranch,
+	parseRefs
+} from '../../../../../../electron/src/gitBranches';
 import { AVAILABLE, run, out, commit, removeTempDirs, makePublished } from './gitLiveFixture';
 
 afterEach(removeTempDirs);
@@ -74,6 +82,45 @@ describe.skipIf(!AVAILABLE)('branches', () => {
 		expect(await gitSwitch(root, 'nothing')).toMatchObject({ ok: false, failure: 'missing' });
 		writeFileSync(join(root, '.git', 'MERGE_HEAD'), out(root, 'rev-parse', 'HEAD') + '\n');
 		expect(await gitSwitch(root, 'nothing')).toMatchObject({ ok: false, failure: 'busy' });
+	});
+});
+
+describe.skipIf(!AVAILABLE)('deleting branches, as VS Code does', () => {
+	it('deletes a branch whose versions are on another branch, and keeps one whose are not until told', async () => {
+		const { root } = await makePublished();
+		const main = out(root, 'branch', '--show-current');
+		run(root, 'branch', 'merged-draft');
+		run(root, 'switch', '-q', '-c', 'camera-ready');
+		commit(root, 'final.tex', 'Final.\n', 'Camera-ready tweaks');
+		run(root, 'switch', '-q', main);
+
+		expect(await gitDeleteBranch(root, 'merged-draft')).toEqual({ ok: true });
+		expect(await gitDeleteBranch(root, 'camera-ready')).toMatchObject({ ok: false, failure: 'unmerged' });
+		expect(out(root, 'branch', '--list', 'camera-ready')).not.toBe('');
+		expect(await gitDeleteBranch(root, 'camera-ready', true)).toEqual({ ok: true });
+		expect(out(root, 'branch', '--list', 'camera-ready')).toBe('');
+	});
+
+	it('never deletes the branch checked out, or one that is not there', async () => {
+		const { root } = await makePublished();
+		const main = out(root, 'branch', '--show-current');
+		expect(await gitDeleteBranch(root, main, true)).toMatchObject({ ok: false, failure: 'current' });
+		expect(await gitDeleteBranch(root, 'nope')).toMatchObject({ ok: false, failure: 'missing' });
+		expect(await gitDeleteBranch(root, '--all')).toMatchObject({ ok: false, failure: 'missing' });
+	});
+
+	it('deletes a branch on the remote, but not the one this branch syncs with', async () => {
+		const { root, remote } = await makePublished();
+		const main = out(root, 'branch', '--show-current');
+		run(root, 'push', '-q', 'origin', `${main}:old-draft`);
+		run(root, 'fetch', '-q');
+
+		expect(await gitDeleteRemoteBranch(root, 'origin/old-draft')).toEqual({ ok: true, remote: 'origin' });
+		expect(out(remote, 'branch', '--list', 'old-draft')).toBe('');
+		// and the copy of it here goes too
+		expect(out(root, 'branch', '-r', '--list', 'origin/old-draft')).toBe('');
+		expect(await gitDeleteRemoteBranch(root, `origin/${main}`)).toMatchObject({ ok: false, failure: 'current' });
+		expect(await gitDeleteRemoteBranch(root, 'origin/nope')).toMatchObject({ ok: false, failure: 'missing' });
 	});
 });
 

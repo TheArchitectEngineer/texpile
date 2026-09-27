@@ -1,12 +1,13 @@
 <script lang="ts">
 	// The branch name in the panel's header, as the way to another branch: VS Code's status-bar
 	// branch and its Checkout to... list in one. Local branches first, then the ones that exist only
-	// on a remote, and what is typed in the filter becomes a new branch when nothing matches it.
+	// on a remote, and what is typed in the filter becomes a new branch when nothing matches it. A
+	// row's bin is VS Code's Delete Branch (or Delete Remote Branch).
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { tick } from 'svelte';
-	import { GitBranch, Check, Cloud, Plus, ChevronDown, Loader2 } from '@lucide/svelte';
+	import { GitBranch, Check, Cloud, Plus, ChevronDown, Loader2, Trash2 } from '@lucide/svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
-	import { branchNameFrom, type GitBranchesResult } from '$lib/workspace/gitBranches';
+	import { branchNameFrom, type GitBranchesResult, type GitRemoteBranch } from '$lib/workspace/gitBranches';
 	import { gitHead } from '$lib/workspace/gitStore';
 	import { m } from '$lib/paraglide/messages';
 
@@ -20,8 +21,11 @@
 		onSwitch: (name: string) => Promise<string | null>;
 		onCreate: (name: string) => Promise<string | null>;
 		onTrack: (remoteName: string) => Promise<string | null>;
+		/** VS Code's Delete Branch and Delete Remote Branch; absent where the app cannot */
+		onDelete?: (name: string) => Promise<string | null>;
+		onDeleteRemote?: (b: GitRemoteBranch) => Promise<string | null>;
 	};
-	let { branch, detached = false, busy, list, onSwitch, onCreate, onTrack }: Props = $props();
+	let { branch, detached = false, busy, list, onSwitch, onCreate, onTrack, onDelete, onDeleteRemote }: Props = $props();
 
 	// VS Code shows the commit; this says what it means and where the way back is
 	const label = $derived(detached ? m.vcs_detached({ short: (gitHead.current ?? '').slice(0, 7) }) : (branch ?? m.vcs_no_branch()));
@@ -65,6 +69,17 @@
 		else if (problem) error = problem;
 	}
 
+	/** a delete keeps the list open, read again without that branch */
+	async function remove(run: () => Promise<string | null>) {
+		if (working) return;
+		working = true;
+		error = null;
+		const problem = await run();
+		if (problem === null) branches = await list();
+		else if (problem) error = problem;
+		working = false;
+	}
+
 	function onKeydown(e: KeyboardEvent) {
 		if (e.key !== 'Enter') return;
 		e.preventDefault();
@@ -77,6 +92,19 @@
 
 	const ROW = 'hover:preset-tonal flex w-full items-center gap-2 px-3 py-1 text-left text-sm disabled:opacity-50';
 </script>
+
+{#snippet trash(label: string, run: () => void)}
+	<button
+		type="button"
+		class="hover:preset-tonal hover:text-error-ink text-muted mr-1 shrink-0 rounded-base p-1 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-40"
+		onclick={run}
+		disabled={working}
+		use:tip={label}
+		aria-label={label}
+	>
+		<Trash2 class="size-3.5" />
+	</button>
+{/snippet}
 
 <Popover
 	{open}
@@ -132,31 +160,42 @@
 							</button>
 						{/if}
 						{#each local as b (b.name)}
-							<button
-								type="button"
-								class={ROW}
-								onclick={() => (b.name === branch ? (open = false) : act(() => onSwitch(b.name)))}
-								disabled={working}
-							>
-								{#if b.name === branch}<Check class="size-3.5 shrink-0" />{:else}<span class="size-3.5 shrink-0"></span>{/if}
-								<span class="truncate {b.name === branch ? 'font-medium' : ''}">{b.name}</span>
-								{#if b.upstream}<span class="text-muted ml-auto shrink-0 truncate text-xs">{b.upstream}</span>{/if}
-							</button>
+							<div class="group flex items-center">
+								<button
+									type="button"
+									class="{ROW} min-w-0 flex-1"
+									onclick={() => (b.name === branch ? (open = false) : act(() => onSwitch(b.name)))}
+									disabled={working}
+								>
+									{#if b.name === branch}<Check class="size-3.5 shrink-0" />{:else}<span class="size-3.5 shrink-0"></span>{/if}
+									<span class="truncate {b.name === branch ? 'font-medium' : ''}">{b.name}</span>
+									{#if b.upstream}<span class="text-muted ml-auto shrink-0 truncate text-xs">{b.upstream}</span>{/if}
+								</button>
+								<!-- never the branch checked out, as in VS Code -->
+								{#if onDelete && b.name !== branch}
+									{@render trash(m.vcs_branch_delete(), () => remove(() => onDelete(b.name)))}
+								{/if}
+							</div>
 						{/each}
 						{#if remote.length}
 							<div class="text-muted px-3 pt-2 pb-0.5 text-xs font-semibold tracking-wider uppercase">{m.vcs_branch_remote_group()}</div>
 							{#each remote as b (b.name)}
-								<button
-									type="button"
-									class={ROW}
-									onclick={() => act(() => onTrack(b.name))}
-									disabled={working}
-									use:tip={m.vcs_branch_track_tip({ remote: b.remote })}
-								>
-									<Cloud class="size-3.5 shrink-0" />
-									<span class="truncate">{b.branch}</span>
-									<span class="text-muted ml-auto shrink-0 text-xs">{b.remote}</span>
-								</button>
+								<div class="group flex items-center">
+									<button
+										type="button"
+										class="{ROW} min-w-0 flex-1"
+										onclick={() => act(() => onTrack(b.name))}
+										disabled={working}
+										use:tip={m.vcs_branch_track_tip({ remote: b.remote })}
+									>
+										<Cloud class="size-3.5 shrink-0" />
+										<span class="truncate">{b.branch}</span>
+										<span class="text-muted ml-auto shrink-0 text-xs">{b.remote}</span>
+									</button>
+									{#if onDeleteRemote}
+										{@render trash(m.vcs_branch_delete_remote_tip({ remote: b.remote }), () => remove(() => onDeleteRemote(b)))}
+									{/if}
+								</div>
 							{/each}
 						{/if}
 						{#if !local.length && !remote.length && !offerNew}

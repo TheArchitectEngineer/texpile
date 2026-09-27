@@ -11,7 +11,7 @@
 	import ParentRepoGate from './history/ParentRepoGate.svelte';
 	import NoRepoGate from './history/NoRepoGate.svelte';
 	import UnsafeRepoGate from './history/UnsafeRepoGate.svelte';
-	import type { GitBranchesResult } from '$lib/workspace/gitBranches';
+	import type { BranchActions } from '$lib/workspace/gitBranches';
 	import HistoryTimeline from './history/HistoryTimeline.svelte';
 	import { pathLabels } from './history/pathLabels';
 	import { isBuildArtifact } from '$lib/workspace/buildArtifacts';
@@ -21,13 +21,6 @@
 	import type { GitStatusEntry, GitLogEntry, GitFileChange, GitOperation } from '$lib/workspace/git';
 	import { combo } from '$lib/chrome/shortcutText';
 	import { m } from '$lib/paraglide/messages';
-
-	type BranchActions = {
-		list: () => Promise<GitBranchesResult>;
-		onSwitch: (name: string) => Promise<string | null>;
-		onCreate: (name: string) => Promise<string | null>;
-		onTrack: (remoteName: string) => Promise<string | null>;
-	};
 
 	type Props = {
 		root: string;

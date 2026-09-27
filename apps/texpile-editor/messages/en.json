@@ -1814,5 +1814,12 @@
 	"prefs_check_new_versions_note": "Every few minutes while Texpile is in front, asks the remote this project syncs with whether anyone uploaded. Nothing is taken in until you Sync, and it never asks you to sign in.",
 	"vcs_toast_combine_whole_desc": "For each file in Source Control, choose which version to keep, then press Finish combining.",
 	"vcs_publish_files_title": "Choose what to publish",
-	"vcs_publish_files_desc": "Everything ticked goes into the first version and to GitHub. What you untick is added to .gitignore and stays on this computer only."
+	"vcs_publish_files_desc": "Everything ticked goes into the first version and to GitHub. What you untick is added to .gitignore and stays on this computer only.",
+	"vcs_branch_delete": "Delete branch",
+	"vcs_branch_delete_remote_tip": "Delete from {remote}",
+	"vcs_branch_delete_unmerged": "\"{name}\" has versions that are on no other branch. Delete it anyway? Those versions will be lost.",
+	"vcs_branch_delete_remote_confirm": "Delete \"{name}\" from {remote}? Everyone who syncs with {remote} loses it too.",
+	"vcs_branch_delete_current": "The branch you are on can't be deleted. Switch to another branch first.",
+	"vcs_toast_branch_deleted": "Deleted branch {name}",
+	"vcs_toast_remote_branch_deleted": "Deleted {name} from {remote}"
 }
