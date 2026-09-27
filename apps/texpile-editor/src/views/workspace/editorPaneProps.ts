@@ -35,6 +35,8 @@ export type EditorPaneProps = {
 	encodingIssue?: string | null;
 	/** the file holds places a merge marked: it stays in the source editor, which offers a choice at each */
 	conflicted?: boolean;
+	/** the open file as it was in the last saved version, for the source editor's change bars */
+	changeBaseline?: string | null;
 	/** how many marked places are still waiting for a choice */
 	conflictsLeft?: number;
 	/** every place is chosen and the author wants the visual editor back */

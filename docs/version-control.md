@@ -24,6 +24,8 @@ If the folder sits inside a larger repository, such as a home folder kept in git
 
 A changed file opens in a diff against the last version. In the visual editor the changes are marked in the formatted text, word by word. In the source editor they are marked line by line.
 
+In the source editor, the margin beside the line numbers marks what changed since the last version as you type: green for added lines, blue for changed ones, and a red wedge where lines were removed. Alt+F5 and Shift+Alt+F5 (also in the command palette) go to the next and previous change.
+
 A version in History opens to what differs between it and your files now. To see what that version itself changed, open its menu and choose Show changes in this version: its files are listed with each one's difference from the version before.
 
 ![The visual editor showing a heading and a sentence changed since the last version](../landing/src/lib/assets/showcase/app/diff-view.png 'The visual editor showing a heading and a sentence changed since the last version')

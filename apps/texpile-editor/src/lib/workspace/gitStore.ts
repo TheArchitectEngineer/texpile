@@ -42,6 +42,8 @@ export const gitOperation = box<GitOperation | null>(null);
 export const gitMissing = box<boolean>(false);
 /** where the repository starts, which is above the open folder when it sits inside a larger one */
 export const gitRepoRoot = box<string | null>(null);
+/** the commit HEAD points at; it moves when a version is saved, synced in, or a branch switched */
+export const gitHead = box<string | null>(null);
 
 /** single-letter badges keyed by gitKey(absolutePath); drives the file tree. */
 export const gitStatusMap = box<Record<string, GitBadge>>({});
@@ -119,6 +121,7 @@ function clearGitState(): void {
 	lastHead = undefined;
 	gitOperation.current = null;
 	gitRepoRoot.current = null;
+	gitHead.current = null;
 	isGitRepo.current = false;
 	gitBranch.current = null;
 	gitTracking.current = null;
@@ -152,6 +155,7 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 	isGitRepo.current = true;
 	gitOperation.current = res.operation ?? null;
 	gitRepoRoot.current = res.repoRoot ?? null;
+	if ((res.head ?? null) !== gitHead.current) gitHead.current = res.head ?? null;
 	if (res.head !== undefined && res.head !== lastHead) {
 		const moved = lastHead !== undefined;
 		lastHead = res.head;

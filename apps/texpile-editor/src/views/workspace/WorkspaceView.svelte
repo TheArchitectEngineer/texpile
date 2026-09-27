@@ -364,6 +364,7 @@
 				previewTab: tabs.preview,
 				applyingStarter: files.starters.applying,
 				allReferences: integrations.allReferences,
+				changeBaseline: integrations.changeBaseline.text,
 				sourceGotoLine: nav.sourceGotoLine,
 				sourceDiagnostics: cc.sourceDiagnostics,
 				fileUrl: (p: string) => provider.fileUrl(p),

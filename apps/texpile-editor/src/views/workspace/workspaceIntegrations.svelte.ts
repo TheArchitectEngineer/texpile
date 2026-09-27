@@ -8,6 +8,8 @@ import { attachMcpCommands } from '$lib/workspace/mcpCommands';
 import { attachSessionHandlers } from '$lib/collab/workspaceSession';
 import { DocRegistries } from '$lib/workspace/docRegistries.svelte';
 import { ScmActions } from '$lib/workspace/scmActions.svelte';
+import { ChangeBaseline } from '$lib/workspace/changeBaseline.svelte';
+import { gitHead, isGitRepo } from '$lib/workspace/gitStore';
 import { gitignoreLines } from '$lib/workspace/buildArtifacts';
 import { refreshProjectIntel } from '$lib/workspace/projectIntel';
 import { projectIntelStore } from '$lib/stores/projectIntel';
@@ -74,6 +76,8 @@ export class WorkspaceIntegrations {
 	readonly registries: DocRegistries;
 	// source control ops live in lib/workspace/scmActions.svelte.ts; the panel is presentational.
 	readonly scm: ScmActions;
+	/** the open file in the last saved version, for the source editor's change bars */
+	readonly changeBaseline = new ChangeBaseline();
 
 	constructor(private d: IntegrationDeps) {
 		const { wsdoc } = d;
@@ -114,6 +118,14 @@ export class WorkspaceIntegrations {
 					return null; // no .gitignore yet: this is the first one
 				}
 			}
+		});
+
+		// again whenever HEAD moves: the file's last saved version is then a different one
+		$effect(() => {
+			const path = doc.path;
+			void gitHead.current;
+			void isGitRepo.current;
+			untrack(() => void this.changeBaseline.load(path));
 		});
 
 		// Keep main's cache of what this window shows current, for the MCP get_editor_state tool.

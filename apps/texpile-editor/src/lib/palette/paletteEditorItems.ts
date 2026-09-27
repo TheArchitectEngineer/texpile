@@ -1,4 +1,7 @@
-import { AlignLeft, BookMarked, Keyboard } from '@lucide/svelte';
+import { AlignLeft, BookMarked, Keyboard, ArrowDownToLine, ArrowUpToLine } from '@lucide/svelte';
+import { sourceCmView } from '$lib/stores/editorStore';
+import { changedLines, nextChange, previousChange } from '$lib/editor/source/cmChangeMarkers';
+import { isMac } from '$lib/platform';
 import { settings, updateSettings, type AppSettings } from '$lib/settings';
 import type { PaletteActions } from '$lib/workspace/commandPalette.svelte';
 import type { PaletteItem } from './paletteCommands';
@@ -25,6 +28,26 @@ export function editorItems(a: PaletteActions): PaletteItem[] {
 			icon: AlignLeft,
 			run: () => a.openFormatModal()
 		});
+	// the change bars' own keys, Alt+F5 and Shift+Alt+F5, found where people look for a command
+	const view = sourceCmView.current;
+	if (view && changedLines(view.state).length) {
+		for (const [id, label, step, icon, shift] of [
+			['editor.nextChange', m.palette_next_change(), nextChange, ArrowDownToLine, false],
+			['editor.previousChange', m.palette_previous_change(), previousChange, ArrowUpToLine, true]
+		] as const)
+			items.push({
+				id,
+				label,
+				group,
+				keywords: 'diff git change version modified line',
+				hint: isMac ? `${shift ? '⇧' : ''}⌥F5` : `${shift ? 'Shift+' : ''}Alt+F5`,
+				icon,
+				run: () => {
+					step(view);
+					view.focus();
+				}
+			});
+	}
 	// keybindings are switched from here rather than only in Preferences: a vim user who lands in a
 	// fresh install wants one keystroke to fix it, not a dialog
 	const current = settings.current.editorKeymap ?? 'default';

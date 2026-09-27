@@ -54,6 +54,7 @@
 		encodingIssue = null,
 		conflicted = false,
 		conflictsLeft = 0,
+		changeBaseline = null,
 		onLeaveConflicts,
 		binaryWarning = null,
 		onOpenAsText,
@@ -332,6 +333,7 @@
 							<SourceEditor
 								docPath={loadedPath}
 								value={texSource}
+								{changeBaseline}
 								onInput={onTexInput}
 								readOnly={!!encodingIssue}
 								gotoLine={sourceGotoLine}
@@ -407,6 +409,7 @@
 							<SourceEditor
 								docPath={loadedPath}
 								value={rawContent}
+								{changeBaseline}
 								onInput={onRawInput}
 								readOnly={!!encodingIssue}
 								filename={loadedPath}
