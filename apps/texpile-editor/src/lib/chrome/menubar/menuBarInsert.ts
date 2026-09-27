@@ -30,6 +30,8 @@ import {
 } from '$lib/languages/typst/source/sourceInsert';
 import { runVisualCommand, insertNode, activeCm, cmReplace, cmApply } from '$lib/chrome/menuBarCommands';
 import { makeDrawnInserts } from './menuBarInsertDrawn';
+import { makeTypstInserts } from './menuBarInsertTypst';
+import { latexToTypst } from '$lib/languages/typst/visual/latexToTypst';
 import type { formatOf } from '$lib/workspace/documentBuffer.svelte';
 import type { Node as PMNode } from 'prosemirror-model';
 import { m } from '$lib/paraglide/messages';
@@ -51,6 +53,9 @@ const MATH_ENVS: Record<string, string> = {
 	bmatrix: '\\begin{bmatrix}\na & b \\\\\nc & d\n\\end{bmatrix}',
 	pmatrix: '\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}'
 };
+// the ones a Typst file can hold: written as mat(..), cases(..) and & alignment, they read back as themselves. gather,
+// multline and split have no Typst form tex2typst writes, and align comes back as aligned
+const TYPST_MATH_ENVS = ['aligned', 'cases', 'bmatrix', 'pmatrix'];
 
 function insertMathEnvironment(latex: string) {
 	const v = editorViewStore.current;
@@ -68,23 +73,27 @@ export function makeInsertHandlers(deps: InsertDeps): {
 		const dialect = deps.dialect();
 		const cm = activeCm();
 		if (cm) {
-			// the env/matrix items only render for tex, so the non-tex branch is inline/display only
+			// the env/matrix items render for tex, and those Typst can hold for typ (written as the visual editor writes them)
 			if (value === 'inline') cmReplace(cm, '$', '$');
 			else if (value === 'display') {
 				if (dialect === 'tex') cmReplace(cm, '\\[\n', '\n\\]');
 				else if (dialect === 'typ') cmReplace(cm, '$ ', ' $');
 				else cmReplace(cm, '$$\n', '\n$$');
 			} else if (dialect === 'tex' && MATH_ENVS[value]) cmReplace(cm, MATH_ENVS[value]);
+			else if (dialect === 'typ' && TYPST_MATH_ENVS.includes(value)) cmReplace(cm, `$ ${latexToTypst(MATH_ENVS[value])} $`);
 			return;
 		}
 		if (value === 'inline') runVisualCommand(createMathField());
 		else if (value === 'display') runVisualCommand(createMathField(true));
 		else if (dialect === 'tex' && MATH_ENVS[value]) insertMathEnvironment(MATH_ENVS[value]);
+		else if (dialect === 'typ' && TYPST_MATH_ENVS.includes(value)) insertMathEnvironment(MATH_ENVS[value]);
 	}
 
 	const insertDrawn = makeDrawnInserts(deps);
+	const insertTypst = makeTypstInserts(deps);
 
 	async function insertSelect(value: string) {
+		if (deps.dialect() === 'typ' && (await insertTypst(value))) return;
 		if (await insertDrawn(value)) return;
 		const dialect = deps.dialect();
 		const cm = activeCm();

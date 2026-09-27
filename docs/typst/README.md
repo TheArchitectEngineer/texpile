@@ -21,6 +21,9 @@ A .typ file opens in the same visual and source editors as a LaTeX file, and com
 
 - A label such as `<sec:intro>` shows under its heading, and @ inserts a reference to a label or a citation key.
 - Anything the visual editor cannot show stays in place as a Typst code chip.
+- Footnotes, page and column breaks, `#v` and `#h` spaces, and `#outline` show as what they print, footnotes numbered in order. Click one for its settings.
+- The set rules for the page, text, paragraphs, headings, the document, and equations show as one line each, such as Page · A4 · 2.5cm margins. Click one to change the common settings. Anything else a rule sets is kept as written, and a rule with `if` or `..` stays a code chip.
+- Insert has References, Breaks and spaces, Document parts, and Typst source submenus. Insert › References › Cross-reference types the @ that opens the picker.
 - Completion, hover help, and errors as you type come from tinymist, for guests in a shared session too. tinymist also warns about a font name it cannot find, with the names you probably meant, and a `#set` or `#show` rule that cannot take effect where it is.
 - Every file is checked as part of the main file, so a chapter's references to labels and citations elsewhere in the document resolve.
 - In source mode, the outline lists the headings. Enter continues a list, an enumeration, or a doc comment, and opens an empty `$ $` into a display equation.

@@ -66,6 +66,8 @@ import { typstTableWrapperView } from '$lib/editor/visual/extensions/table/table
 import { drawnOrSource } from '$lib/editor/visual/extensions/drawnChips/DrawnChipView';
 import { drawnChipAtomsPlugin } from '$lib/editor/visual/extensions/drawnChips/drawnChipAtoms';
 import { typstChipKind } from './extensions/typstChipKind';
+import { footnoteNumbersPlugin } from '$lib/editor/visual/extensions/drawnChips/footnoteNumbers';
+import { typstFootnoteMarks } from './extensions/drawn/footnoteCall';
 import { IncludeDocView } from '$lib/editor/visual/extensions/includedoc/includeDocView.svelte';
 import { pmComments } from '$lib/editor/visual/extensions/pmComments';
 import type { CommentAnchor } from '$lib/comments/anchor';
@@ -225,6 +227,7 @@ export function typstEditorPlugins(setup: TypstEditorSetup): Plugin[] {
 		createBlockHandlePlugin({ items: TYP_BLOCK_INSERT_ITEMS }),
 		wholeBlockDragPlugin(),
 		dropPastNodeViewsPlugin(),
+		footnoteNumbersPlugin(typstFootnoteMarks),
 		createNodeFlashPlugin(),
 		// collaborators' carets; VisualCollab feeds it, and is inert outside a shared session
 		remoteCursorsPlugin,

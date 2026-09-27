@@ -70,6 +70,12 @@ function glueSafe(prev: Node, next: Node): boolean {
 	return prev.type.name === 'raw_latex' && islandEndsLine(prev);
 }
 
+/** two declarations, each ending at its line end whatever follows: a rule the editor adds among the opening set
+ *  rules (the equations' numbering) keeps to their lines */
+function declarationPair(prev: Node, next: Node): boolean {
+	return [prev, next].every((node) => node.type.name === 'raw_latex' && declarationLine(node.textContent));
+}
+
 /**
  * The separator to write between two adjacent blocks. `contiguous` says the pair is still the
  * source pair (a single newline recorded on `next` is only trusted then); editor-created blocks
@@ -78,7 +84,7 @@ function glueSafe(prev: Node, next: Node): boolean {
 function blockGap(prev: Node, next: Node, contiguous: boolean, nested: boolean): string {
 	const gap = next.attrs.typGap;
 	if (gap === 'blank') return '\n\n';
-	if (gap === 'newline' && contiguous && glueSafe(prev, next)) return '\n';
+	if (gap === 'newline' && (contiguous || declarationPair(prev, next)) && glueSafe(prev, next)) return '\n';
 	if (prev.type.name === 'list' && next.type.name === 'list' && prev.attrs.kind === next.attrs.kind) return '\n';
 	if (prev.type.name === 'term_item' && next.type.name === 'term_item') return '\n';
 	if (nested && prev.type.name === 'paragraph' && next.type.name === 'list') return '\n';

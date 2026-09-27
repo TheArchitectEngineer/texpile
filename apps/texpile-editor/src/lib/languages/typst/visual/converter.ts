@@ -45,6 +45,7 @@ import { rememberParseMap } from '$lib/editor/visual/parseOrigins';
 import { tableSeg } from './tableConvert';
 import { figureSeg } from './figureConvert';
 import { headingSeg, headingCallSeg, listSeg, termSeg, quoteSeg, aloneWithLabel, labelGapOf } from './segConvert';
+import { typstDrawnCommand } from './extensions/drawn/typstDrawn';
 
 // one parser for the module: Source::replace reparses incrementally against the previous text,
 // and the converter has no per-document state of its own
@@ -203,9 +204,13 @@ export function convertMarkup(kids: SyntaxNode[], src: string): Seg[] {
 					(DECLARATION_KINDS.has(next.name) || (EXPRESSION_KINDS.has(next.name) && buf.length === 0 && restOnlySpace(kids, after)))
 				) {
 					flushPara();
+					// a set rule keeps the comment ending its line: drawn as a chip of its own, it would otherwise
+					// leave the comment a block of its own, which an edit to the rule would put on the next line
+					const note = next.name === 'SetRule' && last === next ? lineEndComment(kids, after, src) : null;
 					// the terminating semicolon is part of the statement, not of the prose after it
-					segs.push({ blocks: [includeOrRaw(k, next, last, src)], from: k.from, to: last.to });
-					i = after - 1;
+					if (note) segs.push({ blocks: [rawBlock(src.slice(k.from, note.to), k.from)], from: k.from, to: note.to });
+					else segs.push({ blocks: [includeOrRaw(k, next, last, src)], from: k.from, to: last.to });
+					i = (note ? after + 2 : after) - 1;
 				} else if (next && buf.length === 0) {
 					const fig = figureSeg(kids, i, src) ?? tableSeg(kids, i, src) ?? quoteSeg(kids, i, src) ?? headingCallSeg(kids, i, src);
 					const alone = aloneWithLabel(kids, i + 2);
@@ -291,6 +296,14 @@ export function convertMarkup(kids: SyntaxNode[], src: string): Seg[] {
 	return segs;
 }
 
+/** a // comment after `kids[at]`, a space away on the same line */
+function lineEndComment(kids: SyntaxNode[], at: number, src: string): SyntaxNode | null {
+	const space = kids[at];
+	const comment = kids[at + 1];
+	if (space?.name !== 'Space' || /[\r\n]/.test(src.slice(space.from, space.to))) return null;
+	return comment?.name === 'LineComment' ? comment : null;
+}
+
 /** the call shapes the inline walker turns into marks or atoms rather than chips */
 function inlineCall(call: SyntaxNode, src: string): boolean {
 	return (
@@ -354,7 +367,7 @@ export function typstToProseMirror(source: string): TypstParseResult {
 		return { doc: known(buildNode('doc', { typFile }, [empty]), body) };
 	}
 
-	const merged = mergeAdjacentRawBlocks(buildNode('doc', { typFile }, result), body);
+	const merged = mergeAdjacentRawBlocks(buildNode('doc', { typFile }, result), body, typstDrawnCommand);
 	return { doc: known(restampGaps(merged, body), body) };
 }
 

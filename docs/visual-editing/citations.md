@@ -10,10 +10,10 @@ order: 4
 
 Citations and cross-references share one picker.
 
-| Where to find it | Path                | Note                                                                                                      |
-| ---------------- | ------------------- | --------------------------------------------------------------------------------------------------------- |
-| In the editor    | Type @, then search | Matches by citation key, author, title, or year.                                                          |
-| Menu             | Insert › Citation   | Inserts your first bibliography entry directly, useful as a placeholder to configure. It is not a picker. |
+| Where to find it | Path                           | Note                                                                                                      |
+| ---------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| In the editor    | Type @, then search            | Matches by citation key, author, title, or year.                                                          |
+| Menu             | Insert › References › Citation | Inserts your first bibliography entry directly, useful as a placeholder to configure. It is not a picker. |
 
 ## One picker, two sources
 

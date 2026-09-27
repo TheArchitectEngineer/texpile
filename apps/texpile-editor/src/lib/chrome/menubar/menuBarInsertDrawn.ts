@@ -88,7 +88,7 @@ function bibliographySources(): string[] {
 	return ['\\bibliographystyle{plain}', `\\bibliography{${bibFileNames(projectIntelStore.current.bibEntries).join(',')}}`];
 }
 
-function folderOf(path: string): string {
+export function folderOf(path: string): string {
 	return path.replace(/[\\/][^\\/]*$/, '');
 }
 
@@ -164,7 +164,7 @@ function openPanelOfSelected(view: EditorView): void {
 	else open();
 }
 
-function insertChips(sources: string[], shape: ChipShape, holdsSelection = false): void {
+export function insertChips(sources: string[], shape: ChipShape, holdsSelection = false): void {
 	const view = editorViewStore.current;
 	if (!view) return;
 	const { schema, selection } = view.state;
@@ -195,7 +195,7 @@ function insertChips(sources: string[], shape: ChipShape, holdsSelection = false
 	openPanelOfSelected(view);
 }
 
-function insertOne(node: PMNode, caretInside = false): void {
+export function insertOne(node: PMNode, caretInside = false): void {
 	const view = editorViewStore.current;
 	if (!view) return;
 	const { tr, from } = insertAt(view, [node], node.isBlock ? 'after-paragraph' : 'caret');
@@ -212,7 +212,7 @@ function styleOf(value: string): readonly [string, string] | null {
 }
 
 /** a block of source after the line the caret is on, as the visual editor puts one after its paragraph */
-function cmAfterLine(cm: CMView, text: string, caret = text.length): void {
+export function cmAfterLine(cm: CMView, text: string, caret = text.length): void {
 	const line = cm.state.doc.lineAt(cm.state.selection.main.to);
 	const lead = line.text.trim() ? '\n' : '';
 	const at = line.text.trim() ? line.to : line.from;
@@ -223,7 +223,7 @@ function cmAfterLine(cm: CMView, text: string, caret = text.length): void {
 }
 
 /** a command that stands on a line of its own in the source, the caret `caret` characters into it */
-function cmOnOwnLine(cm: CMView, text: string, caret = text.length): void {
+export function cmOnOwnLine(cm: CMView, text: string, caret = text.length): void {
 	const { state } = cm;
 	const { from, to } = state.selection.main;
 	const before = /\S/.test(state.sliceDoc(state.doc.lineAt(from).from, from)) ? '\n' : '';

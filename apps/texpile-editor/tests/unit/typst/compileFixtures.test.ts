@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { CORPUS } from './visualRoundtrip.test';
 import { BLOCKS } from './labelledBlocks.test';
+import { DRAWN_CORPUS } from './drawnChips.test';
 
 function hasTinymist(): boolean {
 	try {
@@ -80,7 +81,7 @@ function compile(name: string, src: string): { ok: true } | { ok: false; err: st
 }
 
 describe.skipIf(!AVAILABLE)('every fixture is real Typst', () => {
-	for (const [name, src] of Object.entries({ ...CORPUS, ...BLOCKS })) {
+	for (const [name, src] of Object.entries({ ...CORPUS, ...BLOCKS, ...DRAWN_CORPUS })) {
 		const reason = NOT_STANDALONE[name];
 		it(`${name}${reason ? ` (expected to fail: ${reason})` : ''}`, () => {
 			const result = compile(name, src.endsWith('\n') ? src : `${src}\n`);
