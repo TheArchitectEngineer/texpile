@@ -46,6 +46,14 @@ A version in History opens to what differs between it and your files now. To see
 
 A version that matters, such as the draft sent to your committee or the camera-ready copy, can carry a name. Open the version's menu in History and choose Mark as milestone; the name shows on that row from then on. Milestones are git tags, so other tools see them too. Sync sends them to the remote, and removing one removes it there as well.
 
+## Timeline and local history
+
+Every time you save a file, Texpile keeps a copy of it, as VS Code's local history does. This happens in every project, including one that has never used git, and the copies stay on your computer in Texpile's own data, not in the project. The Timeline, below Contents in the explorer, lists the open file's saved copies and its git versions, newest first.
+
+Click an entry to compare it with the file as it is now. An entry's menu restores it (after asking, since unsaved changes are discarded), renames it, or deletes it. The Timeline's own menu creates an entry under a name you choose, chooses whether local history, git history or both are listed, and deletes all local history.
+
+Saves less than 10 seconds apart are kept as one entry. A file keeps its last 50 entries, and files over 256 KB are not kept. Renaming or moving a file takes its entries with it.
+
 ## Branches
 
 The branch name at the top of Source Control switches branches. It lists your branches, then the ones that exist only on a remote (choosing one of those makes a branch here that syncs with it). When you are looking at an earlier version rather than a branch (after a checkout in the terminal), the branch name reads Not on a branch, and choosing a branch goes back. Type a name that is not there yet to start a new branch from the current version; changes you have not saved as a version come along. Switching carries unsaved changes over when it can. When it would overwrite them, Texpile names the files and offers to save everything you changed as a version on the branch you are leaving, then switch; switch back to find it there.
@@ -88,7 +96,7 @@ The first time you save a version on a computer where git does not know your nam
 
 ## When something goes wrong
 
-A failed save, sync or publish says what happened in plain words, and Details shows git's own output, with Copy for a bug report or for someone who knows git. Buttons say Saving…, Syncing… or Publishing… while they work.
+A failed save, sync or publish says what happened in plain words, and Details shows git's own output, with Copy for a bug report or for someone who knows git. Buttons say Saving…, Syncing… or Publishing… while they work, and a thin bar runs across the top of Source Control while git is busy.
 
 - **The folder belongs to another account.** A project on a USB or network drive, or one copied from another user, may belong to a different account on your computer. Git will not work in it until you say you trust it, because a repository's own settings can run programs. Source Control says so and offers Trust this folder, which asks first and then adds the folder to git's `safe.directory` list.
 - **A folder full of new files.** A folder of 200 or more new files, such as a data dump or a Python environment, is one row that says how many files it holds. It starts unticked, and its menu can add it to .gitignore. Past 2,000 changes the list stops and says how many there were.

@@ -20,6 +20,7 @@ const OPS: Record<string, string> = {
 	'git:identity': 'gitIdentity',
 	'git:setIdentity': 'gitSetIdentity',
 	'git:log': 'gitLog',
+	'git:fileLog': 'gitFileLog',
 	'git:changesSince': 'gitChangesSince',
 	'git:showAt': 'gitShowAt',
 	'git:changesIn': 'gitChangesIn',

@@ -5,6 +5,8 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: local history: every save keeps a copy (as in VS Code), listed with the file's git versions in a new Timeline below Contents, with compare, restore, rename, delete and create entry; it works in projects without git
+- feat: a progress bar runs across Source Control while git works
 - feat: comparisons have previous and next change buttons (Alt+F5 and Shift+Alt+F5 in the source comparison) and Put back beside each change
 - feat: a file both sides changed can be kept whole from its menu, mine or theirs, for figures, PDFs and files one side deleted
 - feat: folders with changes inside are tinted and dotted in the file tree; a file still being combined shows a !, and deleted files are struck through in Source Control

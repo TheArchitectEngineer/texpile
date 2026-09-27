@@ -8,7 +8,7 @@
 	import FileTree from '$lib/filetree/FileTree.svelte';
 	import GlobalSearch from '$lib/search/GlobalSearch.svelte';
 	import SourceControlPanel from '$lib/workspace/SourceControlPanel.svelte';
-	import TableOfContents from './TableOfContents.svelte';
+	import ExplorerSections from './ExplorerSections.svelte';
 	import SidebarIconButton from './SidebarIconButton.svelte';
 	import { isBuildArtifact } from '$lib/workspace/buildArtifacts';
 	import { workspaceRoot, fileTree, activeFilePath, mainFile } from '$lib/workspace/workspaceStore';
@@ -432,7 +432,7 @@
 					class="border-surface-200-800 scroll-inset-r min-h-0 overflow-y-auto [scrollbar-gutter:stable] border-t p-2"
 					style="flex: {tocFraction} 1 0%"
 				>
-					<TableOfContents mode={viewMode === 'source' ? 'source' : 'visual'} onOpenFile={onOpenFileAt} />
+					<ExplorerSections mode={viewMode === 'source' ? 'source' : 'visual'} {guest} onOpenFile={onOpenFileAt} />
 				</div>
 			{/if}
 		</div>

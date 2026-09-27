@@ -13,6 +13,7 @@ import { gitHead, gitTracking, isGitRepo } from '$lib/workspace/gitStore';
 import { gitignoreLines } from '$lib/workspace/buildArtifacts';
 import { provideScmHandlers } from '$lib/workspace/scmHandlers.svelte';
 import { ScmFetch } from '$lib/workspace/scmFetch.svelte';
+import { LocalHistoryActions, provideLocalHistoryActions } from '$lib/workspace/localHistoryActions.svelte';
 import { ScmPublishNew } from '$lib/workspace/scmPublishNew';
 import { refreshProjectIntel } from '$lib/workspace/projectIntel';
 import { projectIntelStore } from '$lib/stores/projectIntel';
@@ -124,6 +125,25 @@ export class WorkspaceIntegrations {
 		});
 
 		// what the panel's rows, its branch bar and the palette ask of Source Control, while this workspace is open
+		// the Timeline's Local History commands, with the same hands on the editor Source Control has
+		const history = new LocalHistoryActions({
+			getLoadedPath: () => doc.path,
+			discardPendingSave: () => d.editFlow().saver.discard(),
+			readTextIfPresent: async (p) => {
+				try {
+					return await d.provider.readText(p);
+				} catch {
+					return null;
+				}
+			},
+			writeText: (p, content) => d.provider.writeText(p, content),
+			loadFile: (path) => d.wsdoc.loadFile(path),
+			openCompareTab: (path, compare) => {
+				const key = tabs.openCompare(path, compare);
+				d.editFlow().activateTab(tabs.find(key) ?? { path, compare });
+			}
+		});
+		$effect(() => provideLocalHistoryActions(history));
 		const fetcher = new ScmFetch(this.scm);
 		const publisher = new ScmPublishNew(this.scm);
 		$effect(() =>

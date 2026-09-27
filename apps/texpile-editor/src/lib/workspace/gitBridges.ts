@@ -10,6 +10,7 @@ import type { GitMilestoneBridge } from './gitMilestones';
 import type { GithubForkBridge } from './githubFork';
 import type { GitTrustBridge } from './gitTrust';
 import type { GitFetchBridge } from './scmFetch.svelte';
+import type { LocalHistoryBridge } from './localHistory.svelte';
 
 export type GitBridges = GitRemoteBridge &
 	GitCombineBridge &
@@ -19,4 +20,5 @@ export type GitBridges = GitRemoteBridge &
 	GitMilestoneBridge &
 	GithubForkBridge &
 	GitTrustBridge &
-	GitFetchBridge;
+	GitFetchBridge &
+	LocalHistoryBridge;

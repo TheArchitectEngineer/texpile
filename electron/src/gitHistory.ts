@@ -126,6 +126,31 @@ export async function gitLog(workspaceRoot: string, limit = 100): Promise<GitLog
 	}
 }
 
+/** One file's versions, newest first, following it across renames: the git half of the Timeline
+ *  (VS Code's Git History timeline source, `git log --follow -- <file>`). */
+export async function gitFileLog(workspaceRoot: string, path: string, limit = 50): Promise<GitLogResult> {
+	const rr = await resolveRepoRoot(workspaceRoot);
+	if (!rr.root) return { ok: false, reason: rr.reason };
+	const [rel] = toRepoRel(rr.root, [path]);
+	if (!rel || rel.startsWith('..')) return { ok: true, entries: [] };
+	try {
+		const raw = await git(rr.root).raw([
+			'log',
+			'--follow',
+			`--max-count=${Math.max(1, Math.min(limit, 200))}`,
+			`--format=${REC_FMT}%H${FIELD_FMT}%h${FIELD_FMT}%an${FIELD_FMT}%aI${FIELD_FMT}%P${FIELD_FMT}%s${BODY_FMT}%b`,
+			'--',
+			rel
+		]);
+		return { ok: true, entries: parseGitLog(raw) };
+	} catch (e) {
+		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
+		// an unborn HEAD, or a file git has never seen: no versions, which is not a failure
+		if (/does not have any commits yet|unknown revision|bad revision/i.test(errMsg(e))) return { ok: true, entries: [] };
+		return { ok: false, error: errMsg(e) };
+	}
+}
+
 export type GitChangesResult = {
 	ok: boolean;
 	reason?: 'not-a-repo' | 'no-git' | 'unsafe';

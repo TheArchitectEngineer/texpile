@@ -10,7 +10,8 @@
 import type { Node as PMNode } from 'prosemirror-model';
 import { browser } from '$lib/runtime';
 import { layout, updateLayout } from '$lib/storage/layout';
-import { gitShowHead, gitShowAt } from '$lib/workspace/git';
+import { gitShowHead, gitShowAt, type GitShowResult } from '$lib/workspace/git';
+import { LOCAL_REF, readLocalHistory } from '$lib/workspace/localHistory.svelte';
 import { VisualParser } from '$lib/workspace/visualParse.svelte';
 import { m } from '$lib/paraglide/messages';
 
@@ -21,6 +22,13 @@ export type DiffDeps = {
 	/** project macro definitions, so a version parses in the same context the live document did */
 	getMacros(): string;
 };
+
+/** a git version, or a Local History entry ('local:<id>') compared the same way */
+async function versionText(path: string, ref: string): Promise<GitShowResult> {
+	if (!ref.startsWith(LOCAL_REF)) return gitShowAt(path, ref);
+	const content = await readLocalHistory(path, ref.slice(LOCAL_REF.length));
+	return content === null ? { ok: false, hasHead: false, error: m.history_entry_gone() } : { ok: true, hasHead: true, content };
+}
 
 export class DiffMode {
 	/** HEAD content ('' when the file has no committed baseline) */
@@ -78,7 +86,7 @@ export class DiffMode {
 		this.loading = true;
 		this.error = null;
 		const ref = this.compareRef;
-		const res = ref ? await gitShowAt(path, ref.hash) : await gitShowHead(path);
+		const res = ref ? await versionText(path, ref.hash) : await gitShowHead(path);
 		// cleared even when superseded, or the bar keeps announcing a read that already ended
 		this.loading = false;
 		if (this.deps.getLoadedPath() !== path) return; // a file switch superseded this snapshot

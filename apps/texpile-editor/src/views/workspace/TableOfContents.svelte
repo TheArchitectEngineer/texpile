@@ -14,7 +14,15 @@
 
 	// source mode reads headings parsed from the raw .tex (char offsets); visual reads the PM plugin's.
 	// onOpenFile routes clicks on entries merged in from other files (source-mode project outline).
-	let { mode = 'visual', onOpenFile }: { mode?: 'visual' | 'source'; onOpenFile?: (file: string, line: number) => void } = $props();
+	let {
+		mode = 'visual',
+		onOpenFile,
+		heading = true
+	}: {
+		mode?: 'visual' | 'source';
+		onOpenFile?: (file: string, line: number) => void;
+		/** false under a section header of its own */ heading?: boolean;
+	} = $props();
 	const items = $derived(mode === 'source' ? sourceTocStore.current : tocStore.current);
 	const active = $derived(activeTocIndex(items, tocCaretStore.current));
 	let rows = $state<HTMLButtonElement[]>([]);
@@ -52,7 +60,7 @@
 </script>
 
 <nav class="text-sm">
-	<div class="text-faint mb-2 text-xs font-semibold tracking-wide uppercase">{m.toc_heading()}</div>
+	{#if heading}<div class="text-faint mb-2 text-xs font-semibold tracking-wide uppercase">{m.toc_heading()}</div>{/if}
 	{#if items.length === 0}
 		<p class="text-faint text-xs">{m.toc_empty()}</p>
 	{:else}

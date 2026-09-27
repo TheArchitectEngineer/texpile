@@ -265,6 +265,8 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitFileAt: (root: string, path: string, ref: string) => invokeFs('git:fileAt', root, path, ref),
 	/** a file's contents at an arbitrary commit, for diffing a version -> { ok, hasHead, content? }. */
 	gitShowAt: (path: string, ref: string) => invokeFs('git:showAt', path, ref),
+	/** one file's versions, newest first, across renames -> { ok, entries? }. */
+	gitFileLog: (root: string, path: string, limit?: number) => invokeFs('git:fileLog', root, path, limit),
 	/** roll the workspace back to a commit by writing that version forward as a new one. */
 	gitRestore: (root: string, hash: string, message: string) => invokeFs('git:restore', root, hash, message),
 	/** push this branch to the upstream it already tracks -> { ok, failure?, remote? }. */
@@ -306,6 +308,14 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitRemoveMilestone: (root: string, name: string) => invokeFs('git:removeMilestone', root, name),
 	/** fork the remote's GitHub repository, add the fork, publish the branch there -> { ok, url?, remote?, failure? }. */
 	githubFork: (root: string, remote: string) => invokeFs('git:githubFork', root, remote),
+	/** Local History (localHistory.ts): a copy per save, kept in the app's data -> the entry, or null. */
+	localHistoryAdd: (path: string, content: string, source?: string) => invokeFs('history:add', path, content, source),
+	localHistoryList: (path: string) => invokeFs('history:list', path),
+	localHistoryRead: (path: string, id: string) => invokeFs('history:read', path, id),
+	localHistoryRemove: (path: string, id: string) => invokeFs('history:remove', path, id),
+	localHistoryRename: (path: string, id: string, label: string) => invokeFs('history:rename', path, id, label),
+	localHistoryRemoveAll: () => invokeFs('history:removeAll'),
+	localHistoryMove: (from: string, to: string) => invokeFs('history:move', from, to),
 	/** drop every sign-in Texpile kept in the keychain -> true. */
 	gitForgetSignIns: () => ipcRenderer.invoke('git:forgetSignIns'),
 	/** git clone into <parent>/<name> -> { ok, path?, failure? }; progress arrives on onGitCloneProgress. */

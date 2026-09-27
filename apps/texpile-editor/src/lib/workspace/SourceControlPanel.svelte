@@ -7,6 +7,7 @@
 	import BranchPicker from './history/BranchPicker.svelte';
 	import OperationBanner from './history/OperationBanner.svelte';
 	import SyncControls from './history/SyncControls.svelte';
+	import ScmProgress from './history/ScmProgress.svelte';
 	import ParentRepoGate from './history/ParentRepoGate.svelte';
 	import NoRepoGate from './history/NoRepoGate.svelte';
 	import UnsafeRepoGate from './history/UnsafeRepoGate.svelte';
@@ -204,6 +205,7 @@
 	<ParentRepoGate repo={parentRepo} {busy} onUse={onUseParentRepo} {onInit} />
 {:else}
 	<div class="flex h-full min-h-0 flex-col">
+		<ScmProgress active={busy || !!gitRunning.current} />
 		<!-- refresh belongs beside the branch: both are the state of the repository, and parked above
 		     an unrelated heading it read as a stray duplicate of the file tree's own refresh -->
 		<div class="text-muted flex h-7 shrink-0 items-center gap-1.5 px-3 text-xs">

@@ -147,7 +147,8 @@
 	let layout = $state(new PaneLayout());
 
 	// visual TOC reads PM headings (works for md too); source-mode TOC parses raw LaTeX, tex-only
-	const showToc = $derived(!!doc.path && (modes.mode === 'visual' ? hasVisualMode(kind) : modes.mode === 'source' && kind === 'tex'));
+	// the explorer's lower pane: Contents and Timeline, for whichever file is open (ExplorerSections)
+	const showToc = $derived(!!doc.path);
 	attachSourceToc(wsdoc);
 	// dock visibility/height/shrink live in lib/workspace/terminalDockState.svelte.ts
 	let termDock = $state(new TerminalDockState(() => guest));
