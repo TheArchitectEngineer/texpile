@@ -42,9 +42,9 @@ export function openToolchainPrefs(): void {
 	openPreferencesAt('toolchain');
 }
 
-/** Preferences on `tab`, scrolled to the section with id prefs-`section` when there is one */
-export function openPreferencesAt(tab: string, section?: string): void {
-	preferencesTab.current = section ? `${tab}#${section}` : tab;
+/** Preferences, on `tab` */
+export function openPreferencesAt(tab: string): void {
+	preferencesTab.current = tab;
 	preferencesOpen.current = true;
 }
 

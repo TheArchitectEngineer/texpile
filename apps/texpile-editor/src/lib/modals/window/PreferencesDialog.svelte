@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { tick } from 'svelte';
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { X, Languages } from '@lucide/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
@@ -32,7 +31,7 @@
 	// One category on screen at a time, rather than every setting in one scroll. The list had grown
 	// past the point where "wrap long lines" and "editor width" could be told apart at a glance -
 	// which editor, and which of them, was only answerable by reading the hint under each.
-	type Category = 'appearance' | 'editor' | 'collaboration' | 'toolchain' | 'integrations' | 'startup' | 'ai';
+	type Category = 'appearance' | 'editor' | 'proofing' | 'collaboration' | 'toolchain' | 'integrations' | 'startup' | 'ai';
 	let category = $state<Category>('appearance');
 	// the browser guest has no local toolchain, no Zotero, no MCP server and no folder to reopen:
 	// four tabs that could only ever report nothing
@@ -44,6 +43,10 @@
 		// editor, and which of them - and a heading inside one tab answers that just as well as a
 		// sidebar entry did, without making the reader guess which of three tabs a setting is in.
 		{ id: 'editor', label: m.prefs_group_editor() },
+		// spell check, the English it follows and the grammar rules: enough of their own, with the
+		// rules list, that under Editor they were the bulk of that tab. Named as the menu bar's
+		// Spelling menu is, which holds the same switch and leads here.
+		{ id: 'proofing', label: m.prefs_group_proofing() },
 		{ id: 'collaboration', label: m.prefs_group_collaboration() },
 		// LaTeX, Typst and Version control used to be three tabs. Every one of them was the same
 		// thing - a list of external programs and whether they were found - so three sidebar entries
@@ -66,11 +69,8 @@
 		if (!open) return;
 		const want = preferencesTab.current;
 		if (!want) return;
-		const [tab, section] = want.split('#');
-		if (categories.some((c) => c.id === tab)) category = tab as Category;
+		if (categories.some((c) => c.id === want)) category = want as Category;
 		preferencesTab.current = null;
-		// a section further down the tab is brought up to the top, once the tab has drawn it
-		if (section) void tick().then(() => document.getElementById(`prefs-${section}`)?.scrollIntoView({ block: 'start' }));
 	});
 
 	/** every row is the same shape: name and explanation on the left, the control on the right */
@@ -98,8 +98,8 @@
      docs, which the header links no matter what.
      One panel for all of them, grouped by what they serve. They were three sidebar tabs; a reader
      asking "is my machine set up" had to visit all three and could not see the answer at once. -->
-{#snippet sectionHeading(text: string, id = '')}
-	<h3 id={id || undefined} class="text-muted pt-4 pb-1 text-xs font-semibold tracking-wide uppercase">{text}</h3>
+{#snippet sectionHeading(text: string)}
+	<h3 class="text-muted pt-4 pb-1 text-xs font-semibold tracking-wide uppercase">{text}</h3>
 {/snippet}
 
 {#snippet toggleRow(text: string, hint: string, checked: boolean, onChange: (v: boolean) => void, disabled = false, title = '')}
@@ -259,26 +259,24 @@
 						)}
 					{/if}
 				</div>
-				{@render sectionHeading(m.prefs_group_proofing(), 'prefs-proofing')}
-				<div class={SUB}>
-					{@render toggleRow(m.prefs_spellcheck(), '', settings.current.spellcheck, (v) => setSpellcheckEnabled(v))}
-					<!-- what to check against only matters while something is checked -->
-					{#if settings.current.spellcheck}
-						<div class={ROW}>
-							{@render label(m.prefs_english_variant(), m.prefs_english_variant_note())}
-							<select
-								class="select w-auto min-w-32 shrink-0 text-sm"
-								value={settings.current.englishVariant ?? ''}
-								onchange={(e) => updateSettings({ englishVariant: e.currentTarget.value as AppSettings['englishVariant'] })}
-							>
-								{#each englishVariantOptions() as o (o.value)}
-									<option value={o.value}>{o.label}</option>
-								{/each}
-							</select>
-						</div>
-						<PrefsGrammarRules />
-					{/if}
-				</div>
+			{:else if category === 'proofing'}
+				{@render toggleRow(m.prefs_spellcheck(), '', settings.current.spellcheck, (v) => setSpellcheckEnabled(v))}
+				<!-- what to check against only matters while something is checked -->
+				{#if settings.current.spellcheck}
+					<div class={ROW}>
+						{@render label(m.prefs_english_variant(), m.prefs_english_variant_note())}
+						<select
+							class="select w-auto min-w-32 shrink-0 text-sm"
+							value={settings.current.englishVariant ?? ''}
+							onchange={(e) => updateSettings({ englishVariant: e.currentTarget.value as AppSettings['englishVariant'] })}
+						>
+							{#each englishVariantOptions() as o (o.value)}
+								<option value={o.value}>{o.label}</option>
+							{/each}
+						</select>
+					</div>
+					<PrefsGrammarRules />
+				{/if}
 			{:else if category === 'collaboration'}
 				<PrefsCollaborationPanel />
 			{:else if category === 'toolchain'}

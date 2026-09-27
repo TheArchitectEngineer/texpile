@@ -186,7 +186,7 @@
 	function spellcheckSelect(value: string) {
 		if (value === 'toggle') setSpellcheckEnabled(!spellcheckOn);
 		else if (value === 'dictionary') dictionaryOpen.current = true;
-		else if (value === 'settings') openPreferencesAt('editor', 'proofing');
+		else if (value === 'settings') openPreferencesAt('proofing');
 	}
 
 	function terminalSelect(value: string) {
