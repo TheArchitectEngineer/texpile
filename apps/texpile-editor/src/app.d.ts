@@ -109,11 +109,24 @@ declare global {
 		exportBib(keys: string[], translator: string): Promise<{ ok: boolean; bib?: string; error?: string }>;
 	};
 
+	/** a paper a title search found (see electron/src/citeSearch.ts) */
+	type CiteSearchHit = { doi: string; title: string; authors: string[]; venue: string; year: string; cites: number };
+
 	type TexpileDoiBridge = {
 		/** The BibTeX doi.org's registry gives for a DOI (see electron/src/doiLookup.ts). */
 		lookup(
 			doi: string
 		): Promise<{ ok: true; bibtex: string } | { ok: false; reason: 'not-found' | 'no-bibtex' | 'offline' | 'failed'; error?: string }>;
+		/** Papers matching a title, from Crossref and arXiv's DataCite records, unranked. */
+		search(query: string): Promise<{ ok: true; hits: CiteSearchHit[] } | { ok: false; reason: 'offline' | 'failed'; error?: string }>;
+		/** A book's entry from Open Library, by its 13-digit ISBN. */
+		isbn(isbn: string): Promise<{ ok: true; bibtex: string } | { ok: false; reason: 'not-found' | 'offline' | 'failed'; error?: string }>;
+		/** A PubMed record's DOI, or its entry when it has none. */
+		pmid(
+			pmid: string
+		): Promise<
+			{ ok: true; doi: string } | { ok: true; bibtex: string } | { ok: false; reason: 'not-found' | 'offline' | 'failed'; error?: string }
+		>;
 	};
 
 	// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- augmenting lib.dom's Window needs declaration merging
