@@ -6,7 +6,7 @@ import { writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { gitStatus } from '../../../../../../electron/src/gitService';
 import { gitSync } from '../../../../../../electron/src/gitRemote';
-import { gitCombine, gitFinishCombine, gitCancelCombine } from '../../../../../../electron/src/gitCombine';
+import { gitCombine, gitFinishCombine, gitCancelCombine, gitKeepSide } from '../../../../../../electron/src/gitCombine';
 import { hasConflictMarkers } from '../../../../../../electron/src/conflictMarkers';
 import { AVAILABLE, run, out, commit, removeTempDirs, makePublished } from './gitLiveFixture';
 
@@ -139,5 +139,36 @@ describe('the marker check on the git side', () => {
 		expect(hasConflictMarkers(' <<<<<<< HEAD\nx\n=======\ny\n>>>>>>> b\n')).toBe(false);
 		expect(hasConflictMarkers('<<<<<<<< HEAD\nx\n=======\ny\n>>>>>>> b\n')).toBe(false);
 		expect(hasConflictMarkers('plain text\n')).toBe(false);
+	});
+});
+
+describe.skipIf(!AVAILABLE)('keeping one side of a whole file', () => {
+	it('takes their file as it is, leaves it in the merge ready, and Finish records it', async () => {
+		const { root } = await makeConflicted();
+		await gitCombine(root);
+		expect(await gitKeepSide(root, join(root, 'main.tex'), 'theirs')).toEqual({ ok: true });
+		expect(readFileSync(join(root, 'main.tex'), 'utf8')).toBe('Their first line.\nSecond line.\n');
+		expect((await gitStatus(root)).entries?.find((e) => e.path === join(root, 'main.tex'))).toMatchObject({ markers: false });
+		expect(await gitFinishCombine(root)).toEqual({ ok: true });
+	});
+
+	it('keeps a file deleted when the side kept had deleted it', async () => {
+		const fixture = await makePublished();
+		const { root, other } = fixture;
+		run(other, 'rm', '-q', 'main.tex');
+		run(other, 'commit', '-qm', 'Drop main');
+		run(other, 'push', '-q');
+		commit(root, 'main.tex', 'My first line.\nSecond line.\n', 'My edit');
+		await gitSync(root);
+		await gitCombine(root);
+		expect(await gitKeepSide(root, join(root, 'main.tex'), 'theirs')).toEqual({ ok: true });
+		expect(existsSync(join(root, 'main.tex'))).toBe(false);
+		expect(await gitFinishCombine(root)).toEqual({ ok: true });
+	});
+
+	it('refuses outside a merge, and a path outside the repository', async () => {
+		const { root } = await makePublished();
+		expect((await gitKeepSide(root, join(root, 'main.tex'), 'mine')).ok).toBe(false);
+		expect((await gitKeepSide(root, join(root, '..', 'elsewhere.tex'), 'mine')).ok).toBe(false);
 	});
 });

@@ -10,7 +10,8 @@
 	import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 	import { LanguageDescription } from '@codemirror/language';
 	import { languages as cmlangdata } from '@codemirror/language-data';
-	import { unifiedMergeView, MergeView } from '@codemirror/merge';
+	import { unifiedMergeView, MergeView, goToNextChunk, goToPreviousChunk } from '@codemirror/merge';
+	import { m as msg } from '$lib/paraglide/messages';
 	import { cmSyntaxHighlight } from '$lib/editor/source/cmHighlight';
 	import { bibtex } from '$lib/languages/bib/bibtexLanguage';
 	import { latex } from '$lib/languages/latex/source/latexLanguage';
@@ -99,18 +100,51 @@
 		return [lineNumbers(), drawSelection(), cmSyntaxHighlight(), langExt, EditorView.lineWrapping];
 	}
 
+	function editable(): boolean {
+		return !readOnly && !!onModifiedInput;
+	}
+
 	/** bytes in git, with nowhere to write back to */
 	function versionExts(): Extension[] {
 		return [EditorState.readOnly.of(true), EditorView.editable.of(false), ...sharedExts()];
 	}
 
+	/** the change after or before the caret, as Alt+F5 and Shift+Alt+F5 step the source editor's margin */
+	const STEP_KEYS = keymap.of([
+		{ key: 'Alt-F5', run: goToNextChunk },
+		{ key: 'Shift-Alt-F5', run: goToPreviousChunk }
+	]);
+
+	export function step(dir: 1 | -1): void {
+		if (!modifiedView) return;
+		(dir === 1 ? goToNextChunk : goToPreviousChunk)(modifiedView);
+		modifiedView.focus();
+	}
+
+	/** Put back: one change replaced by the version's lines, where the working copy can be written.
+	 *  Not merge's Accept, which would edit the version, and there is no writing into git from here. */
+	function putBack(action?: (e: MouseEvent) => void): HTMLElement {
+		const b = document.createElement('button');
+		b.type = 'button';
+		b.className = 'cm-diff-put-back';
+		// split's control sits in the narrow gap between the two sides: an arrow from the version to
+		// the working copy there, and the words on the tooltip
+		b.textContent = action ? msg.wsview_diff_put_back() : '→';
+		b.title = msg.wsview_diff_put_back_tip();
+		b.setAttribute('aria-label', msg.wsview_diff_put_back());
+		// unified hands over what to run; split listens on its own gutter control
+		if (action) b.addEventListener('mousedown', action);
+		return b;
+	}
+
 	/** typing here edits the file, so it needs the editing basics - undo among them */
 	function workingExts(): Extension[] {
 		const emit = onModifiedInput;
-		if (readOnly || !emit) return versionExts();
+		if (readOnly || !emit) return [...versionExts(), STEP_KEYS];
 		return [
 			...sharedExts(),
 			history(),
+			STEP_KEYS,
 			keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
 			EditorView.updateListener.of((u) => {
 				if (u.docChanged) emit(u.state.doc.toString());
@@ -144,6 +178,8 @@
 				a: { doc: o, extensions: versionExts() }, // the saved version
 				b: { doc: m, extensions: workingExts() }, // the working copy
 				orientation: 'a-b',
+				// the version's lines into the working copy, where there is one to write to
+				...(editable() ? { revertControls: 'a-to-b' as const, renderRevertControl: () => putBack() } : {}),
 				gutter: true,
 				highlightChanges: true,
 				collapseUnchanged: COLLAPSE
@@ -155,7 +191,15 @@
 				parent: host,
 				state: EditorState.create({
 					doc: m,
-					extensions: [...workingExts(), unifiedMergeView({ original: o, mergeControls: false, gutter: true, collapseUnchanged: COLLAPSE })]
+					extensions: [
+						...workingExts(),
+						unifiedMergeView({
+							original: o,
+							mergeControls: editable() ? (type, action) => (type === 'reject' ? putBack(action) : document.createElement('span')) : false,
+							gutter: true,
+							collapseUnchanged: COLLAPSE
+						})
+					]
 				})
 			});
 			current = view;
@@ -192,6 +236,23 @@
 	}
 	.diff-panel :global(.cm-focused) {
 		outline: none;
+	}
+	/* the app's quiet button rather than merge's, which is white text on a coloured fill; the
+	   doubled class outranks merge's theme rule for chunk buttons */
+	.diff-panel :global(.cm-diff-put-back.cm-diff-put-back) {
+		font-family: var(--font-sans, system-ui, sans-serif);
+		font-size: 11px;
+		line-height: 1.5;
+		margin: 2px 4px;
+		padding: 0 8px;
+		border-radius: 4px;
+		border: 1px solid color-mix(in oklab, var(--color-surface-950-50) 25%, transparent);
+		background: var(--color-surface-50-950);
+		color: var(--color-surface-950-50);
+		cursor: pointer;
+	}
+	.diff-panel :global(.cm-diff-put-back.cm-diff-put-back:hover) {
+		background: color-mix(in oklab, var(--color-surface-950-50) 10%, var(--color-surface-50-950));
 	}
 
 	/* collapsed unchanged region: theme-matched band instead of @codemirror/merge's washed-out defaults */

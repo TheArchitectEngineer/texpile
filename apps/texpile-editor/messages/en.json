@@ -1722,5 +1722,14 @@
 	"vcs_publish_new": "Publish to GitHub…",
 	"vcs_publish_new_detail": "Starts keeping versions here, saves your files as the first version, and puts them on GitHub or another host.",
 	"vcs_first_version_message": "First version",
-	"wsview_compare_last": "Compare with the last version"
+	"wsview_compare_last": "Compare with the last version",
+	"filetree_folder_changed": "Has changes since the last version",
+	"filetree_folder_conflict": "Holds a file both sides changed",
+	"vcs_keep_file_mine": "Keep my whole file",
+	"vcs_keep_file_theirs": "Keep their whole file",
+	"vcs_keep_side_failed": "Could not keep one side of {name}",
+	"wsview_diff_previous": "Previous change",
+	"wsview_diff_next": "Next change",
+	"wsview_diff_put_back": "Put back",
+	"wsview_diff_put_back_tip": "Replace these lines with the version's"
 }

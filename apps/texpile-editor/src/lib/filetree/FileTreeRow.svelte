@@ -9,7 +9,7 @@
 	import type { FileTreeState } from './treeState.svelte';
 	import type { FileTreeDnd } from './treeDnd.svelte';
 	import type { TreeNameEditor } from './treeNameEditor.svelte';
-	import { gitBadgeOf, STATUS_COLOR, STATUS_TITLE } from './treeBadges';
+	import { gitBadgeOf, folderTitle, STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from './treeBadges';
 	import { focusSelect } from './focusSelect';
 	import { m } from '$lib/paraglide/messages';
 
@@ -103,11 +103,21 @@
 				/>
 			{:else}
 				{@const status = gitBadgeOf(gitStatus, entry)}
+				{@const folder = entry.type === 'dir'}
 				<!-- names are never trimmed; the tree scrolls sideways instead (see FileTree's min-w-max).
-				     git status is the name's own colour, so it needs no column of its own -->
-				<span class="whitespace-nowrap {status ? STATUS_COLOR[status] : ''}" use:tip={status ? STATUS_TITLE[status] : undefined}
-					>{entry.name}</span
+				     git status is the name's own colour, so it needs no column of its own; a folder takes
+				     the colour of the weightiest change inside it, so a changed chapter can be found -->
+				<span
+					class="whitespace-nowrap {status ? STATUS_COLOR[status] : ''} {status && !folder ? (STATUS_DECOR[status] ?? '') : ''}"
+					use:tip={status ? (folder ? folderTitle(status) : STATUS_TITLE[status]) : undefined}>{entry.name}</span
 				>
+				<!-- and a mark that is not a colour, for a state the tooltip should not be the only way to know -->
+				{#if status === 'C' && !folder}
+					<span class="text-error-ink ml-0.5 font-bold" aria-label={STATUS_TITLE.C}>!</span>
+				{:else if status && folder}
+					<span class="ml-1 inline-block size-1.5 shrink-0 rounded-full bg-current opacity-70 {STATUS_COLOR[status]}" aria-hidden="true"
+					></span>
+				{/if}
 			{/if}
 		</button>
 		{#if editor.renaming !== entry.path}

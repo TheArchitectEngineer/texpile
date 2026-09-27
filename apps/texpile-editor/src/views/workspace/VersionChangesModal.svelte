@@ -7,7 +7,7 @@
 	import { tip } from '$lib/components/tooltip.svelte';
 	import Modal from '$lib/modals/Modal.svelte';
 	import FileIcon from '$lib/filetree/FileIcon.svelte';
-	import { STATUS_COLOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
+	import { STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
 	import { pathLabels } from '$lib/workspace/history/pathLabels';
 	import { gitChangesIn, gitFileAt } from '$lib/workspace/gitVersion';
 	import { closeVersionChanges } from '$lib/workspace/versionChanges.svelte';
@@ -96,7 +96,9 @@
 							use:tip={f.from ? `${labels.relPath(f.from)} → ${labels.relPath(f.path)}` : labels.relPath(f.path)}
 						>
 							<FileIcon name={labels.baseName(f.path)} class="size-4 shrink-0" />
-							<span class="truncate {STATUS_COLOR[f.status]}" use:tip={STATUS_TITLE[f.status]}>{labels.baseName(f.path)}</span>
+							<span class="truncate {STATUS_COLOR[f.status]} {STATUS_DECOR[f.status] ?? ''}" use:tip={STATUS_TITLE[f.status]}
+								>{labels.baseName(f.path)}</span
+							>
 							{#if labels.dirName(f.path)}<span class="text-muted truncate text-xs">{labels.dirName(f.path)}</span>{/if}
 						</button>
 					</li>

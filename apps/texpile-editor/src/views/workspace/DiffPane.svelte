@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Git-diff view: the status/controls strip above DiffPanel.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { RefreshCw, GitCompare, Info, Columns2, Rows2 } from '@lucide/svelte';
+	import { RefreshCw, GitCompare, Info, Columns2, Rows2, ChevronUp, ChevronDown } from '@lucide/svelte';
 	import { isTexpileManaged } from '$lib/comments/managed';
 	import DiffPanel from './DiffPanel.svelte';
 	import { m } from '$lib/paraglide/messages';
@@ -44,6 +44,7 @@
 	// null compareRef means the last saved version, and it still has to be named: the heading no
 	// longer says which version this is measured against
 	const versionLabel = $derived(compareRef?.subject ?? m.vcs_last_version());
+	let panel = $state<DiffPanel>();
 </script>
 
 <div class="flex h-full flex-col">
@@ -65,6 +66,23 @@
 		{:else if error}<span class="text-error-ink truncate">· {error}</span>
 		{:else if !hasHead}<span class="text-muted">· {m.wsview_diff_new_file()}</span>{/if}
 		<div class="ml-auto flex shrink-0 items-center gap-1">
+			<!-- through the changes, as Alt+F5 and Shift+Alt+F5 do from inside the comparison -->
+			<button
+				class="btn-icon btn-icon-xs hover:preset-tonal"
+				onclick={() => panel?.step(-1)}
+				use:tip={m.wsview_diff_previous()}
+				aria-label={m.wsview_diff_previous()}
+			>
+				<ChevronUp class="size-3.5" />
+			</button>
+			<button
+				class="btn-icon btn-icon-xs hover:preset-tonal"
+				onclick={() => panel?.step(1)}
+				use:tip={m.wsview_diff_next()}
+				aria-label={m.wsview_diff_next()}
+			>
+				<ChevronDown class="size-3.5" />
+			</button>
 			<button
 				class="btn-icon btn-icon-xs hover:preset-tonal"
 				onclick={onRefresh}
@@ -104,7 +122,7 @@
 	     its scrollbar off the divider lozenge, and the bars above must still reach it -->
 	<div class="scroll-inset-r min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
 		{#key filename}
-			<DiffPanel {filename} {original} {modified} {layout} {loading} {readOnly} {onModifiedInput} />
+			<DiffPanel bind:this={panel} {filename} {original} {modified} {layout} {loading} {readOnly} {onModifiedInput} />
 		{/key}
 	</div>
 </div>

@@ -20,6 +20,7 @@ export type GitCombineBridge = {
 	gitCombine?: (root: string) => Promise<GitCombineResult>;
 	gitFinishCombine?: (root: string) => Promise<GitCombineResult>;
 	gitCancelCombine?: (root: string) => Promise<GitOpResult>;
+	gitKeepSide?: (root: string, path: string, side: 'mine' | 'theirs') => Promise<GitOpResult>;
 };
 
 async function call<R extends GitOpResult>(fn: ((root: string) => Promise<R>) | undefined, root: string): Promise<R | GitOpResult> {
@@ -49,4 +50,10 @@ export function gitCancelCombine(root: string): Promise<GitOpResult> {
 /** the bridge can do this at all: the panel offers Finish and Cancel only where it can */
 export function canCombine(): boolean {
 	return !!nativeBridge()?.gitFinishCombine;
+}
+
+/** one side's whole file, for a file both sides changed: a figure, or one side deleted it */
+export function gitKeepSide(root: string, path: string, side: 'mine' | 'theirs'): Promise<GitOpResult> {
+	const fn = nativeBridge()?.gitKeepSide;
+	return call(fn && ((r: string) => fn(r, path, side)), root);
 }

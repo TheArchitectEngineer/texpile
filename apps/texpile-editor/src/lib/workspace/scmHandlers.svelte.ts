@@ -14,6 +14,8 @@ export type ScmHandlers = {
 	compare(path: string): void;
 	/** the branch syncs with a remote, so there is somewhere to check for new versions */
 	hasUpstream(): boolean;
+	/** one side's whole file, for a file both sides changed */
+	keepSide(path: string, side: 'mine' | 'theirs'): void;
 };
 
 let current = $state<ScmHandlers | null>(null);

@@ -34,6 +34,10 @@ A changed file opens in a diff against the last version. In the visual editor th
 
 In the source editor, the margin beside the line numbers marks what changed since the last version as you type: green for added lines, blue for changed ones, and a red wedge where lines were removed. Alt+F5 and Shift+Alt+F5 (also in the command palette) go to the next and previous change. Click a mark to see those lines as they were in the last version, with Undo this change to put back just that change and keep every other edit. Escape closes it. The command palette has the same undo for the change at the cursor.
 
+In a comparison, the arrows in its bar (or Alt+F5 and Shift+Alt+F5 in the source comparison) go to the next and previous change, and Put back beside a change replaces those lines with the version's, leaving the rest of your edits alone.
+
+In the file tree, a changed file's name takes its status colour, a deleted one is struck through in Source Control, a file still being combined carries a red !, and a folder with changes inside it is tinted and marked with a dot, so a changed chapter can be found without opening every folder.
+
 A version in History opens to what differs between it and your files now. To see what that version itself changed, open its menu and choose Show changes in this version: its files are listed with each one's difference from the version before. The same menu copies the version's ID or its full message.
 
 ![The visual editor showing a heading and a sentence changed since the last version](../landing/src/lib/assets/showcase/app/diff-view.png 'The visual editor showing a heading and a sentence changed since the last version')
@@ -56,7 +60,7 @@ The cloud button beside Sync checks the remote for new versions without taking a
 
 ## Combining two versions
 
-Combine now brings in the other side's versions and leaves each place where both sides changed the same lines marked in its file. The file opens in the source editor at the first one, whichever editor you were using: your version is tinted one colour and theirs another, and above each place are Keep mine, Keep theirs and Keep both. The words that differ between the two versions are highlighted in both, so a changed word in a long paragraph stands out. Each choice is one step in the undo history. The bar above the file goes to the previous and next marked place, and Keep all settles every place the same way at once. You can also edit the lines yourself; a place counts as chosen once its `<<<<<<<`, `=======` and `>>>>>>>` lines are gone. A file's tab carries a merge mark while places in it are waiting.
+Combine now brings in the other side's versions and leaves each place where both sides changed the same lines marked in its file. The file opens in the source editor at the first one, whichever editor you were using: your version is tinted one colour and theirs another, and above each place are Keep mine, Keep theirs and Keep both. The words that differ between the two versions are highlighted in both, so a changed word in a long paragraph stands out. Each choice is one step in the undo history. The bar above the file goes to the previous and next marked place, and Keep all settles every place the same way at once. You can also edit the lines yourself; a place counts as chosen once its `<<<<<<<`, `=======` and `>>>>>>>` lines are gone. A file's tab carries a merge mark while places in it are waiting. For a file with no places to click, such as a figure or a PDF, or one that one side deleted, its menu in Source Control has Keep my whole file and Keep their whole file.
 
 Source Control lists the files under Both changed, and marks each one Ready once every place in it is chosen. Finish combining saves the result as one version, which Sync then sends. Cancel combining puts every file back as it was before you started, and the choices go with it.
 

@@ -3,7 +3,7 @@
 // in the source editor (lib/editor/source/cmConflicts.ts).
 import { workspaceRoot } from './workspaceStore';
 import { refreshGitStatus, refreshGitHistory, gitChanges, isConflicted } from './gitStore';
-import { gitCombine, gitFinishCombine, gitCancelCombine, type GitCombineResult } from './gitCombine';
+import { gitCombine, gitFinishCombine, gitCancelCombine, gitKeepSide, type GitCombineResult } from './gitCombine';
 import type { GitSyncResult, GitStatusEntry } from './git';
 import { firstConflictLine } from './conflictMarkers';
 import { basename, samePath } from './fileSystem';
@@ -128,6 +128,21 @@ export class ScmCombine {
 	};
 
 	/** undo the merge: every file as it was before it started, the choices made so far with it */
+	/** Keep all mine or theirs for a whole file, from its row: for a figure or a PDF there are no
+	 *  places to click, and when one side deleted the file there is no text to choose in */
+	keepSide = async (path: string, side: 'mine' | 'theirs'): Promise<void> => {
+		const root = workspaceRoot.current;
+		if (!root || this.host.busy) return;
+		this.host.busy = true;
+		const res = await gitKeepSide(root, path, side);
+		this.host.busy = false;
+		if (!res.ok) {
+			toaster.error({ title: m.vcs_keep_side_failed({ name: basename(path) }), description: res.error });
+			return;
+		}
+		await this.reload(root);
+	};
+
 	cancel = async (): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return;

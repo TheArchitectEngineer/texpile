@@ -49,6 +49,9 @@ export const gitHead = box<string | null>(null);
 
 /** single-letter badges keyed by gitKey(absolutePath); drives the file tree. */
 export const gitStatusMap = box<Record<string, GitBadge>>({});
+/** every folder with a change somewhere inside it, by gitKey: 'C' if a file in it is still being
+ *  combined, 'M' if anything was changed or removed, 'A' if it only gained files */
+export const gitFolderStatus = box<Record<string, GitBadge>>({});
 
 /** raw staged/unstaged porcelain codes; drives the Source Control panel. */
 export const gitChanges = box<GitStatusEntry[]>([]);
@@ -87,6 +90,27 @@ export function isConflicted(x: string, y: string): boolean {
 }
 
 /** collapses git's two-character XY porcelain code to one badge. x=index (staged), y=working dir. */
+const FOLDER_RANK: Record<GitBadge, number> = { C: 3, M: 2, D: 2, R: 2, A: 1, U: 1 };
+
+/** exported for the tests: each changed file's folders up to the project root, marked with the
+ *  weightiest change below them. Computed once per status read, not per row as the tree draws. */
+export function foldersOf(files: Record<string, GitBadge>, root: string): Record<string, GitBadge> {
+	const top = gitKey(root).replace(/\/+$/, '');
+	const out: Record<string, GitBadge> = {};
+	for (const [key, badge] of Object.entries(files)) {
+		const mark: GitBadge = badge === 'C' ? 'C' : FOLDER_RANK[badge] === 2 ? 'M' : 'A';
+		for (
+			let dir = key.slice(0, key.lastIndexOf('/'));
+			dir.length > top.length && dir.startsWith(top);
+			dir = dir.slice(0, dir.lastIndexOf('/'))
+		) {
+			if (out[dir] && FOLDER_RANK[out[dir]] >= FOLDER_RANK[mark]) break; // everything above is marked at least this high
+			out[dir] = mark;
+		}
+	}
+	return out;
+}
+
 export function badgeOf(x: string, y: string): GitBadge {
 	if (isConflicted(x, y)) return 'C'; // both changed
 	if (x === '?' || y === '?') return 'U'; // untracked
@@ -139,6 +163,7 @@ function clearGitState(): void {
 	gitHasCommits.current = false;
 	gitDetached.current = false;
 	gitStatusMap.current = {};
+	gitFolderStatus.current = {};
 	gitChanges.current = [];
 	gitTruncated.current = 0;
 	gitHistory.current = [];
@@ -185,6 +210,7 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 	const map: Record<string, GitBadge> = {};
 	for (const e of list) map[gitKey(e.path)] = badgeOf(e.x, e.y);
 	gitStatusMap.current = map;
+	gitFolderStatus.current = foldersOf(map, root);
 	return { missingGit: false };
 }
 

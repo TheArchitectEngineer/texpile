@@ -1,10 +1,10 @@
 import type { TreeEntry } from '$lib/workspace/fileSystem';
-import { gitKey } from '$lib/workspace/gitStore';
+import { gitKey, gitFolderStatus } from '$lib/workspace/gitStore';
 import type { GitBadge } from '$lib/workspace/git';
 import { m } from '$lib/paraglide/messages';
 
 export function gitBadgeOf(gitStatus: Record<string, GitBadge>, e: TreeEntry): GitBadge | undefined {
-	return e.type === 'file' ? gitStatus[gitKey(e.path)] : undefined;
+	return e.type === 'file' ? gitStatus[gitKey(e.path)] : gitFolderStatus.current[gitKey(e.path)];
 }
 
 // Status is carried by the file name's colour rather than a letter, so it costs the row no width.
@@ -28,3 +28,12 @@ export const STATUS_TITLE: Record<GitBadge, string> = {
 	R: m.filetree_badge_renamed(),
 	C: m.filetree_badge_conflict()
 };
+
+/** What the colour says, for someone who cannot see it: a deleted file is struck through, and a
+ *  file still being combined carries a '!' (FileTreeRow, ChangeRows). */
+export const STATUS_DECOR: Partial<Record<GitBadge, string>> = { D: 'line-through' };
+
+/** a folder's own tooltip: its colour is the weightiest change inside it */
+export function folderTitle(badge: GitBadge): string {
+	return badge === 'C' ? m.filetree_folder_conflict() : m.filetree_folder_changed();
+}

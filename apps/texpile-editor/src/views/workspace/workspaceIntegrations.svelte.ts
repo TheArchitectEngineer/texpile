@@ -132,7 +132,8 @@ export class WorkspaceIntegrations {
 				checkForNew: () => void fetcher.checkForNew(),
 				publishNew: () => void publisher.run(),
 				compare: (path) => this.scm.openDiff(path),
-				hasUpstream: () => !!gitTracking.current
+				hasUpstream: () => !!gitTracking.current,
+				keepSide: (path, side) => void this.scm.combine.keepSide(path, side)
 			})
 		);
 

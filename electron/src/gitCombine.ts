@@ -3,7 +3,7 @@
 // author's back; this is the step they choose instead: start that merge and leave each such place
 // marked in its file, then finish it once every place is chosen, or cancel it.
 import { resolve } from 'node:path';
-import { git, errMsg, isMissingGit, resolveRepoRoot, gitDirsOf, operationIn, stillMarked, type GitOpResult } from './gitService';
+import { git, errMsg, isMissingGit, resolveRepoRoot, gitDirsOf, operationIn, stillMarked, toRepoRel, type GitOpResult } from './gitService';
 import { OVERWRITE_RE, aheadBehind, mergeInProgress, outputOf, parseBlockingFiles } from './gitRemote';
 
 export type GitCombineResult = GitOpResult & {
@@ -90,6 +90,33 @@ export async function gitCancelCombine(workspaceRoot: string): Promise<GitOpResu
 	const g = git(rr.root);
 	try {
 		if (await mergeInProgress(g)) await g.raw(['merge', '--abort']);
+		return { ok: true };
+	} catch (e) {
+		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
+		return { ok: false, error: errMsg(e) };
+	}
+}
+
+/**
+ * One side's whole file, for a file both sides changed: Keep all mine or theirs, from the file's
+ * row. For a figure or a PDF there are no places to click, and when one side deleted the file there
+ * is no text at all; keeping that side then keeps it deleted. The file stays in the merge, ready,
+ * and Finish combining records it with the rest.
+ */
+export async function gitKeepSide(workspaceRoot: string, path: string, side: 'mine' | 'theirs'): Promise<GitOpResult> {
+	const rr = await resolveRepoRoot(workspaceRoot);
+	if (!rr.root) return { ok: false, reason: rr.reason };
+	const g = git(rr.root);
+	const [rel] = toRepoRel(rr.root, [path]);
+	if (!rel || rel.startsWith('..') || (side !== 'mine' && side !== 'theirs')) return { ok: false, error: 'Not a file in this repository' };
+	try {
+		if (!(await mergeInProgress(g))) return { ok: false, error: 'Nothing is being combined' };
+		try {
+			await g.raw(['checkout', side === 'mine' ? '--ours' : '--theirs', '--', rel]);
+		} catch (e) {
+			if (!/does not have (our|their) version/i.test(errMsg(e))) throw e;
+			await g.raw(['rm', '-q', '--', rel]);
+		}
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };

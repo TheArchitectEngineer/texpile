@@ -290,6 +290,8 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitFinishCombine: (root: string) => invokeFs('git:finishCombine', root),
 	/** merge --abort -> { ok }. */
 	gitCancelCombine: (root: string) => invokeFs('git:cancelCombine', root),
+	/** one side's whole file for a file both sides changed (checkout --ours/--theirs) -> { ok }. */
+	gitKeepSide: (root: string, path: string, side: 'mine' | 'theirs') => invokeFs('git:keepSide', root, path, side),
 	/** local branches, and remote ones nothing tracks yet -> { ok, current?, local?, remote? }. */
 	gitBranches: (root: string) => invokeFs('git:branches', root),
 	/** check out a local branch -> { ok, branch?, failure?, files? }. */

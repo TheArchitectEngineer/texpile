@@ -11,7 +11,7 @@
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import GraphRail from './GraphRail.svelte';
 	import FileIcon from '$lib/filetree/FileIcon.svelte';
-	import { STATUS_COLOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
+	import { STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
 	import type { GitLogEntry, GitFileChange } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
 
@@ -346,7 +346,9 @@
 						     to it rather than as a list that happens to sit underneath -->
 						<GraphRail above={true} below={!isLast || fi < changes.length - 1} />
 						<FileIcon name={baseName(f.path)} class="size-4 shrink-0" />
-						<span class="ml-1.5 truncate text-sm {STATUS_COLOR[f.status]}" use:tip={STATUS_TITLE[f.status]}>{baseName(f.path)}</span>
+						<span class="ml-1.5 truncate text-sm {STATUS_COLOR[f.status]} {STATUS_DECOR[f.status] ?? ''}" use:tip={STATUS_TITLE[f.status]}
+							>{baseName(f.path)}</span
+						>
 						{#if dirName(f.path)}<span class="text-muted ml-1.5 truncate text-xs">{dirName(f.path)}</span>{/if}
 					</button>
 				{/each}

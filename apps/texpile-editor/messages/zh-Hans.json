@@ -1722,5 +1722,14 @@
 	"vcs_publish_new": "发布到 GitHub…",
 	"vcs_publish_new_detail": "在这里开始保存版本，把你的文件保存为第一个版本，并上传到 GitHub 或其他托管服务。",
 	"vcs_first_version_message": "第一个版本",
-	"wsview_compare_last": "与上一版本比较"
+	"wsview_compare_last": "与上一版本比较",
+	"filetree_folder_changed": "自上一版本以来有更改",
+	"filetree_folder_conflict": "包含双方都修改过的文件",
+	"vcs_keep_file_mine": "保留我的整个文件",
+	"vcs_keep_file_theirs": "保留对方的整个文件",
+	"vcs_keep_side_failed": "无法保留 {name} 的一方版本",
+	"wsview_diff_previous": "上一处更改",
+	"wsview_diff_next": "下一处更改",
+	"wsview_diff_put_back": "还原",
+	"wsview_diff_put_back_tip": "用该版本中的内容替换这些行"
 }

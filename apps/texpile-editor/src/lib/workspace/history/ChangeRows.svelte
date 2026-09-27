@@ -7,7 +7,7 @@
 	import { scmHandlers } from '$lib/workspace/scmHandlers.svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { isTexpileManaged } from '$lib/comments/managed';
-	import { STATUS_COLOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
+	import { STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
 	import { badgeOf, gitWriting } from '$lib/workspace/gitStore';
 	import type { GitStatusEntry } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
@@ -29,6 +29,11 @@
 	let { changes, selected, relPath, baseName, dirName, onToggle, onOpenDiff, onDiscard, locked = false, onOpen }: Props = $props();
 
 	let openMenu = $state<string | null>(null);
+
+	const KEEP: ['mine' | 'theirs', () => string][] = [
+		['mine', () => m.vcs_keep_file_mine()],
+		['theirs', () => m.vcs_keep_file_theirs()]
+	];
 
 	/** untracked files have no committed copy, so discarding one deletes it rather than reverting it */
 	function isUntracked(c: GitStatusEntry) {
@@ -58,7 +63,7 @@
 				<span class="max-w-[60%] shrink-0 truncate {STATUS_COLOR[badge]}">{baseName(c.path)}/</span>
 				<span class="text-muted truncate text-xs tabular-nums">{m.vcs_folder_files({ count: c.files.toLocaleString() })}</span>
 			{:else}
-				<span class="truncate {STATUS_COLOR[badge]}" use:tip={STATUS_TITLE[badge]}>{baseName(c.path)}</span>
+				<span class="truncate {STATUS_COLOR[badge]} {STATUS_DECOR[badge] ?? ''}" use:tip={STATUS_TITLE[badge]}>{baseName(c.path)}</span>
 			{/if}
 			{#if dirName(c.path) && !c.files}<span class="text-muted truncate text-xs">{dirName(c.path)}</span>{/if}
 			<!-- every marked place in it is chosen: nothing more to do here before Finish -->
@@ -112,6 +117,24 @@
 									<GitCompare class="size-4 shrink-0" />
 									{m.wsview_diff_heading()}
 								</button>
+							{/if}
+							<!-- the whole file one way, where there are no places to click: a figure, a PDF, a file
+							     one side deleted -->
+							{#if locked && scmHandlers.current}
+								{#each KEEP as [side, label] (side)}
+									<button
+										type="button"
+										class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"
+										disabled={gitWriting.current}
+										onclick={() => {
+											openMenu = null;
+											scmHandlers.current?.keepSide(c.path, side);
+										}}
+									>
+										<Check class="size-4 shrink-0" />
+										{label()}
+									</button>
+								{/each}
 							{/if}
 							<!-- a new file only: git keeps tracking a file it already has, whatever .gitignore says -->
 							{#if isUntracked(c) && scmHandlers.current}

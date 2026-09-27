@@ -32,6 +32,7 @@ const OPS: Record<string, string> = {
 	'git:combine': 'gitCombine',
 	'git:finishCombine': 'gitFinishCombine',
 	'git:cancelCombine': 'gitCancelCombine',
+	'git:keepSide': 'gitKeepSide',
 	'git:branches': 'gitBranches',
 	'git:switch': 'gitSwitch',
 	'git:createBranch': 'gitCreateBranch',

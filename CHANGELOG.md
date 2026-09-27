@@ -5,6 +5,9 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: comparisons have previous and next change buttons (Alt+F5 and Shift+Alt+F5 in the source comparison) and Put back beside each change
+- feat: a file both sides changed can be kept whole from its menu, mine or theirs, for figures, PDFs and files one side deleted
+- feat: folders with changes inside are tinted and dotted in the file tree; a file still being combined shows a !, and deleted files are struck through in Source Control
 - feat: Publish to GitHub from a folder that is not a repository yet: it initialises, ignores build output, saves a first version and opens Publish
 - feat: Check for new versions beside Sync fetches without taking anything in; Sync blocked by unsaved work offers Save a version and sync
 - feat: Ctrl+Shift+G (⌃⇧G on macOS) and Show Source Control in the palette open the panel with the keyboard in the message box

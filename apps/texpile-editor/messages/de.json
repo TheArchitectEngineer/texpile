@@ -1722,5 +1722,14 @@
 	"vcs_publish_new": "Auf GitHub veröffentlichen…",
 	"vcs_publish_new_detail": "Beginnt hier mit der Versionsverwaltung, speichert Ihre Dateien als erste Version und legt sie auf GitHub oder einem anderen Dienst ab.",
 	"vcs_first_version_message": "Erste Version",
-	"wsview_compare_last": "Mit der letzten Version vergleichen"
+	"wsview_compare_last": "Mit der letzten Version vergleichen",
+	"filetree_folder_changed": "Enthält Änderungen seit der letzten Version",
+	"filetree_folder_conflict": "Enthält eine Datei, die beide Seiten geändert haben",
+	"vcs_keep_file_mine": "Meine ganze Datei behalten",
+	"vcs_keep_file_theirs": "Ihre ganze Datei behalten",
+	"vcs_keep_side_failed": "Eine Seite von {name} konnte nicht übernommen werden",
+	"wsview_diff_previous": "Vorherige Änderung",
+	"wsview_diff_next": "Nächste Änderung",
+	"wsview_diff_put_back": "Zurücksetzen",
+	"wsview_diff_put_back_tip": "Diese Zeilen durch die der Version ersetzen"
 }
