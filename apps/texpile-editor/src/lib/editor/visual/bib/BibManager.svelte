@@ -175,6 +175,7 @@
 		if (isEditing && originalKey) refs = refs.map((r) => (r.key === originalKey ? entry : r));
 		else refs = [...refs, entry];
 		commit();
+		announceKeyRenamed(entry.key);
 		resetForm();
 	}
 
@@ -193,7 +194,15 @@
 		if (isEditing && originalKey) refs = refs.map((r) => (r.key === originalKey ? parsed.entry : r));
 		else refs = [...refs, parsed.entry];
 		commit();
+		announceKeyRenamed(parsed.entry.key);
 		resetForm();
+	}
+
+	/** an edited entry that changed its key: the citations of it in the documents follow it
+	 *  (views/workspace/workspaceReplace.ts) */
+	function announceKeyRenamed(key: string) {
+		if (!isEditing || !originalKey || key === originalKey) return;
+		dispatchEvent(new CustomEvent('texpile:citekey-renamed', { detail: { from: originalKey, to: key } }));
 	}
 
 	// whole .bib failed to parse; on a clean re-parse drop back to the normal split-pane UI

@@ -81,17 +81,28 @@ export class ChangedSinceError extends Error {
 	}
 }
 
-export async function replaceInFiles(paths: readonly string[], spec: ReplaceSpec, deps: ReplaceDeps): Promise<ReplaceOutcome> {
+/**
+ * Every match of `spec` in `paths` replaced. `spec` may differ by file (a rename follows each
+ * language's own syntax); a file it gives none for is passed over.
+ */
+export async function replaceInFiles(
+	paths: readonly string[],
+	spec: ReplaceSpec | ((path: string) => ReplaceSpec | null),
+	deps: ReplaceDeps
+): Promise<ReplaceOutcome> {
+	const specFor = typeof spec === 'function' ? spec : () => spec;
 	await deps.flush();
 	const changes: Change[] = [];
 	const skipped: ReplaceOutcome['skipped'] = [];
 	let matches = 0;
 
 	for (const path of paths) {
+		const fileSpec = specFor(path);
+		if (!fileSpec) continue;
 		try {
 			const open = deps.open();
 			if (open && samePath(open.path, path)) {
-				const { text, count } = replaceInText(open.text, spec);
+				const { text, count } = replaceInText(open.text, fileSpec);
 				if (!count) continue;
 				if (!(await deps.applyToOpen(open.text, text))) {
 					skipped.push({ path, reason: 'editor' });
@@ -108,7 +119,7 @@ export async function replaceInFiles(paths: readonly string[], spec: ReplaceSpec
 			}
 			const eol = detectEol(read.text);
 			const before = toLf(read.text);
-			const { text, count } = replaceInText(before, spec);
+			const { text, count } = replaceInText(before, fileSpec);
 			if (!count) continue;
 			await deps.write(path, fromLf(text, eol));
 			changes.push({ path, before, after: text, eol });

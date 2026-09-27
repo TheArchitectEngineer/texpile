@@ -28,3 +28,12 @@ export function repointRefs(tr: Transaction, doc: PMNode, from: string, to: stri
 		tr.replaceWith(at, at + node.nodeSize, node.type.create(node.attrs, node.type.schema.text(to)));
 	});
 }
+
+/**
+ * Tells the workspace a label in the open file was renamed, once the rename is dispatched, so the
+ * references to it in the project's other files can follow (views/workspace/workspaceReplace.ts).
+ */
+export function announceLabelRenamed(from: string, to: string): void {
+	if (!from || !to || from === to || typeof window === 'undefined') return;
+	dispatchEvent(new CustomEvent('texpile:label-renamed', { detail: { from, to } }));
+}

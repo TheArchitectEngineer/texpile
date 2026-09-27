@@ -11,6 +11,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: cite a paper by its DOI or arXiv ID: paste it, check the work it names, and Texpile adds a clean BibTeX entry to your bibliography and cites it (right-click menu or Ctrl+K) (by @louisqli)
 - feat: find a paper to cite by typing its title (add an author's surname or the year for a common one), or cite a book by its ISBN or a PubMed record by its ID, in the same dialog as DOIs (by @louisqli)
 - feat: replace across all files from the search panel: preview each change, replace everything or one file at a time, and undo the whole replace in one step (by @louisqli)
+- feat: renaming a label (its chip, or a figure, table or equation's settings), or a citation key in the bibliography editor, also updates its uses in the project's other files, with one undo (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 
