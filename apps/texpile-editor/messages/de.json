@@ -114,6 +114,7 @@
 	"prefs_group_proofing": "Rechtschreibung",
 	"prefs_english_variant": "Englische Variante",
 	"prefs_english_variant_note": "Welche Schreibung als richtig gilt: colour oder color, analyse oder analyze.",
+	"prefs_dictionary_note": "Wörter, die die Rechtschreibprüfung als richtig ansieht. Hier hinzufügen oder im Vorschlag zu einem markierten Wort.",
 	"prefs_english_system": "System ({variant})",
 	"prefs_english_american": "Amerikanisch",
 	"prefs_english_british": "Britisch",

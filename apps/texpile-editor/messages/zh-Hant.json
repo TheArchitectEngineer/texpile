@@ -114,6 +114,7 @@
 	"prefs_group_proofing": "拼字檢查",
 	"prefs_english_variant": "英文變體",
 	"prefs_english_variant_note": "哪種拼法算正確：colour 還是 color，analyse 還是 analyze。",
+	"prefs_dictionary_note": "拼字檢查視為正確的單字。可在此加入，也可在被標出單字的建議中加入。",
 	"prefs_english_system": "跟隨系統（{variant}）",
 	"prefs_english_american": "美式",
 	"prefs_english_british": "英式",

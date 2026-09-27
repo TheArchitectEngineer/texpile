@@ -12,6 +12,7 @@
 	import PrefsToolchainPanel from './PrefsToolchainPanel.svelte';
 	import { changeUiLocale, englishVariantOptions, keymapOptions, uiLocaleOptions } from './prefsOptions';
 	import PrefsGrammarRules from './PrefsGrammarRules.svelte';
+	import PrefsDictionary from './PrefsDictionary.svelte';
 	import AppearanceMode from './AppearanceMode.svelte';
 	import ThemePicker from './ThemePicker.svelte';
 	import { preferencesTab } from '$lib/stores/dialogStore';
@@ -260,23 +261,23 @@
 					{/if}
 				</div>
 			{:else if category === 'proofing'}
+				<!-- everything under the switch stays up with it off: this tab is where the Spelling menu's
+				     "Edit dictionary" leads, and a tab of one switch would hide what it was opened for -->
 				{@render toggleRow(m.prefs_spellcheck(), '', settings.current.spellcheck, (v) => setSpellcheckEnabled(v))}
-				<!-- what to check against only matters while something is checked -->
-				{#if settings.current.spellcheck}
-					<div class={ROW}>
-						{@render label(m.prefs_english_variant(), m.prefs_english_variant_note())}
-						<select
-							class="select w-auto min-w-32 shrink-0 text-sm"
-							value={settings.current.englishVariant ?? ''}
-							onchange={(e) => updateSettings({ englishVariant: e.currentTarget.value as AppSettings['englishVariant'] })}
-						>
-							{#each englishVariantOptions() as o (o.value)}
-								<option value={o.value}>{o.label}</option>
-							{/each}
-						</select>
-					</div>
-					<PrefsGrammarRules />
-				{/if}
+				<div class={ROW}>
+					{@render label(m.prefs_english_variant(), m.prefs_english_variant_note())}
+					<select
+						class="select w-auto min-w-32 shrink-0 text-sm"
+						value={settings.current.englishVariant ?? ''}
+						onchange={(e) => updateSettings({ englishVariant: e.currentTarget.value as AppSettings['englishVariant'] })}
+					>
+						{#each englishVariantOptions() as o (o.value)}
+							<option value={o.value}>{o.label}</option>
+						{/each}
+					</select>
+				</div>
+				<PrefsDictionary />
+				<PrefsGrammarRules />
 			{:else if category === 'collaboration'}
 				<PrefsCollaborationPanel />
 			{:else if category === 'toolchain'}

@@ -114,6 +114,7 @@
 	"prefs_group_proofing": "Spelling",
 	"prefs_english_variant": "English variant",
 	"prefs_english_variant_note": "Which spellings count as right: colour or color, analyse or analyze.",
+	"prefs_dictionary_note": "Words spell check takes as right. Add one here, or from a flagged word's suggestion.",
 	"prefs_english_system": "System ({variant})",
 	"prefs_english_american": "American",
 	"prefs_english_british": "British",

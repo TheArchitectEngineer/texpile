@@ -11,7 +11,7 @@
 	import { setSpellcheckEnabled } from '$lib/editor/spellcheck/spellcheckConfig';
 	import { hasVisualMode, isRawTextKind, formatOf, type FileKind } from '$lib/workspace/documentBuffer.svelte';
 	import { editSelect, formatSelect } from './menuBarCommands';
-	import { preferencesOpen, dictionaryOpen, shortcutsOpen, setupOpen, openPreferencesAt } from '$lib/stores/dialogStore';
+	import { preferencesOpen, shortcutsOpen, setupOpen, openPreferencesAt } from '$lib/stores/dialogStore';
 	import { commandPalette } from '$lib/workspace/commandPalette.svelte';
 	import { attachNativeMenu, publishMenuState } from '$lib/workspace/nativeMenu';
 	import { titleBarLayout } from '$lib/chrome/titleBarLayout.svelte';
@@ -185,8 +185,8 @@
 	const spellcheckOn = $derived(editorConfigStore.current?.spellcheck ?? false);
 	function spellcheckSelect(value: string) {
 		if (value === 'toggle') setSpellcheckEnabled(!spellcheckOn);
-		else if (value === 'dictionary') dictionaryOpen.current = true;
-		else if (value === 'settings') openPreferencesAt('proofing');
+		// the dictionary is a section of the Spelling tab
+		else if (value === 'dictionary' || value === 'settings') openPreferencesAt('proofing');
 	}
 
 	function terminalSelect(value: string) {

@@ -49,6 +49,7 @@
 	"prefs_group_proofing": "Ortografia",
 	"prefs_english_variant": "Variante do inglês",
 	"prefs_english_variant_note": "Qual grafia conta como certa: colour ou color, analyse ou analyze.",
+	"prefs_dictionary_note": "Palavras que a verificação ortográfica aceita como certas. Adicione aqui ou na sugestão de uma palavra marcada.",
 	"prefs_english_system": "Sistema ({variant})",
 	"prefs_english_american": "Americano",
 	"prefs_english_british": "Britânico",

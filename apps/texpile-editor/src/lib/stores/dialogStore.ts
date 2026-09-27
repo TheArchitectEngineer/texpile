@@ -49,14 +49,14 @@ export function openPreferencesAt(tab: string): void {
 }
 
 /**
- * The dictionary and the shortcut sheet, for the same reason and then one more.
+ * The shortcut sheet and the welcome screen, for the same reason and then one more (the spelling
+ * dictionary was one of these; it is a section of Preferences' Spelling tab now).
  *
  * These were local state in WorkspaceMenuBar, which also MOUNTED the dialogs - fine while the host
  * menu bar is the only way in. But a guest session renders no menu bar at all, so for a guest the
  * dialogs did not exist, and the palette's Preferences command set a flag nothing was listening to.
  * The flags live here and WindowDialogs mounts the dialogs for both.
  */
-export const dictionaryOpen = box(false);
 export const shortcutsOpen = box(false);
 export const setupOpen = box(false);
 
