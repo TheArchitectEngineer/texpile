@@ -29,7 +29,11 @@ const OPS: Record<string, string> = {
 	'git:recheck': 'gitRecheck',
 	'git:combine': 'gitCombine',
 	'git:finishCombine': 'gitFinishCombine',
-	'git:cancelCombine': 'gitCancelCombine'
+	'git:cancelCombine': 'gitCancelCombine',
+	'git:branches': 'gitBranches',
+	'git:switch': 'gitSwitch',
+	'git:createBranch': 'gitCreateBranch',
+	'git:trackBranch': 'gitTrackBranch'
 };
 
 // The calls that reach a remote, and so may have to ask someone to sign in: channel -> [gitService

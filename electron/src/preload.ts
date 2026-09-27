@@ -286,6 +286,14 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitFinishCombine: (root: string) => invokeFs('git:finishCombine', root),
 	/** merge --abort -> { ok }. */
 	gitCancelCombine: (root: string) => invokeFs('git:cancelCombine', root),
+	/** local branches, and remote ones nothing tracks yet -> { ok, current?, local?, remote? }. */
+	gitBranches: (root: string) => invokeFs('git:branches', root),
+	/** check out a local branch -> { ok, branch?, failure?, files? }. */
+	gitSwitch: (root: string, name: string) => invokeFs('git:switch', root, name),
+	/** start a branch here and switch to it -> { ok, branch?, failure? }. */
+	gitCreateBranch: (root: string, name: string) => invokeFs('git:createBranch', root, name),
+	/** a local branch tracking 'origin/name' -> { ok, branch?, failure? }. */
+	gitTrackBranch: (root: string, remoteName: string) => invokeFs('git:trackBranch', root, remoteName),
 	/** git clone into <parent>/<name> -> { ok, path?, failure? }; progress arrives on onGitCloneProgress. */
 	gitClone: (url: string, parent: string, name: string) => invokeFs('git:clone', url, parent, name),
 	/** stop this window's clone; git removes what it had downloaded */

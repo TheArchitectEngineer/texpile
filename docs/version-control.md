@@ -28,6 +28,10 @@ A version in History opens to what differs between it and your files now. To see
 
 ![The visual editor showing a heading and a sentence changed since the last version](../landing/src/lib/assets/showcase/app/diff-view.png 'The visual editor showing a heading and a sentence changed since the last version')
 
+## Branches
+
+The branch name at the top of Source Control switches branches. It lists your branches, then the ones that exist only on a remote (choosing one of those makes a branch here that syncs with it). Type a name that is not there yet to start a new branch from the current version; changes you have not saved as a version come along. Switching carries unsaved changes over when it can, and stops, naming the files, when it would overwrite them: save a version first, or discard them.
+
 ## Publish and sync
 
 Once the project has a version, Publish appears beside the branch name. It sends the project somewhere else: a new GitHub repository, private or public, created for it; a remote the repository already has; or any other repository by its address. With exactly one remote already set up, Publish goes straight there.
@@ -59,6 +63,6 @@ Texpile signs in with whatever git already uses: Git Credential Manager, the mac
 The first time you save a version on a computer where git does not know your name and email, Texpile asks for them and saves them for all your projects.
 
 > [!NOTE]
-> This covers the everyday loop, from the first version to GitHub. For branches and history rewriting, use the built-in terminal. It needs git installed.
+> This covers the everyday loop, from the first version to GitHub. For combining branches and rewriting history, use the built-in terminal. It needs git installed.
 
 [Installing git](installation/git.md)

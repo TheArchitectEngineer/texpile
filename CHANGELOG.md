@@ -9,6 +9,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: Sync takes in versions saved elsewhere and sends yours, and undoes the attempt rather than leave a conflict behind
 - feat: git's sign-in questions (a password or token, an SSH key's passphrase, a server it has not seen) are asked in the window instead of failing
 - feat: the first version saved on a computer asks for the name and email git records, once
+- feat: the branch name in Source Control switches branches, starts a new one, or takes up one that exists only on a remote
 - feat: Clone repository, on the start screen and in the File menu, takes a repository's page, clone address or `git clone` command, shows its progress, and opens the folder
 - feat: Show changes in this version, in a History row's menu, lists what that version changed and each file's difference from the version before
 - fix: a folder inside a larger repository asks before its versions are saved into that repository

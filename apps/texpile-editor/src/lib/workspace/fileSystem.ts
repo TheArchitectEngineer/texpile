@@ -6,6 +6,7 @@ import type { GitStatusResult, GitShowResult, GitOpResult, GitLogResult, GitChan
 import type { GitCombineBridge } from './gitCombine';
 import type { GitCloneBridge } from './gitClone';
 import type { GitVersionBridge } from './gitVersion';
+import type { GitBranchBridge } from './gitBranches';
 
 export type TexFile = {
 	name: string;
@@ -223,7 +224,8 @@ type TexpileNative = {
 } & GitRemoteBridge &
 	GitCombineBridge &
 	GitCloneBridge &
-	GitVersionBridge;
+	GitVersionBridge &
+	GitBranchBridge;
 
 export function nativeBridge(): TexpileNative | undefined {
 	if (!browser) return undefined;

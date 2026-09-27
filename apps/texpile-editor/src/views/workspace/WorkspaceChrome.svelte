@@ -18,6 +18,7 @@
 	import type { TerminalDockState } from '$lib/workspace/terminalDockState.svelte';
 	import { canCombine } from '$lib/workspace/gitCombine';
 	import { canClone } from '$lib/workspace/gitClone';
+	import { canSwitchBranch } from '$lib/workspace/gitBranches';
 	import { m } from '$lib/paraglide/messages';
 	import type { Snippet } from 'svelte';
 
@@ -194,6 +195,9 @@
 			scmSync={scm.sync}
 			scmRecheckGit={scm.recheckGit}
 			scmOpenConflict={scm.combine.openConflict}
+			scmBranches={canSwitchBranch()
+				? { list: scm.branches.list, onSwitch: scm.branches.switchTo, onCreate: scm.branches.create, onTrack: scm.branches.track }
+				: null}
 			scmFinishCombine={canCombine() ? scm.combine.finish : undefined}
 			scmCancelCombine={canCombine() ? scm.combine.cancel : undefined}
 			scmCompare={scm.compare}

@@ -25,6 +25,7 @@ import {
 } from './git';
 import { askIdentity, askPublish, type PublishChoice } from './gitDialogs.svelte';
 import { ScmCombine } from './scmCombine.svelte';
+import { ScmBranches } from './scmBranches.svelte';
 import { uploadReason } from './uploadReason';
 import { basename, samePath, joinPath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
@@ -74,9 +75,12 @@ export class ScmActions {
 
 	/** Sync's Combine now, and the Finish and Cancel that end a merge */
 	readonly combine: ScmCombine;
+	/** the branch picker behind the branch name */
+	readonly branches: ScmBranches;
 
 	constructor(private deps: ScmDeps) {
 		this.combine = new ScmCombine(this, deps);
+		this.branches = new ScmBranches(this, deps);
 	}
 
 	/** after installing git: forget that it was missing and look again */

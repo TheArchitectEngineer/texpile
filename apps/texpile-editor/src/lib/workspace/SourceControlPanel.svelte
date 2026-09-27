@@ -16,6 +16,8 @@
 		FolderTree
 	} from '@lucide/svelte';
 	import ChangeList from './history/ChangeList.svelte';
+	import BranchPicker from './history/BranchPicker.svelte';
+	import type { GitBranchesResult } from '$lib/workspace/gitBranches';
 	import HistoryTimeline from './history/HistoryTimeline.svelte';
 	import { pathLabels } from './history/pathLabels';
 	import { isBuildArtifact } from '$lib/workspace/buildArtifacts';
@@ -24,6 +26,13 @@
 	import type { GitStatusEntry, GitLogEntry, GitFileChange, GitOperation } from '$lib/workspace/git';
 	import { combo } from '$lib/chrome/shortcutText';
 	import { m } from '$lib/paraglide/messages';
+
+	type BranchActions = {
+		list: () => Promise<GitBranchesResult>;
+		onSwitch: (name: string) => Promise<string | null>;
+		onCreate: (name: string) => Promise<string | null>;
+		onTrack: (remoteName: string) => Promise<string | null>;
+	};
 
 	type Props = {
 		root: string;
@@ -36,6 +45,8 @@
 		/** the repository starts above this folder and the author has not said to use it */
 		parentRepo?: string | null;
 		onUseParentRepo?: () => void;
+		/** switching and starting branches; absent where the app cannot, and the name is a label */
+		branches?: BranchActions | null;
 		branch: string | null;
 		/** the upstream this branch tracks; null means there is nowhere to upload to yet */
 		tracking?: string | null;
@@ -86,6 +97,7 @@
 		operation = null,
 		parentRepo = null,
 		onUseParentRepo,
+		branches = null,
 		branch,
 		tracking = null,
 		ahead = 0,
@@ -257,8 +269,13 @@
 		<!-- refresh belongs beside the branch: both are the state of the repository, and parked above
 		     an unrelated heading it read as a stray duplicate of the file tree's own refresh -->
 		<div class="text-muted flex h-7 shrink-0 items-center gap-1.5 px-3 text-xs">
-			<GitBranch class="size-3.5 shrink-0" />
-			<span class="truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
+			{#if branches}
+				<!-- the branch name is the way to another branch, as in VS Code's status bar -->
+				<BranchPicker {branch} busy={busy || !!operation} {...branches} />
+			{:else}
+				<GitBranch class="size-3.5 shrink-0" />
+				<span class="truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
+			{/if}
 			<div class="ml-auto flex shrink-0 items-center gap-1">
 				<!-- VS Code's two states. With an upstream: Sync, carrying what it would take in and send.
 				     `ahead` is counted from local refs and is exact; `behind` is as of the last fetch, which
