@@ -10,6 +10,7 @@
 // Every other file is rewritten on disk, in its own line endings; a file that is not UTF-8 is
 // left alone, since writing it back would mangle it (the editor opens those read-only too).
 import { detectEol, fromLf, samePath, toLf, type Eol } from '$lib/workspace/fileSystem';
+import { applyEdits, invertEdits, type TextEdit } from '$lib/workspace/textEdits';
 
 export type ReplaceSpec = {
 	query: string;
@@ -34,17 +35,34 @@ export function matcher(spec: ReplaceSpec): RegExp | null {
  * A regex replacement may use $1 and $&; a plain one is taken literally.
  */
 export function replaceInText(text: string, spec: ReplaceSpec): { text: string; count: number } {
+	const edits = replaceEdits(text, spec);
+	return { text: edits.length ? applyEdits(text, edits) : text, count: edits.length };
+}
+
+/** every match `replaceInText` replaces, as the edit that replaces it, in `text`'s offsets */
+export function replaceEdits(text: string, spec: ReplaceSpec): TextEdit[] {
 	const re = matcher(spec);
-	if (!re) return { text, count: 0 };
-	let count = 0;
-	const lines = text.split('\n').map((line) => {
+	if (!re) return [];
+	// one match at a time, where the scan found it: the regex's own replace works out $1 and $&
+	// with the whole line around it, so a lookbehind or an anchor reads as it did in the scan
+	const one = spec.regex ? new RegExp(re.source, re.flags.replace('g', '') + 'y') : null;
+	const edits: TextEdit[] = [];
+	let lineStart = 0;
+	for (const line of text.split('\n')) {
 		re.lastIndex = 0;
-		const hits = line.match(re)?.length ?? 0;
-		if (!hits) return line;
-		count += hits;
-		return spec.regex ? line.replace(re, spec.replacement) : line.replace(re, () => spec.replacement);
-	});
-	return { text: count ? lines.join('\n') : text, count };
+		for (const hit of line.matchAll(re)) {
+			const at = hit.index;
+			let insert = spec.replacement;
+			if (one) {
+				one.lastIndex = at;
+				const replaced = line.replace(one, spec.replacement);
+				insert = replaced.slice(at, replaced.length - (line.length - at - hit[0].length));
+			}
+			edits.push({ from: lineStart + at, to: lineStart + at + hit[0].length, insert });
+		}
+		lineStart += line.length + 1;
+	}
+	return edits;
 }
 
 export type ReplaceDeps = {
@@ -60,9 +78,15 @@ export type ReplaceDeps = {
 	encodingError(encoding: string): string | null;
 	/** our own writes are done: refresh the tree and the references */
 	changed(): void;
+	/**
+	 * A file that is not open is about to go from `before` to `after` by `edits`: what is pinned to
+	 * it (comments, suggestions) is carried along first. `undoing` for the undo of a replace, which
+	 * puts text back rather than proposing a change; a redo is the replace again.
+	 */
+	edited?(path: string, before: string, after: string, edits: TextEdit[], undoing: boolean): Promise<void>;
 };
 
-type Change = { path: string; before: string; after: string; eol: Eol };
+type Change = { path: string; before: string; after: string; eol: Eol; edits: TextEdit[] };
 
 export type ReplaceOutcome = {
 	files: number;
@@ -102,14 +126,15 @@ export async function replaceInFiles(
 		try {
 			const open = deps.open();
 			if (open && samePath(open.path, path)) {
-				const { text, count } = replaceInText(open.text, fileSpec);
-				if (!count) continue;
+				const edits = replaceEdits(open.text, fileSpec);
+				if (!edits.length) continue;
+				const text = applyEdits(open.text, edits);
 				if (!(await deps.applyToOpen(open.text, text))) {
 					skipped.push({ path, reason: 'editor' });
 					continue;
 				}
-				changes.push({ path, before: open.text, after: text, eol: open.eol });
-				matches += count;
+				changes.push({ path, before: open.text, after: text, eol: open.eol, edits });
+				matches += edits.length;
 				continue;
 			}
 			const read = await deps.read(path);
@@ -119,11 +144,13 @@ export async function replaceInFiles(
 			}
 			const eol = detectEol(read.text);
 			const before = toLf(read.text);
-			const { text, count } = replaceInText(before, fileSpec);
-			if (!count) continue;
+			const edits = replaceEdits(before, fileSpec);
+			if (!edits.length) continue;
+			const text = applyEdits(before, edits);
+			await deps.edited?.(path, before, text, edits, false);
 			await deps.write(path, fromLf(text, eol));
-			changes.push({ path, before, after: text, eol });
-			matches += count;
+			changes.push({ path, before, after: text, eol, edits });
+			matches += edits.length;
 		} catch {
 			skipped.push({ path, reason: 'failed' });
 		}
@@ -163,7 +190,11 @@ async function restore(changes: readonly Change[], from: 'before' | 'after', to:
 	for (const { c, open } of current) {
 		if (open) {
 			if (!(await deps.applyToOpen(c[from], c[to]))) throw new ChangedSinceError(c.path);
-		} else await deps.write(c.path, fromLf(c[to], c.eol));
+			continue;
+		}
+		const undoing = from === 'after';
+		await deps.edited?.(c.path, c[from], c[to], undoing ? invertEdits(c.before, c.edits) : c.edits, undoing);
+		await deps.write(c.path, fromLf(c[to], c.eol));
 	}
 	await deps.flush();
 	deps.changed();

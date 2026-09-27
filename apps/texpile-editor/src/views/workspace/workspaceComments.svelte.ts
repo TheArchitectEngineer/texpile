@@ -29,6 +29,7 @@ import { markPmDecision } from '$lib/editor/visual/extensions/pmDecisionStep';
 import { markCmDecision } from '$lib/editor/source/extensions/cmDecisionStep';
 import { editMode, suggesting } from '$lib/comments/activeSuggestions.svelte';
 import type { EditMode } from '$lib/comments/suggestCompare';
+import { carryClosedEdit } from '$lib/workspace/closedFileEdit';
 
 type CommentsDeps = {
 	doc: DocumentBuffer;
@@ -42,12 +43,14 @@ type CommentsDeps = {
 
 export class WorkspaceComments {
 	readonly ctl: CommentsController;
+	private readonly mode: () => EditMode;
 
 	constructor(private d: CommentsDeps) {
 		function mode(): EditMode {
 			// a guest suggests only through a host that records it; an older host would take it as editing
 			return suggesting.current && !fileMode.current && (!d.guest() || collabGuest.hostRecords) ? 'suggesting' : 'editing';
 		}
+		this.mode = mode;
 		// a guest has no git repo to fall back to (its root is the 'session' sentinel), but it DOES
 		// have the name it joined with - that is what every peer already sees on its cursor
 		function preferredAuthor(): string {
@@ -197,6 +200,11 @@ export class WorkspaceComments {
 		const next = before.slice(0, edit.from) + edit.insert + before.slice(edit.to);
 		const d = { doc: this.d.doc, mode: () => this.d.modes.mode, kind: this.d.kind, parseVisual: this.d.parseVisual };
 		return editOpenFile(d, before, next, edit);
+	}
+
+	/** comments and suggestions carried through a change to a file that is not open (a replace across files) */
+	editClosedFile(change: Parameters<typeof carryClosedEdit>[3]): Promise<void> {
+		return carryClosedEdit(this.ctl, workspaceRoot.current, this.mode(), change);
 	}
 
 	private markDecision(seq: number): void {

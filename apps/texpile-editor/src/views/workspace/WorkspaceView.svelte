@@ -6,6 +6,7 @@
 	import WorkspaceChrome from './WorkspaceChrome.svelte';
 	import GlobalSearch from '$lib/search/GlobalSearch.svelte';
 	import { makeFolderReplace, makeRenameElsewhere } from './workspaceReplace';
+	import type { TextEdit } from '$lib/workspace/textEdits';
 	import TutorialConfirmModal from '$lib/modals/start/TutorialConfirmModal.svelte';
 	import { tabs, tabKey } from '$lib/workspace/tabs.svelte';
 	import { makeMainActions, makeChromeActions, makePaletteActions, type ActionSurfaceDeps } from './workspaceActionSurfaces';
@@ -238,7 +239,9 @@
 		parseVisual: async (text: string) => (await wsdoc.tryParseVisual(text)).parsed ?? null,
 		saver: () => saver,
 		history: () => (files.treeOps.undoable ? files.treeOps.history : null),
-		reloadOpen: () => external.check()
+		reloadOpen: () => external.check(),
+		editedClosed: (path: string, before: string, after: string, edits: TextEdit[], undoing: boolean) =>
+			commentsW.editClosedFile({ path, before, after, edits, undoing })
 	};
 	const renameElsewhere = makeRenameElsewhere({ ...replaceWiring, root: () => workspaceRoot.current, search: searchInFolder });
 	onMount(() => {

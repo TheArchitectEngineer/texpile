@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ChangedSinceError, matcher, replaceInFiles, replaceInText, type ReplaceDeps, type ReplaceSpec } from '$lib/search/replaceInFiles';
+import {
+	ChangedSinceError,
+	matcher,
+	replaceEdits,
+	replaceInFiles,
+	replaceInText,
+	type ReplaceDeps,
+	type ReplaceSpec
+} from '$lib/search/replaceInFiles';
 import { changedSpan } from '$lib/workspace/openEditorEdit';
 
 const plain = (query: string, replacement: string, caseSensitive = false): ReplaceSpec => ({
@@ -34,6 +42,15 @@ describe('replaceInText', () => {
 		// ^ is each line's start, and nothing matches across a line break
 		expect(replaceInText('a\nb', regex('^', '> '))).toEqual({ text: '> a\n> b', count: 2 });
 		expect(replaceInText('end of\nline', plain('of\nline', 'x'))).toEqual({ text: 'end of\nline', count: 0 });
+	});
+
+	it('lists each match as its own edit, worked out with the line around it', () => {
+		const text = 'see Fig. 1\nand Fig. 2';
+		expect(replaceEdits(text, regex('(?<=see )Fig\\. (\\d)', 'Figure $1'))).toEqual([{ from: 4, to: 10, insert: 'Figure 1' }]);
+		expect(replaceEdits(text, regex('Fig\\. (?<n>\\d)', '[$<n>]'))).toEqual([
+			{ from: 4, to: 10, insert: '[1]' },
+			{ from: 15, to: 21, insert: '[2]' }
+		]);
 	});
 
 	it('changes nothing for an empty query or an invalid pattern', () => {
@@ -116,6 +133,17 @@ describe('replaceInFiles', () => {
 		await out.redo!();
 		expect(disk.get('/p/a.tex')).toBe('color\r\n');
 		expect(editor!.text).toBe('color');
+	});
+
+	it('says what it is about to change in a file that is not open, before writing it, and on undo', async () => {
+		const { disk, deps } = folder({ '/p/a.tex': 'the colour' }, { path: '/p/main.tex', text: 'colour' });
+		const seen: unknown[] = [];
+		deps.edited = vi.fn(async (...args) => void seen.push([...args, disk.get('/p/a.tex')]));
+		const out = await replaceInFiles(['/p/a.tex', '/p/main.tex'], spec, deps);
+		// once, for the file on disk only, while it still held its old text
+		expect(seen).toEqual([['/p/a.tex', 'the colour', 'the color', [{ from: 4, to: 10, insert: 'color' }], false, 'the colour']]);
+		await out.undo!();
+		expect(seen[1]).toEqual(['/p/a.tex', 'the color', 'the colour', [{ from: 4, to: 9, insert: 'colour' }], true, 'the color']);
 	});
 
 	it('refuses to undo, changing nothing, when a file was edited after the replace', async () => {

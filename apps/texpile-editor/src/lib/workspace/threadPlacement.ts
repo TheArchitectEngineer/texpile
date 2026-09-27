@@ -4,6 +4,7 @@ import { MIN_QUOTE, POINT_WEAK, searchContext, searchQuote } from '$lib/comments
 import type { CommentThread } from '$lib/comments/log';
 import { isSuggestion } from '$lib/comments/suggest';
 import type { CommentRange } from '$lib/editor/visual/extensions/comments';
+import { mapEnd, mapStart, type TextEdit } from './textEdits';
 
 /** `known` is set only when this pass changed it */
 export type ThreadPlacement = {
@@ -85,6 +86,29 @@ export function driftedAnchors(
 		moved.push({ id: t.id, anchor });
 	}
 	return moved;
+}
+
+/**
+ * The comments on a file its text is changing under by `edits`, with no editor to map them: each
+ * found in `before` and carried to where its words stand in `after`, a range cut into by an edit
+ * taking in what replaced its words. Only those whose anchor would no longer find them are listed.
+ */
+export function carriedAnchors(
+	threads: CommentThread[],
+	before: string,
+	after: string,
+	edits: readonly TextEdit[]
+): { id: string; anchor: CommentAnchor }[] {
+	const live = new Map<string, CommentAnchor>();
+	for (const t of threads) {
+		if (t.resolved || isSuggestion(t)) continue;
+		const hit = resolveAnchor(before, t.anchor);
+		if (!hit) continue;
+		const from = mapStart(hit.from, edits);
+		const to = mapEnd(hit.to, edits);
+		if (to > from) live.set(t.id, buildAnchor(after, from, to));
+	}
+	return driftedAnchors(threads, after, live);
 }
 
 function wordsBack(t: CommentThread, exact: CommentAnchor, text: string, lastWords: Map<string, CommentAnchor>): CommentAnchor {

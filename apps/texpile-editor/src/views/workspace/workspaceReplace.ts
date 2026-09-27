@@ -31,6 +31,8 @@ export type FolderReplaceDeps = {
 	history: () => FileHistory | null;
 	/** re-read the open file after it was written on disk */
 	reloadOpen: () => Promise<void>;
+	/** carry comments and suggestions through a change to a file that is not open */
+	editedClosed?: ReplaceDeps['edited'];
 };
 
 function replaceDeps(d: FolderReplaceDeps): ReplaceDeps {
@@ -52,7 +54,8 @@ function replaceDeps(d: FolderReplaceDeps): ReplaceDeps {
 		read: (path) => d.provider().readSource(path),
 		write: (path, text) => d.provider().writeText(path, text),
 		encodingError: (encoding) => sourceEncodingError(encoding as Parameters<typeof sourceEncodingError>[0]),
-		changed: () => dispatchEvent(new CustomEvent('texpile:fs-changed'))
+		changed: () => dispatchEvent(new CustomEvent('texpile:fs-changed')),
+		edited: d.editedClosed
 	};
 }
 
