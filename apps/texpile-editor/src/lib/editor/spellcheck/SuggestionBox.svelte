@@ -87,8 +87,10 @@
 				adjustedY = 10;
 			}
 
-			boxElement.style.left = `${adjustedX}px`;
-			boxElement.style.top = `${adjustedY}px`;
+			// on whole pixels: the word's position is fractional, and a box that starts part-way into a
+			// pixel has its icons and their labels rounded to the pixel grid apart
+			boxElement.style.left = `${Math.round(adjustedX)}px`;
+			boxElement.style.top = `${Math.round(adjustedY)}px`;
 		}
 	});
 
@@ -246,7 +248,7 @@
 			{:else}
 				<IconHelpCircle size={14} class="text-primary-ink" />
 			{/if}
-			<span class="text-xs font-semibold capitalize opacity-75">
+			<span class="cap-center text-xs font-semibold capitalize opacity-75">
 				{sanitizedType()}
 			</span>
 		</div>
@@ -256,7 +258,7 @@
 	</div>
 
 	<div class="space-y-1.5">
-		<p class="text-xs leading-snug [overflow-wrap:anywhere]">
+		<p class="text-xs [overflow-wrap:anywhere]">
 			{error.shortmsg || error.msg}
 		</p>
 
@@ -268,7 +270,7 @@
 					onclick={() => handleReplace(error.replacements[0])}
 					use:tip={m.harper_apply_suggestion_title()}
 				>
-					<div class="font-mono text-xs leading-snug [overflow-wrap:anywhere]">
+					<div class="font-mono text-xs [overflow-wrap:anywhere]">
 						{#each diffParts as part, i (i)}
 							{#if part.removed}
 								<del class="text-error-ink line-through opacity-60">{part.value === ' ' ? '␣' : part.value}</del>
@@ -310,7 +312,7 @@
 				use:tip={m.harper_add_to_dictionary_title({ word: error.text })}
 			>
 				<IconBookPlus size={13} />
-				<span>{m.harper_add_to_dictionary_button()}</span>
+				<span class="cap-center">{m.harper_add_to_dictionary_button()}</span>
 			</button>
 		{/if}
 		{#if offRule}
@@ -320,7 +322,7 @@
 				use:tip={m.harper_turn_off_rule_title({ rule: ruleName(offRule) })}
 			>
 				<IconCircleOff size={13} />
-				<span>{m.harper_turn_off_rule_button()}</span>
+				<span class="cap-center">{m.harper_turn_off_rule_button()}</span>
 			</button>
 		{/if}
 		<button class="btn btn-xs preset-tonal hover:preset-filled flex-1 text-xs" onclick={handleIgnore}>

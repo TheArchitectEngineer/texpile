@@ -1228,7 +1228,8 @@ html.pm-drop-refused .pm-drop-cursor {
    below to half of it less a pixel: 12.8px and 5.4px for btn-xs, where Save's icon sat 2.7px
    below its word. The line up to an even pixel as above, an icon without a size of its own to
    the nearest even pixel, and the padding to whole pixels that keep the height within a pixel of
-   Skeleton's, with a text label or with a 16px icon beside it. */
+   Skeleton's, with a text label or with a 16px icon beside it. Icon-only buttons (23.6px square
+   for btn-icon-xs) go to an even pixel too: a row they stand in takes their height. */
 @utility btn {
 	--btn-line: round(up, var(--btn-size), 2px);
 	line-height: var(--btn-line);
@@ -1236,6 +1237,35 @@ html.pm-drop-refused .pm-drop-cursor {
 	& > :where(svg) {
 		width: round(var(--btn-size), 2px);
 		height: round(var(--btn-size), 2px);
+	}
+}
+@utility btn-icon {
+	--btn-box: round(calc(var(--btn-size) * 2 - --spacing(0.5)), 2px);
+	--btn-glyph: round(var(--btn-size), 2px);
+	width: var(--btn-box);
+	height: var(--btn-box);
+	padding: calc((var(--btn-box) - var(--btn-glyph)) / 2);
+	& > :where(svg) {
+		width: var(--btn-glyph);
+		height: var(--btn-glyph);
+	}
+}
+/* A label its icon centres on by its capitals rather than by its line: the box is trimmed to the
+   capitals' height and gets the rest of the line back as equal space above and below, so the row
+   keeps its height and items-center puts the icon's middle on the capitals' middle. Measured from
+   the font as drawn, it holds for any system font, and past Chromium on Linux, which at 2× lifts
+   12.8px text a pixel inside its line. Single-line labels only: under overflow: hidden (truncate)
+   the trimmed box clips the tops and tails of letters, and a wrapped label centres as a block.
+   Without text-box the label is left as it was. */
+@utility cap-center {
+	@supports (text-box: trim-both cap alphabetic) {
+		/* in the browser's 1/64px steps, so the three parts add up to exactly one line */
+		--cap: round(1cap, 1px / 64);
+		--cap-above: round(down, calc((1lh - var(--cap)) / 2), 1px / 64);
+		text-box: trim-both cap alphabetic;
+		height: var(--cap);
+		margin-top: var(--cap-above);
+		margin-bottom: calc(1lh - var(--cap) - var(--cap-above));
 	}
 }
 @utility chip {
