@@ -4,7 +4,8 @@
 	// is the one standing next to Restore. Shaped after VS Code's Source Control Graph.
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { onDestroy } from 'svelte';
-	import { GitCommitHorizontal, GitBranch, TriangleAlert, MoreHorizontal, History, FileDiff, Flag, FlagOff } from '@lucide/svelte';
+	import { GitCommitHorizontal, GitBranch, TriangleAlert, MoreHorizontal, History, FileDiff, Flag, FlagOff, Copy } from '@lucide/svelte';
+	import { toaster } from '$lib/modals/toaster-svelte';
 	import { showVersionChanges } from '$lib/workspace/versionChanges.svelte';
 	import { canShowVersion } from '$lib/workspace/gitVersion';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
@@ -62,6 +63,14 @@
 	let milestoneText = $state('');
 	let milestoneError = $state<string | null>(null);
 	let marking = $state(false);
+
+	function copy(text: string, done: string) {
+		openMenu = null;
+		navigator.clipboard.writeText(text).then(
+			() => toaster.success({ title: done }),
+			() => toaster.error({ title: m.vcs_copy_failed() })
+		);
+	}
 
 	/** the name field takes the keyboard as it appears: it replaced the item that was just clicked */
 	function takeFocus(node: HTMLInputElement) {
@@ -287,7 +296,25 @@
 									{m.vcs_restore()}
 								</button>
 								<div class="border-surface-200-800 my-1 border-t"></div>
-								<div class="text-muted px-3 py-1 font-mono text-[10px]">{entry.short}</div>
+								<!-- for a commit message, an issue or a colleague asking which version: the full ID,
+								     though the short one shown is what people read out -->
+								<button
+									type="button"
+									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
+									onclick={() => copy(entry.hash, m.vcs_copied_id())}
+								>
+									<Copy class="size-4 shrink-0" />
+									<span class="flex-1">{m.vcs_copy_id()}</span>
+									<span class="text-muted font-mono text-[10px]">{entry.short}</span>
+								</button>
+								<button
+									type="button"
+									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
+									onclick={() => copy(entry.body ? `${entry.subject}\n\n${entry.body}` : entry.subject, m.vcs_copied_message())}
+								>
+									<Copy class="size-4 shrink-0" />
+									{m.vcs_copy_message()}
+								</button>
 							</div>
 						</Popover.Content>
 					</Popover.Positioner>

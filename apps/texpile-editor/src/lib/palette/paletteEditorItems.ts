@@ -1,6 +1,6 @@
-import { AlignLeft, BookMarked, Keyboard, ArrowDownToLine, ArrowUpToLine } from '@lucide/svelte';
+import { AlignLeft, BookMarked, Keyboard, ArrowDownToLine, ArrowUpToLine, Undo2 } from '@lucide/svelte';
 import { sourceCmView } from '$lib/stores/editorStore';
-import { changedLines, nextChange, previousChange } from '$lib/editor/source/cmChangeMarkers';
+import { changedLines, nextChange, previousChange, revertChange, revertChangeAt } from '$lib/editor/source/cmChangeMarkers';
 import { conflictBlocks, nextConflict, previousConflict } from '$lib/editor/source/cmConflicts';
 import { isMac } from '$lib/platform';
 import { settings, updateSettings, type AppSettings } from '$lib/settings';
@@ -45,6 +45,19 @@ export function editorItems(a: PaletteActions): PaletteItem[] {
 				icon,
 				run: () => {
 					step(view);
+					view.focus();
+				}
+			});
+		// the margin peek's Undo this change, for the change the caret is in
+		if (revertChangeAt(view.state, view.state.selection.main.head))
+			items.push({
+				id: 'editor.revertChange',
+				label: m.palette_undo_change(),
+				group,
+				keywords: 'revert discard change git version line hunk',
+				icon: Undo2,
+				run: () => {
+					revertChange(view);
 					view.focus();
 				}
 			});

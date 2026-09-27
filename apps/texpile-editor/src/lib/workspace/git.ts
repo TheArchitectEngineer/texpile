@@ -149,6 +149,8 @@ export type GitLogEntry = {
 	hash: string;
 	short: string;
 	subject: string;
+	/** the rest of the message after its first line, when it has more */
+	body?: string;
 	author: string;
 	/** author date, ISO 8601 */
 	date: string;

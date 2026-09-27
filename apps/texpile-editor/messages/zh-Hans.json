@@ -1661,5 +1661,19 @@
 	"drawn_chip_character_symbol": "字符",
 	"drawn_chip_character_write": "直接写入 {character}",
 	"drawn_chip_character_write_hint": "2018 年以后的 TeX 都能读取。",
-	"drawn_chip_suggestions": "建议"
+	"drawn_chip_suggestions": "建议",
+	"editor_change_click": "点击查看原来的内容，或撤销此更改",
+	"editor_change_peek_title": "上一版本中的内容",
+	"editor_change_peek_new": "上一版本中没有：这些行是新加的。",
+	"editor_change_peek_close": "关闭",
+	"editor_change_undo": "撤销此更改",
+	"palette_undo_change": "撤销光标处的更改（恢复为上一版本）",
+	"vcs_ignore_file": "添加到 .gitignore",
+	"vcs_toast_ignored_file": "已将 {name} 添加到 .gitignore",
+	"vcs_toast_ignored_files": "已将 {count} 个文件添加到 .gitignore",
+	"vcs_copy_id": "复制版本 ID",
+	"vcs_copy_message": "复制提交信息",
+	"vcs_copied_id": "已复制版本 ID",
+	"vcs_copied_message": "已复制提交信息",
+	"vcs_copy_failed": "无法复制到剪贴板"
 }

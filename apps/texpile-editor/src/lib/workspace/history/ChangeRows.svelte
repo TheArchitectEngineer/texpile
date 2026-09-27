@@ -3,7 +3,8 @@
 	// saturated ticks would be the loudest thing in the panel while saying the least. The control
 	// picks up the accent on hover and focus, where it means something.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { Info, MoreHorizontal, Undo2, Trash2, GitCompare, Check } from '@lucide/svelte';
+	import { Info, MoreHorizontal, Undo2, Trash2, GitCompare, Check, EyeOff } from '@lucide/svelte';
+	import { canIgnore, ignoreFiles } from '$lib/workspace/ignoreFiles.svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { isTexpileManaged } from '$lib/comments/managed';
 	import { STATUS_COLOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
@@ -103,6 +104,20 @@
 								<GitCompare class="size-4 shrink-0" />
 								{m.wsview_diff_heading()}
 							</button>
+							<!-- a new file only: git keeps tracking a file it already has, whatever .gitignore says -->
+							{#if isUntracked(c) && canIgnore()}
+								<button
+									type="button"
+									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
+									onclick={() => {
+										openMenu = null;
+										ignoreFiles([c.path]);
+									}}
+								>
+									<EyeOff class="size-4 shrink-0" />
+									{m.vcs_ignore_file()}
+								</button>
+							{/if}
 							<!-- git cannot put back a file it is still combining: Cancel combining does that for all of them -->
 							{#if !locked}
 								<div class="border-surface-200-800 my-1 border-t"></div>

@@ -29,7 +29,8 @@ import { ScmBranches } from './scmBranches.svelte';
 import { ScmMilestones } from './scmMilestones.svelte';
 import { offerFork } from './scmFork.svelte';
 import { uploadReason } from './uploadReason';
-import { basename, samePath, joinPath } from './fileSystem';
+import { basename, samePath, joinPath, relativeTo } from './fileSystem';
+import { ignoreLineFor, withIgnoreLines } from './gitignore';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
 import { m } from '$lib/paraglide/messages';
@@ -297,28 +298,28 @@ export class ScmActions {
 
 	/** Appends, never replaces, and skips lines already present, so an existing .gitignore is not
 	 *  rewritten out from under the project. The output PDF is deliberately not among them. */
-	ignoreArtifacts = async (): Promise<void> => {
+	ignoreArtifacts = (): Promise<void> => this.#appendIgnore(this.deps.ignoreLines(), m.vcs_toast_ignored());
+
+	/** new files from a change row's menu: VS Code's Add to .gitignore. The project folder's own
+	 *  .gitignore, which git reads for everything below it wherever the repository starts. */
+	ignoreFiles = (paths: string[]): Promise<void> => {
+		const root = workspaceRoot.current;
+		if (!root || !paths.length) return Promise.resolve();
+		const lines = paths.map((p) => ignoreLineFor(relativeTo(root, p)));
+		const title =
+			paths.length === 1 ? m.vcs_toast_ignored_file({ name: basename(paths[0]) }) : m.vcs_toast_ignored_files({ count: paths.length });
+		return this.#appendIgnore(lines, title);
+	};
+
+	async #appendIgnore(lines: string[], done: string): Promise<void> {
 		const root = workspaceRoot.current;
 		if (!root) return;
 		const path = joinPath(root, '.gitignore');
 		this.busy = true;
 		try {
-			const existing = await this.deps.readTextIfPresent(path);
-			const have = new Set(
-				(existing ?? '')
-					.split('\n')
-					.map((l) => l.trim())
-					.filter(Boolean)
-			);
-			const wanted = this.deps.ignoreLines().filter((l) => l.startsWith('#') || !have.has(l));
-			// nothing but the header left: every pattern is already there
-			if (wanted.every((l) => l.startsWith('#'))) {
-				this.busy = false;
-				toaster.success({ title: m.vcs_toast_ignored() });
-				return;
-			}
-			const prefix = existing && !existing.endsWith('\n') ? '\n' : '';
-			await this.deps.writeText(path, `${existing ?? ''}${prefix}${existing ? '\n' : ''}${wanted.join('\n')}\n`);
+			const next = withIgnoreLines(await this.deps.readTextIfPresent(path), lines);
+			// null: every pattern is already there
+			if (next !== null) await this.deps.writeText(path, next);
 		} catch (e) {
 			this.busy = false;
 			toaster.error({ title: m.vcs_toast_ignore_failed(), description: e instanceof Error ? e.message : String(e) });
@@ -327,8 +328,8 @@ export class ScmActions {
 		this.busy = false;
 		await this.deps.refreshTree();
 		await refreshGitStatus(root);
-		toaster.success({ title: m.vcs_toast_ignored() });
-	};
+		toaster.success({ title: done });
+	}
 
 	/** against the last saved version, in its own tab */
 	openDiff = (path: string) => {

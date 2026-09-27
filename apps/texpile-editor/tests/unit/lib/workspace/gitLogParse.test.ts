@@ -54,6 +54,16 @@ describe('parseGitLog', () => {
 		expect(e.subject).toBe(`Fig${FIELD}5 redrawn`);
 	});
 
+	// what Copy message copies: the whole message, not only the line the row shows
+	it('keeps the rest of a message apart from its first line, and adds nothing without one', () => {
+		const [e] = parseGitLog(
+			stream([{ ...one, subject: `Rewrote the results\x1eThe ablation moved to the appendix.\n\nPer the committee.\n` }])
+		);
+		expect(e.subject).toBe('Rewrote the results');
+		expect(e.body).toBe('The ablation moved to the appendix.\n\nPer the committee.');
+		expect(parseGitLog(stream([{ ...one, subject: 'One line\x1e\n' }]))[0]).not.toHaveProperty('body');
+	});
+
 	it('survives an empty log and trailing blank lines', () => {
 		expect(parseGitLog('')).toEqual([]);
 		expect(parseGitLog('\n\n')).toEqual([]);

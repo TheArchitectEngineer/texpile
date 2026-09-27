@@ -1661,5 +1661,19 @@
 	"drawn_chip_character_symbol": "Zeichen",
 	"drawn_chip_character_write": "{character} direkt schreiben",
 	"drawn_chip_character_write_hint": "Jedes TeX ab 2018 kann es lesen.",
-	"drawn_chip_suggestions": "Vorschläge"
+	"drawn_chip_suggestions": "Vorschläge",
+	"editor_change_click": "Klicken, um zu sehen, was hier stand, oder es rückgängig zu machen",
+	"editor_change_peek_title": "In der letzten Version",
+	"editor_change_peek_new": "Nicht in der letzten Version: Diese Zeilen sind neu.",
+	"editor_change_peek_close": "Schließen",
+	"editor_change_undo": "Diese Änderung rückgängig machen",
+	"palette_undo_change": "Änderung am Cursor rückgängig machen (zurück zur letzten Version)",
+	"vcs_ignore_file": "Zu .gitignore hinzufügen",
+	"vcs_toast_ignored_file": "{name} zu .gitignore hinzugefügt",
+	"vcs_toast_ignored_files": "{count} Dateien zu .gitignore hinzugefügt",
+	"vcs_copy_id": "Versions-ID kopieren",
+	"vcs_copy_message": "Nachricht kopieren",
+	"vcs_copied_id": "Versions-ID kopiert",
+	"vcs_copied_message": "Nachricht kopiert",
+	"vcs_copy_failed": "Kopieren in die Zwischenablage fehlgeschlagen"
 }

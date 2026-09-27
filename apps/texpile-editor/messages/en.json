@@ -1661,5 +1661,19 @@
 	"drawn_chip_character_symbol": "Character",
 	"drawn_chip_character_write": "Write {character} directly",
 	"drawn_chip_character_write_hint": "Every TeX from 2018 on reads it.",
-	"drawn_chip_suggestions": "Suggestions"
+	"drawn_chip_suggestions": "Suggestions",
+	"editor_change_click": "Click to see what it was, or undo it",
+	"editor_change_peek_title": "In the last version",
+	"editor_change_peek_new": "Not in the last version: these lines are new.",
+	"editor_change_peek_close": "Close",
+	"editor_change_undo": "Undo this change",
+	"palette_undo_change": "Undo the change at the cursor (back to the last version)",
+	"vcs_ignore_file": "Add to .gitignore",
+	"vcs_toast_ignored_file": "{name} added to .gitignore",
+	"vcs_toast_ignored_files": "{count} files added to .gitignore",
+	"vcs_copy_id": "Copy version ID",
+	"vcs_copy_message": "Copy message",
+	"vcs_copied_id": "Version ID copied",
+	"vcs_copied_message": "Message copied",
+	"vcs_copy_failed": "Could not copy to the clipboard"
 }

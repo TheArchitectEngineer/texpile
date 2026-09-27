@@ -11,6 +11,7 @@ import { ScmActions } from '$lib/workspace/scmActions.svelte';
 import { ChangeBaseline } from '$lib/workspace/changeBaseline.svelte';
 import { gitHead, isGitRepo } from '$lib/workspace/gitStore';
 import { gitignoreLines } from '$lib/workspace/buildArtifacts';
+import { handleIgnore } from '$lib/workspace/ignoreFiles.svelte';
 import { refreshProjectIntel } from '$lib/workspace/projectIntel';
 import { projectIntelStore } from '$lib/stores/projectIntel';
 import { trailingDebounce } from '$lib/trailingDebounce';
@@ -119,6 +120,9 @@ export class WorkspaceIntegrations {
 				}
 			}
 		});
+
+		// a change row's Add to .gitignore, while this workspace is open
+		$effect(() => handleIgnore((paths) => void this.scm.ignoreFiles(paths)));
 
 		// again whenever HEAD moves: the file's last saved version is then a different one
 		$effect(() => {

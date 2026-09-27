@@ -10,6 +10,8 @@ section: Editor
 
 Texpile keeps versions of your project with git, from the Source Control panel. Changes since the last version are listed by file, you tick the ones to include, write what changed, and Save version. History lists every saved version, and any of them can be restored. If the folder is not a repository yet, the panel offers to initialise one, and Publish sends it to GitHub or any other remote.
 
+A new file you never want saved in a version, such as notes or an export, can be left out for good: open its menu in the Changes list and choose Add to .gitignore.
+
 The Source Control icon shows how many files have changed. With nothing to save, the panel's main button is the next thing to do: Sync changes, with the counts each way, or Publish for a branch that has nowhere to go yet.
 
 If the folder sits inside a larger repository, such as a home folder kept in git or a research repository with the paper in one subfolder, Source Control asks before using it: versions saved there are recorded in that repository with everything else in it. Use that repository, or start one for this folder only. The answer is remembered for the folder.
@@ -26,9 +28,9 @@ If the folder sits inside a larger repository, such as a home folder kept in git
 
 A changed file opens in a diff against the last version. In the visual editor the changes are marked in the formatted text, word by word. In the source editor they are marked line by line.
 
-In the source editor, the margin beside the line numbers marks what changed since the last version as you type: green for added lines, blue for changed ones, and a red wedge where lines were removed. Alt+F5 and Shift+Alt+F5 (also in the command palette) go to the next and previous change.
+In the source editor, the margin beside the line numbers marks what changed since the last version as you type: green for added lines, blue for changed ones, and a red wedge where lines were removed. Alt+F5 and Shift+Alt+F5 (also in the command palette) go to the next and previous change. Click a mark to see those lines as they were in the last version, with Undo this change to put back just that change and keep every other edit. Escape closes it. The command palette has the same undo for the change at the cursor.
 
-A version in History opens to what differs between it and your files now. To see what that version itself changed, open its menu and choose Show changes in this version: its files are listed with each one's difference from the version before.
+A version in History opens to what differs between it and your files now. To see what that version itself changed, open its menu and choose Show changes in this version: its files are listed with each one's difference from the version before. The same menu copies the version's ID or its full message.
 
 ![The visual editor showing a heading and a sentence changed since the last version](../landing/src/lib/assets/showcase/app/diff-view.png 'The visual editor showing a heading and a sentence changed since the last version')
 

@@ -5,6 +5,8 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: clicking a change mark in the source editor's margin shows what those lines were in the last version, with Undo this change
+- feat: a new file's menu in Source Control adds it to .gitignore; a version's menu in History copies its ID or its full message
 - feat: Publish sends a project to a new GitHub repository, a remote it already has, or any repository by address
 - feat: Sync takes in versions saved elsewhere and sends yours, and undoes the attempt rather than leave a conflict behind
 - feat: git's sign-in questions (a password or token, an SSH key's passphrase, a server it has not seen) are asked in the window instead of failing

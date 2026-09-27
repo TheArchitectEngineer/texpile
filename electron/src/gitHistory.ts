@@ -18,6 +18,8 @@ export type GitLogEntry = {
 	/** abbreviated hash, as git chose to abbreviate it */
 	short: string;
 	subject: string;
+	/** the rest of the message after its first line, when it has more */
+	body?: string;
 	author: string;
 	/** author date, ISO 8601 */
 	date: string;
@@ -38,19 +40,24 @@ export type GitLogResult = {
 // the only two bytes git will not emit inside a subject or an author name
 const REC = '\x00';
 const FIELD = '\x1f';
+// between a message's first line and the rest of it
+const BODY = '\x1e';
 
 // The same bytes as git's own escapes, for the ARGUMENT side: argv is NUL-terminated, so a
 // literal NUL there makes Node refuse to spawn - it throws before git runs, and every call comes
 // back failed, which reads in the panel as a repo nobody has committed to.
 const REC_FMT = '%x00';
 const FIELD_FMT = '%x1f';
+const BODY_FMT = '%x1e';
 
 /** exported for the tests: the delimiters are the whole reason this parses */
 export function parseGitLog(raw: string): GitLogEntry[] {
 	const entries: GitLogEntry[] = [];
 	for (const chunk of raw.split(REC)) {
 		if (!chunk.trim()) continue;
-		const [hash, short, author, date, parents, ...subjectParts] = chunk.trim().split(FIELD);
+		const [hash, short, author, date, parents, ...rest] = chunk.trim().split(FIELD);
+		// the message last, so a separator in it cannot shift the fields before it
+		const [subject, ...bodyParts] = rest.join(FIELD).split(BODY);
 		if (!hash) continue;
 		entries.push({
 			hash,
@@ -59,7 +66,9 @@ export function parseGitLog(raw: string): GitLogEntry[] {
 			date: date ?? '',
 			// %P is space-separated, and empty for a root commit
 			parentCount: (parents ?? '').trim() ? (parents ?? '').trim().split(/\s+/).length : 0,
-			subject: subjectParts.join(FIELD).trim()
+			subject: (subject ?? '').trim(),
+			// only when there is one: most versions are a single line
+			...(bodyParts.join(BODY).trim() ? { body: bodyParts.join(BODY).trim() } : {})
 		});
 	}
 	return entries;
@@ -98,7 +107,7 @@ export async function gitLog(workspaceRoot: string, limit = 100): Promise<GitLog
 		const raw = await git(rr.root).raw([
 			'log',
 			`--max-count=${want + 1}`,
-			`--format=${REC_FMT}%H${FIELD_FMT}%h${FIELD_FMT}%an${FIELD_FMT}%aI${FIELD_FMT}%P${FIELD_FMT}%s`,
+			`--format=${REC_FMT}%H${FIELD_FMT}%h${FIELD_FMT}%an${FIELD_FMT}%aI${FIELD_FMT}%P${FIELD_FMT}%s${BODY_FMT}%b`,
 			...(rel ? ['--', rel] : [])
 		]);
 		const all = parseGitLog(raw);
