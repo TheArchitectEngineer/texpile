@@ -4,7 +4,7 @@
 	// picks up the accent on hover and focus, where it means something.
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { Info, MoreHorizontal, Undo2, Trash2, GitCompare, Check, EyeOff, FolderPlus } from '@lucide/svelte';
-	import { canIgnore, ignoreFiles } from '$lib/workspace/ignoreFiles.svelte';
+	import { scmHandlers } from '$lib/workspace/scmHandlers.svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { isTexpileManaged } from '$lib/comments/managed';
 	import { STATUS_COLOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
@@ -114,7 +114,7 @@
 								</button>
 							{/if}
 							<!-- a new file only: git keeps tracking a file it already has, whatever .gitignore says -->
-							{#if isUntracked(c) && canIgnore()}
+							{#if isUntracked(c) && scmHandlers.current}
 								<button
 									type="button"
 									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"
@@ -122,7 +122,7 @@
 									onclick={() => {
 										openMenu = null;
 										// a folder's line ends in a slash, so it cannot match a file of that name
-										ignoreFiles([c.files ? `${c.path}/` : c.path]);
+										scmHandlers.current?.ignore([c.files ? `${c.path}/` : c.path]);
 									}}
 								>
 									<EyeOff class="size-4 shrink-0" />

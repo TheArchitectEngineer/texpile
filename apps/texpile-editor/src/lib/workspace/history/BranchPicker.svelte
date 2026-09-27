@@ -7,10 +7,13 @@
 	import { GitBranch, Check, Cloud, Plus, ChevronDown, Loader2 } from '@lucide/svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import type { GitBranchesResult } from '$lib/workspace/gitBranches';
+	import { gitHead } from '$lib/workspace/gitStore';
 	import { m } from '$lib/paraglide/messages';
 
 	type Props = {
 		branch: string | null;
+		/** HEAD is on a version, not a branch: git calls the branch "HEAD" then, which says nothing */
+		detached?: boolean;
 		busy: boolean;
 		list: () => Promise<GitBranchesResult>;
 		/** each resolves to why it did not happen, or null once switched */
@@ -18,7 +21,11 @@
 		onCreate: (name: string) => Promise<string | null>;
 		onTrack: (remoteName: string) => Promise<string | null>;
 	};
-	let { branch, busy, list, onSwitch, onCreate, onTrack }: Props = $props();
+	let { branch, detached = false, busy, list, onSwitch, onCreate, onTrack }: Props = $props();
+
+	// VS Code shows the commit; this says what it means and where the way back is
+	const label = $derived(detached ? m.vcs_detached({ short: (gitHead.current ?? '').slice(0, 7) }) : (branch ?? m.vcs_no_branch()));
+	const tipText = $derived(detached ? m.vcs_detached_tip() : `${label} · ${m.vcs_branch_switch_aria()}`);
 
 	let open = $state(false);
 	let loading = $state(false);
@@ -82,9 +89,9 @@
 	>
 		{#snippet element(attrs)}
 			<!-- no tooltip while open: it would sit over the list it names -->
-			<button {...attrs} use:tip={open ? undefined : `${branch ?? m.vcs_no_branch()} · ${m.vcs_branch_switch_aria()}`} disabled={busy}>
+			<button {...attrs} use:tip={open ? undefined : tipText} disabled={busy}>
 				<GitBranch class="size-3.5 shrink-0" />
-				<span class="truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
+				<span class="truncate font-medium {detached ? 'text-warning-ink' : ''}">{label}</span>
 				<ChevronDown class="size-3 shrink-0 opacity-60" />
 			</button>
 		{/snippet}

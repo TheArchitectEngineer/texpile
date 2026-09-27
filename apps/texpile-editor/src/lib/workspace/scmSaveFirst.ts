@@ -1,0 +1,35 @@
+// Unsaved work in the way of a branch switch or a Sync, saved as a version first and then the
+// operation tried again. A writer's word for keeping work safe is a version; VS Code offers to
+// stash it instead, which puts it somewhere nobody who does not know git will look for it.
+import { gitChanges } from './gitStore';
+import { isBuildArtifact } from './buildArtifacts';
+import { promptAsk } from '$lib/modals/confirm.svelte';
+import { m } from '$lib/paraglide/messages';
+
+/** the operation that asked: how to save a version, and its busy flag, handed back while the save runs */
+type Host = { commit(message: string, paths: string[]): Promise<boolean>; setBusy(on: boolean): void };
+
+/** true once everything changed is saved as a version; false when the author said no, or saving failed */
+export async function saveChangesFirst(
+	host: Host,
+	ask: { title: string; message: string; detail?: string; confirm: string; version: string }
+): Promise<boolean> {
+	const choice = await promptAsk({
+		title: ask.title,
+		message: ask.message,
+		detail: ask.detail,
+		buttons: [
+			{ id: 'save', label: ask.confirm, primary: true },
+			{ id: 'cancel', label: m.vcs_cancel() }
+		],
+		cancelId: 'cancel'
+	});
+	if (choice !== 'save') return false;
+	// not new build output, and not a whole folder of new files: both start unticked in the panel too
+	const paths = gitChanges.current.filter((c) => !c.files && !(c.x === '?' && isBuildArtifact(c.path))).map((c) => c.path);
+	// commit keeps its own busy state; the operation that asked takes it back after
+	host.setBusy(false);
+	const saved = await host.commit(ask.version, paths);
+	host.setBusy(true);
+	return saved;
+}

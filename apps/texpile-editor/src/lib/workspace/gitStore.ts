@@ -53,7 +53,7 @@ export const gitStatusMap = box<Record<string, GitBadge>>({});
 /** raw staged/unstaged porcelain codes; drives the Source Control panel. */
 export const gitChanges = box<GitStatusEntry[]>([]);
 /** what Source Control is doing right now, for the button that started it to say so */
-export const gitRunning = box<'save' | 'sync' | 'publish' | null>(null);
+export const gitRunning = box<'save' | 'sync' | 'publish' | 'fetch' | null>(null);
 /** gitChanges was cut short: how many changes there were; 0 when it is whole */
 export const gitTruncated = box<number>(0);
 

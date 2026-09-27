@@ -282,6 +282,8 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitPublish: (root: string, remote: string) => invokeFs('git:publish', root, remote),
 	/** fetch, take in the upstream's versions, send ours -> { ok, failure?, pulled?, pushed?, files? }. */
 	gitSync: (root: string) => invokeFs('git:sync', root),
+	/** fetch the upstream's remote and count, taking nothing in -> { ok, remote?, ahead?, behind?, failure? }. */
+	gitFetch: (root: string) => invokeFs('git:fetch', root),
 	/** merge the upstream Sync just fetched, leaving what both sides changed marked -> { ok, failure?, conflicts? }. */
 	gitCombine: (root: string) => invokeFs('git:combine', root),
 	/** commit the merge once no file holds a marked place -> { ok, failure?, files? }. */

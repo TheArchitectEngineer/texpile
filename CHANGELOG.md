@@ -5,6 +5,12 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: Publish to GitHub from a folder that is not a repository yet: it initialises, ignores build output, saves a first version and opens Publish
+- feat: Check for new versions beside Sync fetches without taking anything in; Sync blocked by unsaved work offers Save a version and sync
+- feat: Ctrl+Shift+G (⌃⇧G on macOS) and Show Source Control in the palette open the panel with the keyboard in the message box
+- feat: a Compare with the last version button in the editor's top bar while the open file has changes
+- fix: the branch name says Not on a branch (at …) after checking out an earlier version, instead of "HEAD"
+- fix: the Source Control badge no longer counts build output
 - fix: a repository in a folder another account owns (a USB or network drive) is no longer called "not a repository"; Source Control explains it and offers Trust this folder
 - feat: a folder of 200 or more new files is one row with its count and Add folder to .gitignore; past 2,000 changes the list stops and says so
 - feat: GitHub's push protection and protected branches are explained in plain words, with the file and line push protection found

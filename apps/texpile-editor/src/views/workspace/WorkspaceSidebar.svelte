@@ -10,6 +10,7 @@
 	import SourceControlPanel from '$lib/workspace/SourceControlPanel.svelte';
 	import TableOfContents from './TableOfContents.svelte';
 	import SidebarIconButton from './SidebarIconButton.svelte';
+	import { isBuildArtifact } from '$lib/workspace/buildArtifacts';
 	import { workspaceRoot, fileTree, activeFilePath, mainFile } from '$lib/workspace/workspaceStore';
 	import {
 		isGitRepo,
@@ -211,7 +212,8 @@
 						icon: GitBranch,
 						label: m.wsview_source_control(),
 						active: view === 'scm',
-						count: gitChanges.current.length,
+						// not build output: it starts unticked, and every compile would leave a badge that never clears
+						count: gitChanges.current.filter((c) => !isBuildArtifact(c.path)).length,
 						run: () => (view = view === 'scm' ? 'explorer' : 'scm')
 					},
 					{

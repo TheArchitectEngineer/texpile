@@ -45,6 +45,8 @@ export type PaletteActions = {
 	openCompileModal(): void;
 	openFormatModal(): void;
 	openGlobalSearch(): void;
+	/** the Source Control panel, keyboard in its message box */
+	openSourceControl(): void;
 	openPreferences(): void;
 	/** undefined when sharing is unavailable (a guest, or the browser build) */
 	openShareSession?: () => void;

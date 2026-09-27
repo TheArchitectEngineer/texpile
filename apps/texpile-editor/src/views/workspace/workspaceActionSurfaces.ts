@@ -3,6 +3,7 @@
 import { startClone } from '$lib/workspace/cloneFlow';
 import { canClone } from '$lib/workspace/gitClone';
 import { forgetSignIns } from '$lib/workspace/forgetSignIns';
+import { focusScmMessage } from '$lib/workspace/scmHandlers.svelte';
 import { fileMode } from '$lib/workspace/fileMode.svelte';
 import { tabs, tabKey, type Tab } from '$lib/workspace/tabs.svelte';
 import { collabGuest } from '$lib/collab/guestStore.svelte';
@@ -213,8 +214,17 @@ export function makeMainActions(d: ActionSurfaceDeps) {
 }
 
 /** the callback surface WorkspaceChrome hands to the menu bar and sidebar */
+/** VS Code's Ctrl+Shift+G: the Source Control panel, with the keyboard in its message box */
+function openSourceControl(d: ActionSurfaceDeps): void {
+	d.layout().setSidebarOpen(true);
+	// eslint-disable-next-line no-param-reassign -- the deps hand over the live controllers this surface drives
+	d.layout().sidebarView = 'scm';
+	focusScmMessage();
+}
+
 export function makeChromeActions(d: ActionSurfaceDeps) {
 	return {
+		openSourceControl: () => openSourceControl(d),
 		// the project's compile command, accepted for this folder on this machine. Here rather than
 		// in the main actions because its banner is window-wide chrome now, not part of the editor column.
 		acceptProjectCommand: () => {
@@ -262,6 +272,7 @@ export function makeChromeActions(d: ActionSurfaceDeps) {
 /** the Ctrl+K palette's command surface (registered on mount, cleared on destroy) */
 export function makePaletteActions(d: ActionSurfaceDeps) {
 	return {
+		openSourceControl: () => openSourceControl(d),
 		save: () => d.wsdoc.save(),
 		runCompile: () => d.compiler.runCompile(),
 		stopCompile: () => d.compiler.stopCompile(),

@@ -31,8 +31,12 @@
 		Loader2,
 		ShieldQuestion,
 		MessageSquare,
-		FolderOpen
+		FolderOpen,
+		GitCompare
 	} from '@lucide/svelte';
+	import { scmHandlers } from '$lib/workspace/scmHandlers.svelte';
+	import { gitChanges } from '$lib/workspace/gitStore';
+	import { samePath } from '$lib/workspace/fileSystem';
 
 	type Props = {
 		loadedPath: string | null;
@@ -121,6 +125,11 @@
 		onSyncToCursor = null,
 		syncTargetsPreview = false
 	}: Props = $props();
+
+	// saved in a version before, and different now: a new file has nothing to compare against
+	const changedSinceVersion = $derived(
+		!guest && !!loadedPath && gitChanges.current.some((c) => c.x !== '?' && !c.files && samePath(c.path, loadedPath ?? ''))
+	);
 
 	let compileMenuOpen = $state(false);
 
@@ -243,6 +252,18 @@
 				     that gives the neighboring chips their content height (18px in this theme, not
 				     the 16px the Tailwind default would suggest) - while the glyph stays at their 14px -->
 				<span class="flex h-[1lh] items-center"><ArrowRight class="size-3.5" /></span>
+			</button>
+		{/if}
+		{#if loadedPath && changedSinceVersion && scmHandlers.current}
+			<!-- "what did I change in this chapter?" without knowing a palette command's name: only
+			     while there is something to compare, as VS Code's Open Changes in the editor title -->
+			<button
+				class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal"
+				onclick={() => scmHandlers.current?.compare(loadedPath)}
+				use:tip={m.wsview_compare_last()}
+				aria-label={m.wsview_compare_last()}
+			>
+				<span class="flex h-[1lh] items-center"><GitCompare class="size-3.5" /></span>
 			</button>
 		{/if}
 		{#if loadedPath && (kind === 'tex' || kind === 'md' || kind === 'typ' || (kind === 'bib' && !guest))}

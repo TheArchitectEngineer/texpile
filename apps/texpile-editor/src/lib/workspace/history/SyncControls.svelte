@@ -3,7 +3,8 @@
 	// and the main button when nothing is waiting to be saved (VS Code's action button). While one of
 	// them runs, the button says so rather than only greying out, which read as broken on a slow link.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { ArrowUp, ArrowDown, ArrowDownUp, CloudUpload, LoaderCircle } from '@lucide/svelte';
+	import { ArrowUp, ArrowDown, ArrowDownUp, CloudUpload, CloudDownload, LoaderCircle } from '@lucide/svelte';
+	import { scmHandlers } from '$lib/workspace/scmHandlers.svelte';
 	import { gitRunning } from '$lib/workspace/gitStore';
 	import type { GitOperation } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
@@ -38,6 +39,7 @@
 	const showPublish = $derived(publishable && (place === 'header' || !operation));
 	const syncing = $derived(gitRunning.current === 'sync');
 	const publishing = $derived(gitRunning.current === 'publish');
+	const fetching = $derived(gitRunning.current === 'fetch');
 	const HEADER = 'hover:preset-tonal flex items-center gap-1 rounded-base py-0.5 disabled:opacity-50';
 	const ACTION = 'btn btn-xs preset-filled-primary-500 w-full gap-1.5';
 </script>
@@ -47,6 +49,18 @@
 	{#if ahead > 0}<span class="flex items-center tabular-nums"><ArrowUp class={size} />{ahead}</span>{/if}
 {/snippet}
 
+{#if showSync && place === 'header' && scmHandlers.current}
+	<!-- looks without taking anything in: whether a co-author uploaded, before deciding to Sync -->
+	<button
+		class="btn-icon btn-icon-xs hover:preset-tonal"
+		use:tip={fetching ? m.vcs_running_fetch() : m.vcs_fetch_tip({ remote: (tracking ?? '').split('/')[0] })}
+		aria-label={m.vcs_fetch()}
+		onclick={() => scmHandlers.current?.checkForNew()}
+		disabled={busy}
+	>
+		{#if fetching}<LoaderCircle class="size-3.5 animate-spin" />{:else}<CloudDownload class="size-3.5" />{/if}
+	</button>
+{/if}
 {#if showSync && place === 'header'}
 	<!-- VS Code's two states. With an upstream: Sync, carrying what it would take in and send.
 	     `ahead` is counted from local refs and is exact; `behind` is as of the last fetch, which Sync

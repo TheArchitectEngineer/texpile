@@ -8,6 +8,7 @@
 	import OperationBanner from './history/OperationBanner.svelte';
 	import SyncControls from './history/SyncControls.svelte';
 	import ParentRepoGate from './history/ParentRepoGate.svelte';
+	import NoRepoGate from './history/NoRepoGate.svelte';
 	import UnsafeRepoGate from './history/UnsafeRepoGate.svelte';
 	import type { GitBranchesResult } from '$lib/workspace/gitBranches';
 	import HistoryTimeline from './history/HistoryTimeline.svelte';
@@ -198,14 +199,7 @@
 {:else if gitUnsafe.current && root}
 	<UnsafeRepoGate {root} repo={gitUnsafe.current} />
 {:else if !isRepo}
-	<div class="flex flex-col items-center gap-3 p-6 text-center">
-		<GitBranch class="text-faint size-8" />
-		<p class="text-muted text-sm">{m.vcs_not_a_repo()}</p>
-		<button class="btn btn-xs preset-filled-primary-500 gap-1.5" onclick={onInit} disabled={busy}>
-			<GitBranch class="size-4" />
-			{m.vcs_init_repo()}
-		</button>
-	</div>
+	<NoRepoGate {busy} {onInit} />
 {:else if parentRepo}
 	<ParentRepoGate repo={parentRepo} {busy} onUse={onUseParentRepo} {onInit} />
 {:else}
@@ -215,7 +209,7 @@
 		<div class="text-muted flex h-7 shrink-0 items-center gap-1.5 px-3 text-xs">
 			{#if branches}
 				<!-- the branch name is the way to another branch, as in VS Code's status bar -->
-				<BranchPicker {branch} busy={busy || !!operation} {...branches} />
+				<BranchPicker {branch} {detached} busy={busy || !!operation} {...branches} />
 			{:else}
 				<GitBranch class="size-3.5 shrink-0" />
 				<span class="truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
@@ -294,6 +288,7 @@
 				{#if changes.length && !combining}
 					<div class="border-surface-200-800 shrink-0 space-y-2 border-t px-2 py-2">
 						<textarea
+							data-scm-message
 							class="textarea resize-none text-sm rounded-container"
 							rows="2"
 							placeholder={m.vcs_save_placeholder()}
@@ -331,7 +326,7 @@
 					<HistoryTimeline
 						{history}
 						busy={busy || !!operation}
-						{branch}
+						branch={detached ? null : branch}
 						error={historyError}
 						hasMore={historyHasMore}
 						onShowMore={onShowMoreHistory}

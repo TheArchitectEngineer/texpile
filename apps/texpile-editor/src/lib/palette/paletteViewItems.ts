@@ -1,4 +1,6 @@
-import { Columns2, Eye, GitCompare, PanelLeft, Search } from '@lucide/svelte';
+import { CloudDownload, Columns2, Eye, GitBranch, GitCompare, PanelLeft, Search } from '@lucide/svelte';
+import { isMac } from '$lib/platform';
+import { scmHandlers } from '$lib/workspace/scmHandlers.svelte';
 import { combo } from '$lib/chrome/shortcutText';
 import type { PaletteActions } from '$lib/workspace/commandPalette.svelte';
 import type { PaletteItem } from './paletteCommands';
@@ -55,6 +57,26 @@ export function viewItems(a: PaletteActions): PaletteItem[] {
 			hint: combo('F', { shift: true }),
 			icon: Search,
 			run: () => a.openGlobalSearch()
+		});
+	if (a.hasSidebar() && a.canGit())
+		items.push({
+			id: 'view.sourceControl',
+			label: m.palette_source_control(),
+			group,
+			keywords: 'git scm version commit save changes history',
+			hint: isMac ? '⌃⇧G' : 'Ctrl+Shift+G',
+			icon: GitBranch,
+			run: () => a.openSourceControl()
+		});
+	// looks at the remote without taking anything in; Sync is what takes it in
+	if (a.canGit() && scmHandlers.current?.hasUpstream())
+		items.push({
+			id: 'view.checkForNew',
+			label: m.vcs_fetch(),
+			group,
+			keywords: 'git fetch remote co-author upstream github new versions',
+			icon: CloudDownload,
+			run: () => scmHandlers.current?.checkForNew()
 		});
 	return items;
 }

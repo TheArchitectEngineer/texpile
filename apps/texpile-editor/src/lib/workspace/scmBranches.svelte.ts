@@ -2,9 +2,8 @@
 // the remote branches it offers to take up. The editor follows: the file tree is read again and
 // the open file reloaded, since a switch rewrites files under both.
 import { workspaceRoot } from './workspaceStore';
-import { refreshGitStatus, refreshGitHistory, gitOperation, gitChanges, gitBranch } from './gitStore';
-import { isBuildArtifact } from './buildArtifacts';
-import { promptAsk } from '$lib/modals/confirm.svelte';
+import { refreshGitStatus, refreshGitHistory, gitOperation, gitBranch } from './gitStore';
+import { saveChangesFirst } from './scmSaveFirst';
 import { gitBranches, gitSwitch, gitCreateBranch, gitTrackBranch, type GitBranchesResult, type GitSwitchResult } from './gitBranches';
 import { basename } from './fileSystem';
 import { toaster } from '$lib/modals/toaster-svelte';
@@ -56,24 +55,18 @@ export class ScmBranches {
 	 * first - every change the panel lists except build output, so what is left behind is not split
 	 * between two branches. True once saved, and the switch is tried again.
 	 */
-	private async saveFirst(name: string, blocking: string[]): Promise<boolean> {
-		const choice = await promptAsk({
+	private saveFirst(name: string, blocking: string[]): Promise<boolean> {
+		const host = {
+			commit: (message: string, paths: string[]) => this.host.commit(message, paths),
+			setBusy: (on: boolean) => (this.host.busy = on)
+		};
+		return saveChangesFirst(host, {
 			title: m.vcs_branch_dirty_title(),
 			message: m.vcs_branch_dirty_message({ files: blocking.map((f) => basename(f)).join(', '), branch: name }),
 			detail: m.vcs_branch_dirty_detail({ branch: gitBranch.current ?? '' }),
-			buttons: [
-				{ id: 'save', label: m.vcs_branch_save_and_switch(), primary: true },
-				{ id: 'cancel', label: m.vcs_cancel() }
-			],
-			cancelId: 'cancel'
+			confirm: m.vcs_branch_save_and_switch(),
+			version: m.vcs_branch_autosave_message({ branch: name })
 		});
-		if (choice !== 'save') return false;
-		const paths = gitChanges.current.filter((c) => !(c.x === '?' && isBuildArtifact(c.path))).map((c) => c.path);
-		// commit keeps its own busy state; the switch takes it back after
-		this.host.busy = false;
-		const saved = await this.host.commit(m.vcs_branch_autosave_message({ branch: name }), paths);
-		this.host.busy = true;
-		return saved;
 	}
 
 	private async change(

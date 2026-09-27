@@ -9,9 +9,11 @@ import { attachSessionHandlers } from '$lib/collab/workspaceSession';
 import { DocRegistries } from '$lib/workspace/docRegistries.svelte';
 import { ScmActions } from '$lib/workspace/scmActions.svelte';
 import { ChangeBaseline } from '$lib/workspace/changeBaseline.svelte';
-import { gitHead, isGitRepo } from '$lib/workspace/gitStore';
+import { gitHead, gitTracking, isGitRepo } from '$lib/workspace/gitStore';
 import { gitignoreLines } from '$lib/workspace/buildArtifacts';
-import { handleIgnore } from '$lib/workspace/ignoreFiles.svelte';
+import { provideScmHandlers } from '$lib/workspace/scmHandlers.svelte';
+import { ScmFetch } from '$lib/workspace/scmFetch.svelte';
+import { ScmPublishNew } from '$lib/workspace/scmPublishNew';
 import { refreshProjectIntel } from '$lib/workspace/projectIntel';
 import { projectIntelStore } from '$lib/stores/projectIntel';
 import { trailingDebounce } from '$lib/trailingDebounce';
@@ -121,8 +123,18 @@ export class WorkspaceIntegrations {
 			}
 		});
 
-		// a change row's Add to .gitignore, while this workspace is open
-		$effect(() => handleIgnore((paths) => void this.scm.ignoreFiles(paths)));
+		// what the panel's rows, its branch bar and the palette ask of Source Control, while this workspace is open
+		const fetcher = new ScmFetch(this.scm);
+		const publisher = new ScmPublishNew(this.scm);
+		$effect(() =>
+			provideScmHandlers({
+				ignore: (paths) => void this.scm.ignoreFiles(paths),
+				checkForNew: () => void fetcher.checkForNew(),
+				publishNew: () => void publisher.run(),
+				compare: (path) => this.scm.openDiff(path),
+				hasUpstream: () => !!gitTracking.current
+			})
+		);
 
 		// again whenever HEAD moves: the file's last saved version is then a different one
 		$effect(() => {

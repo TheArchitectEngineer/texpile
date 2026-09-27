@@ -10,6 +10,7 @@ import * as gitCombine from '../gitCombine';
 import * as gitBranches from '../gitBranches';
 import * as gitTags from '../gitTags';
 import * as gitTrust from '../gitTrust';
+import * as gitFetch from '../gitFetch';
 import { gitClone } from '../gitClone';
 import type { GitAuthEnv } from '../gitRemote';
 import { startWorkspaceWatch, stopWorkspaceWatch } from '../fs/fsWatch';
@@ -69,7 +70,8 @@ function run(op: string, args: unknown[]): unknown {
 			(gitCombine as Record<string, unknown>)[name] ??
 			(gitBranches as Record<string, unknown>)[name] ??
 			(gitTags as Record<string, unknown>)[name] ??
-			(gitTrust as Record<string, unknown>)[name];
+			(gitTrust as Record<string, unknown>)[name] ??
+			(gitFetch as Record<string, unknown>)[name];
 		if (typeof fn === 'function') return (fn as (...a: unknown[]) => unknown)(...args);
 	}
 	throw new Error(`unknown helper op ${op}`);

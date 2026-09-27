@@ -97,7 +97,7 @@ export function netEnv(auth: GitAuthEnv): Record<string, string> {
 /** Talking to a remote waits on things nothing else here does: a sign-in someone has to type, and
  *  a transfer over their connection. The shared factory kills a command after 20s of silence, which
  *  is exactly what a password prompt looks like from the outside, so this one has no block timeout. */
-function netGit(baseDir: string, auth: GitAuthEnv = {}): SimpleGit {
+export function netGit(baseDir: string, auth: GitAuthEnv = {}): SimpleGit {
 	return simpleGit({ baseDir, binary: 'git', maxConcurrentProcesses: 1, config: ['core.quotePath=false'], unsafe: OWN_ENVIRONMENT }).env(
 		netEnv(auth)
 	);
@@ -118,7 +118,7 @@ export function isRemoteUrl(url: string): boolean {
 
 /** the remote and the branch on it that this branch tracks, read from config: splitting
  *  'origin/feature/x' cannot tell a remote called 'a/b' from a branch called 'b/x' */
-async function upstreamOf(g: SimpleGit, branch: string): Promise<{ remote: string; ref: string } | null> {
+export async function upstreamOf(g: SimpleGit, branch: string): Promise<{ remote: string; ref: string } | null> {
 	// a missing key exits 1 with nothing on stderr, which simple-git resolves as ''
 	const remote = (await g.raw(['config', '--get', `branch.${branch}.remote`])).trim();
 	const merge = (await g.raw(['config', '--get', `branch.${branch}.merge`])).trim();

@@ -17,8 +17,9 @@ export class ScmIgnore {
 		private deps: IgnoreDeps
 	) {}
 
-	/** the output PDF is deliberately not among the patterns */
-	artifacts = (): Promise<void> => this.#append(this.deps.ignoreLines(), m.vcs_toast_ignored());
+	/** the output PDF is deliberately not among the patterns. `quiet` for a step inside a larger
+	 *  action, which says what happened itself */
+	artifacts = (quiet = false): Promise<void> => this.#append(this.deps.ignoreLines(), quiet ? null : m.vcs_toast_ignored());
 
 	/** The project folder's own .gitignore, which git reads for everything below it wherever the
 	 *  repository starts. A folder's path ends in a slash, and so does its line. */
@@ -33,7 +34,7 @@ export class ScmIgnore {
 		return this.#append(lines, title);
 	};
 
-	async #append(lines: string[], done: string): Promise<void> {
+	async #append(lines: string[], done: string | null): Promise<void> {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return;
 		const path = joinPath(root, '.gitignore');
@@ -50,6 +51,6 @@ export class ScmIgnore {
 		}
 		await this.deps.refreshTree();
 		await refreshGitStatus(root);
-		toaster.success({ title: done });
+		if (done) toaster.success({ title: done });
 	}
 }

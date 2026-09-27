@@ -46,6 +46,7 @@ const NET_OPS: Record<string, [string, number]> = {
 	'git:push': ['gitPush', 1],
 	'git:publish': ['gitPublish', 2],
 	'git:sync': ['gitSync', 1],
+	'git:fetch': ['gitFetch', 1],
 	'git:removeMilestone': ['gitRemoveMilestone', 2]
 };
 

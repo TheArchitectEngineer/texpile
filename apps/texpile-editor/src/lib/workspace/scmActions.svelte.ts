@@ -32,6 +32,7 @@ import { offerFork } from './scmFork.svelte';
 import { uploadReason } from './uploadReason';
 import { toastGitFailure } from './gitFailureToast';
 import { localGitReason } from './gitLocalReason';
+import { saveChangesFirst } from './scmSaveFirst';
 import { basename, samePath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
@@ -439,6 +440,7 @@ export class ScmActions {
 		if (this.blockedByOperation()) return;
 		this.busy = true;
 		gitRunning.current = 'sync';
+		let again = false;
 		try {
 			// joining two histories writes a merge version, which git refuses without a name and email
 			if (!(await this.ensureIdentity(root))) return;
@@ -472,6 +474,17 @@ export class ScmActions {
 				await this.combine.offer(root, res);
 			} else if (res.failure === 'forbidden' && (await offerFork(root, res.remote))) {
 				// someone else's repository: the fork offer was the answer
+			} else if (res.failure === 'dirty') {
+				// unsaved work that taking in versions would overwrite: saved as a version, then Sync again
+				again = await saveChangesFirst(
+					{ commit: this.commit, setBusy: (on) => (this.busy = on) },
+					{
+						title: m.vcs_sync_dirty_title(),
+						message: uploadReason(res),
+						confirm: m.vcs_sync_save_and_sync(),
+						version: m.vcs_sync_autosave_message()
+					}
+				);
 			} else if (res.failure !== 'cancelled') {
 				toastGitFailure(m.vcs_toast_sync_failed(), uploadReason(res), res);
 			}
@@ -479,6 +492,7 @@ export class ScmActions {
 			this.busy = false;
 			gitRunning.current = null;
 		}
+		if (again) await this.sync();
 	};
 
 	/** read on expand, not with the log: the answer changes as the author types */

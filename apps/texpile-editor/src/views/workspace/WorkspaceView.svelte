@@ -36,7 +36,7 @@
 	import { PaneLayout } from '$lib/workspace/paneLayout.svelte';
 	import { TerminalDockState } from '$lib/workspace/terminalDockState.svelte';
 	import { mark } from '$lib/debug/startupDoctor';
-	import { createKeydownHandler } from '$lib/workspace/shortcuts';
+	import { createKeydownHandler, createCaptureKeydownHandler } from '$lib/workspace/shortcuts';
 	import { editSelect } from '$lib/chrome/menuBarCommands';
 	import { preferencesOpen } from '$lib/stores/dialogStore';
 	import { workspaceRoot, texFiles, activeCompare, activeFilePath } from '$lib/workspace/workspaceStore';
@@ -291,9 +291,10 @@
 		openPreferences: () => (preferencesOpen.current = true),
 		stepDocumentHistory: (direction) => editSelect(direction)
 	});
+	const onKeydownCapture = createCaptureKeydownHandler({ openSourceControl: () => chromeActions.openSourceControl() });
 </script>
 
-<svelte:window onkeydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} onkeydowncapture={onKeydownCapture} />
 <!-- file - folder - app (VS Code's order); the folder segment tells windows apart in the taskbar -->
 <svelte:head
 	><title

@@ -12,7 +12,11 @@ Texpile keeps versions of your project with git, from the Source Control panel. 
 
 A new file you never want saved in a version, such as notes or an export, can be left out for good: open its menu in the Changes list and choose Add to .gitignore.
 
-The Source Control icon shows how many files have changed. With nothing to save, the panel's main button is the next thing to do: Sync changes, with the counts each way, or Publish for a branch that has nowhere to go yet.
+Ctrl+Shift+G (⌃⇧G on a Mac, as in VS Code) opens Source Control with the keyboard in the message box; Show Source Control in the command palette does the same. While the open file differs from its last version, the button beside Visual and Source in the editor's top bar compares the two.
+
+The Source Control icon shows how many files have changed, not counting build output. With nothing to save, the panel's main button is the next thing to do: Sync changes, with the counts each way, or Publish for a branch that has nowhere to go yet.
+
+If the folder is not a repository yet, Source Control offers Initialize Repository and Publish to GitHub. Publish to GitHub starts the repository, adds the build output patterns to .gitignore, saves your files as the first version, and opens the Publish dialog.
 
 If the folder sits inside a larger repository, such as a home folder kept in git or a research repository with the paper in one subfolder, Source Control asks before using it: versions saved there are recorded in that repository with everything else in it. Use that repository, or start one for this folder only. The answer is remembered for the folder.
 
@@ -40,13 +44,15 @@ A version that matters, such as the draft sent to your committee or the camera-r
 
 ## Branches
 
-The branch name at the top of Source Control switches branches. It lists your branches, then the ones that exist only on a remote (choosing one of those makes a branch here that syncs with it). Type a name that is not there yet to start a new branch from the current version; changes you have not saved as a version come along. Switching carries unsaved changes over when it can. When it would overwrite them, Texpile names the files and offers to save everything you changed as a version on the branch you are leaving, then switch; switch back to find it there.
+The branch name at the top of Source Control switches branches. It lists your branches, then the ones that exist only on a remote (choosing one of those makes a branch here that syncs with it). When you are looking at an earlier version rather than a branch (after a checkout in the terminal), the branch name reads Not on a branch, and choosing a branch goes back. Type a name that is not there yet to start a new branch from the current version; changes you have not saved as a version come along. Switching carries unsaved changes over when it can. When it would overwrite them, Texpile names the files and offers to save everything you changed as a version on the branch you are leaving, then switch; switch back to find it there.
 
 ## Publish and sync
 
 Once the project has a version, Publish appears beside the branch name. It sends the project somewhere else: a new GitHub repository, private or public, created for it; a remote the repository already has; or any other repository by its address. With exactly one remote already set up, Publish goes straight there.
 
-After that the button becomes Sync. Sync fetches, takes in versions saved elsewhere, and sends yours, and it shows how many versions go each way. When both sides changed the same lines of a file, Sync undoes the attempt, names the file, and offers to combine them now; nothing changes unless you say yes. When a change that is not saved as a version would be overwritten, Sync stops before it starts and asks you to save a version first.
+After that the button becomes Sync. Sync fetches, takes in versions saved elsewhere, and sends yours, and it shows how many versions go each way. When both sides changed the same lines of a file, Sync undoes the attempt, names the file, and offers to combine them now; nothing changes unless you say yes. When a change that is not saved as a version would be overwritten, Sync stops before anything changes and offers Save a version and sync, which saves everything you changed as a version and then syncs.
+
+The cloud button beside Sync checks the remote for new versions without taking any in, so you can see whether a co-author uploaded before you sync. Refresh only rereads this computer.
 
 ## Combining two versions
 
