@@ -265,11 +265,9 @@
 						>
 							<span class="text-faint w-8 shrink-0 text-right tabular-nums">{match.line}</span>
 							<span class="truncate font-mono"
-								>{#each parts(match.text.trim()) as p, i (i)}{#if p.hit && previewing}<del
-											class="text-error-ink bg-error-wash rounded-base line-through">{p.s}</del
-										><ins class="text-success-ink bg-success-wash rounded-base no-underline">{p.with}</ins>{:else}<span
-											class={p.hit ? 'bg-warning-wash rounded-base' : ''}>{p.s}</span
-										>{/if}{/each}</span
+								>{#each parts(match.text.trim()) as p, i (i)}{#if p.hit && previewing}<del class="replace-old rounded-base">{p.s}</del><ins
+											class="replace-new rounded-base">{p.with}</ins
+										>{:else}<span class={p.hit ? 'bg-warning-wash rounded-base' : ''}>{p.s}</span>{/if}{/each}</span
 							>
 						</button>
 					{/each}
@@ -278,3 +276,18 @@
 		{/each}
 	</div>
 </div>
+
+<style>
+	/* a replace previewed as suggestion mode shows a suggested edit (cmSuggestions.ts), so the two
+	   read as the same thing: the words taken out struck on the delete tint, the words put in on the
+	   insert tint, both in the text's own colour */
+	.replace-old {
+		background-color: color-mix(in srgb, var(--diff-delete-tint) 16%, transparent);
+		color: color-mix(in srgb, currentColor 70%, transparent);
+		text-decoration: line-through;
+	}
+	.replace-new {
+		background-color: color-mix(in srgb, var(--diff-insert-tint) 18%, transparent);
+		text-decoration: none;
+	}
+</style>
