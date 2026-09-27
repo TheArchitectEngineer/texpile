@@ -304,19 +304,19 @@ export class WorkspaceIntegrations {
 	}
 
 	// Zotero citations (host-only; see lib/zotero)
-	// The open file's dialect must match the main's engine: the imported entries land in the
-	// bibliography the MAIN file declares, so a .typ scratch file open in a LaTeX project has
-	// nowhere sensible to point its citation.
 	// zoteroEnabled gates every entry point (editor context menu, command palette) through this one predicate
 	canZoteroCite(): boolean {
-		const kind = this.d.wsdoc.doc.kind;
-		return (
-			settings.current.zoteroEnabled !== false &&
-			!this.d.guest() &&
-			zoteroAvailable() &&
-			!!mainFile.current &&
-			(this.d.typstPreview().mainIsTypst ? kind === 'typ' : kind === 'tex')
-		);
+		return settings.current.zoteroEnabled !== false && !this.d.guest() && zoteroAvailable() && this.citesHere();
+	}
+
+	// Where a citation can go: a LaTeX or Typst file, filed for the main file (see citeAnchor). With a
+	// main chosen, the open file must be in its language: the entries land in the bibliography the
+	// MAIN file declares, so a .typ scratch file open in a LaTeX project has nowhere sensible to point
+	// its citation. With none chosen yet, the open file stands for itself.
+	private citesHere(): boolean {
+		const { kind, path } = this.d.wsdoc.doc;
+		if (!path || (kind !== 'tex' && kind !== 'typ')) return false;
+		return !mainFile.current || (this.d.typstPreview().mainIsTypst ? kind === 'typ' : kind === 'tex');
 	}
 
 	insertZoteroCitation(): void {
@@ -325,17 +325,10 @@ export class WorkspaceIntegrations {
 	}
 
 	// Cite by DOI (see lib/cite): the Zotero gate without Zotero - the entry lands in the same
-	// bibliography, so the open file must still be written in the main's language.
-	// citeByDoiEnabled gates every entry point through this one predicate, as zoteroEnabled does
+	// bibliography. citeByDoiEnabled gates every entry point through this one predicate, as
+	// zoteroEnabled does
 	canCiteByDoi(): boolean {
-		const kind = this.d.wsdoc.doc.kind;
-		return (
-			settings.current.citeByDoiEnabled !== false &&
-			!this.d.guest() &&
-			doiLookupAvailable() &&
-			!!mainFile.current &&
-			(this.d.typstPreview().mainIsTypst ? kind === 'typ' : kind === 'tex')
-		);
+		return settings.current.citeByDoiEnabled !== false && !this.d.guest() && doiLookupAvailable() && this.citesHere();
 	}
 
 	citeByDoi(): void {

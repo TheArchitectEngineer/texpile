@@ -17,6 +17,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: click the word count for the whole document's words, from the main file through every file it includes: body text, headings, captions, footnotes and tables apart, and per file (by @louisqli)
 - feat: LaTeX references are checked as you type, before any compile: a label defined twice, a citation no bibliography entry has, and an image, \input, \include or bibliography file that is not in the project, underlined in the source editor and marked on the visual editor's label and include chips (by @louisqli)
 - fix: icons beside their labels in menus, the command palette and buttons sit level with the words on every row, where some rows' icons sat a pixel or two low (by @louisqli)
+- fix: cite by title or DOI, and Zotero's insert citation, are offered before a folder has a main file; the entry goes to the bibliography the open file names, else the folder's .bib (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 

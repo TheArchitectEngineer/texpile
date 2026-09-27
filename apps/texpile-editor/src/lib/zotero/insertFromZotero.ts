@@ -20,7 +20,7 @@ export function zoteroAvailable(): boolean {
 }
 
 export type ZoteroInsertDeps = {
-	/** 'tex' or 'typ': the dialect of the open file (the gate ensures it matches the main's) */
+	/** 'tex' or 'typ': the dialect of the open file (the gate ensures it matches the main's, when there is one) */
 	kind: 'tex' | 'typ';
 	/** the workspace root, for finding stray .bib files when the main declares none */
 	root: string;
@@ -28,10 +28,20 @@ export type ZoteroInsertDeps = {
 	openDoc(): { path: string | null; text: string };
 };
 
+/**
+ * The document a citation is filed for: the main file, or while none is chosen, the open file.
+ * A folder's main is set only once someone picks it (usually at the first compile), and citing need
+ * not wait for that: the open file's own bibliography line, else the folder's .bib, is where the
+ * entry goes either way.
+ */
+export function citeAnchor(deps: ZoteroInsertDeps): string | null {
+	return mainFile.current ?? deps.openDoc().path;
+}
+
 /** entry point: check Zotero is reachable, then hand off to the in-app picker dialog */
 export async function insertCitationFromZotero(deps: ZoteroInsertDeps): Promise<void> {
 	const bridge = window.texpileZotero;
-	if (!bridge || !mainFile.current) return;
+	if (!bridge || !citeAnchor(deps)) return;
 	const probe = await bridge.probe();
 	if (!probe.running) {
 		toaster.error({ title: m.zotero_not_running_title(), description: m.zotero_not_running_desc() });
@@ -47,7 +57,7 @@ export async function insertCitationFromZotero(deps: ZoteroInsertDeps): Promise<
 /** the dialog confirmed a selection: entries into the bib, citation at the caret, toasts out */
 export async function applyPickedCitations(keys: string[], deps: ZoteroInsertDeps): Promise<void> {
 	const bridge = window.texpileZotero;
-	const main = mainFile.current;
+	const main = citeAnchor(deps);
 	if (!bridge || !main || !keys.length) return;
 	try {
 		const mainText = await mainTextOf(main, deps);

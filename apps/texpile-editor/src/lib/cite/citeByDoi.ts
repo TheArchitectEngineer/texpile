@@ -1,14 +1,13 @@
 // Cite by DOI: the lookups behind the dialog (an identifier, or a title search), and the insert
 // once the user confirms. It lands where a Zotero import does - the bib the main file reads, the
 // citation at the caret - so it shares that glue (lib/zotero) instead of keeping a second copy of it.
-import { mainFile } from '$lib/workspace/workspaceStore';
 import { references } from '$lib/workspace/citations';
 import { basename, readTextFile, statFile, writeTextFile } from '$lib/workspace/fileSystem';
 import { parseBibtex } from '$lib/languages/bib/biblatex';
 import { toaster } from '$lib/modals/toaster-svelte';
 import { m } from '$lib/paraglide/messages';
 import { appendBibEntries, translatorForSource } from '$lib/zotero/bibTarget';
-import { insertCitation, mainTextOf, targetBib, type ZoteroInsertDeps } from '$lib/zotero/insertFromZotero';
+import { citeAnchor, insertCitation, mainTextOf, targetBib, type ZoteroInsertDeps } from '$lib/zotero/insertFromZotero';
 import { findCited, preview, workFromBibtex, type BibDialect, type Work } from './doiEntry';
 import { parseWorkId, type WorkId } from './doiInput';
 import { rankHits, type SearchHit } from './searchRank';
@@ -41,7 +40,7 @@ export async function lookUpWork(id: WorkId, deps: CiteDeps): Promise<Lookup> {
 	if (known) return { state: 'cited', key: known.key, ...preview(known) };
 
 	const bridge = window.texpileDoi;
-	const main = mainFile.current;
+	const main = citeAnchor(deps);
 	if (!bridge || !main) return { state: 'error', reason: 'failed' };
 	const got =
 		id.kind === 'isbn' ? await bridge.isbn(id.isbn) : id.kind === 'pmid' ? await bridge.pmid(id.pmid) : await bridge.lookup(id.doi);
@@ -76,7 +75,7 @@ export async function searchPapers(query: string): Promise<Search> {
 /** a found work into the bib and its citation at the caret; a cited one only cited */
 export async function citeWork(found: Lookup, deps: CiteDeps): Promise<void> {
 	if (found.state === 'cited') return insertCitation([found.key], deps.kind);
-	const main = mainFile.current;
+	const main = citeAnchor(deps);
 	if (found.state !== 'found' || !main) return;
 	const { id } = found;
 	try {
