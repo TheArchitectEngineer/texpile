@@ -6,7 +6,6 @@
 	// adds what is not in it yet, a pasted list adds every word), and the words wrap as chips rather
 	// than stand one to a row.
 	import { Search, X } from '@lucide/svelte';
-	import { tip } from '$lib/components/tooltip.svelte';
 	import { editorConfigStore } from '$lib/stores/editorStore';
 	import { addWordsToDocumentDictionary, removeWordFromDocumentDictionary } from '$lib/editor/spellcheck/harper';
 	import { initSpellcheckConfig } from '$lib/editor/spellcheck/spellcheckConfig';
@@ -17,8 +16,9 @@
 	// Preferences also opens from the start screen, before any editor has read the word list
 	void initSpellcheckConfig();
 
-	/** chips drawn at most; past this the box narrows the list instead */
-	const SHOWN = 300;
+	/** chips drawn at most; past this the box narrows the list instead. The box shows about 25 at a
+	 *  time, and with 3,000 words redrawing 300 on each keystroke was a lag you could feel */
+	const SHOWN = 150;
 
 	let query = $state('');
 	const all = $derived(editorConfigStore.current?.dictionary ?? []);
@@ -49,7 +49,7 @@
 		<div class="text-sm font-medium">{m.spelldict_heading()}</div>
 		{#if all.length}
 			<span class="text-muted text-xs tabular-nums"
-				>{all.length === 1 ? m.spelldict_count_one({ count: 1 }) : m.spelldict_count_other({ count: all.length })}</span
+				>{all.length === 1 ? m.spelldict_count_one({ count: 1 }) : m.spelldict_count_other({ count: all.length.toLocaleString() })}</span
 			>
 		{/if}
 	</div>
@@ -103,7 +103,6 @@
 							class="btn-icon btn-icon-xs hover:preset-tonal text-faint hover:text-surface-950-50 size-5 shrink-0"
 							type="button"
 							aria-label={m.spelldict_remove_word_label({ word })}
-							use:tip={m.spelldict_remove_word_label({ word })}
 							onclick={() => void remove(word)}
 						>
 							<X class="size-3" />
@@ -112,7 +111,7 @@
 				{/each}
 			</ul>
 			{#if found.length > SHOWN}
-				<p class="text-muted mt-2 text-xs">{m.spelldict_more({ count: found.length - SHOWN })}</p>
+				<p class="text-muted mt-2 text-xs">{m.spelldict_more({ count: (found.length - SHOWN).toLocaleString() })}</p>
 			{/if}
 		{/if}
 	</div>
