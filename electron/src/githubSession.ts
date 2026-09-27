@@ -9,6 +9,7 @@ import {
 	GITHUB_SCOPES,
 	pollForToken,
 	requestDeviceCode,
+	sessionExpired,
 	type DeviceCode,
 	type GithubSession,
 	type SignInResult
@@ -23,8 +24,7 @@ let pending: { code: DeviceCode; abort: AbortController } | null = null;
 
 const fetchImpl = (url: string, init: { method: string; headers: Record<string, string>; body?: string }) => net.fetch(url, init);
 
-/** the signed-in account, or null */
-export function githubSession(): GithubSession | null {
+function stored(): GithubSession | null {
 	if (memory) return memory;
 	const sealed = store?.().recall(KEY);
 	if (!sealed) return null;
@@ -34,6 +34,17 @@ export function githubSession(): GithubSession | null {
 	} catch {
 		return null;
 	}
+}
+
+/** the signed-in account, or null; one whose token has expired is signed out, so git's next
+ *  question offers the sign-in again instead of failing with the old token */
+export function githubSession(): GithubSession | null {
+	const session = stored();
+	if (session && sessionExpired(session)) {
+		forgetGithubSession();
+		return null;
+	}
+	return session;
 }
 
 function save(session: GithubSession): void {
@@ -56,7 +67,13 @@ async function finish(): Promise<SignInResult> {
 		if ('failure' in got) return { ok: false, failure: got.failure, error: got.error };
 		const account = await accountOf(fetchImpl, got.token);
 		if (!account) return { ok: false, failure: 'other', error: 'GitHub did not say whose token this is' };
-		save({ token: got.token, login: account.login, id: account.id, scopes: GITHUB_SCOPES });
+		save({
+			token: got.token,
+			login: account.login,
+			id: account.id,
+			scopes: GITHUB_SCOPES,
+			...(got.expiresIn ? { expiresAt: Date.now() + got.expiresIn * 1000 } : {})
+		});
 		return { ok: true, login: account.login };
 	} catch (e) {
 		return { ok: false, failure: 'network', error: e instanceof Error ? e.message : String(e) };

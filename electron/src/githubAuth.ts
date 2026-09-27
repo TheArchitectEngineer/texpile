@@ -12,7 +12,14 @@ import { GITHUB_CLIENT_ID } from './githubAuthConfig';
 
 export const GITHUB_SCOPES = ['repo', 'workflow', 'user:email', 'read:user'];
 
-export type GithubSession = { token: string; login: string; id: number; scopes: string[] };
+export type GithubSession = {
+	token: string;
+	login: string;
+	id: number;
+	scopes: string[];
+	/** when the token stops working, ms since the epoch; absent for one that does not expire */
+	expiresAt?: number;
+};
 
 export type DeviceCode = {
 	deviceCode: string;
@@ -80,12 +87,12 @@ export async function pollForToken(
 	signal: AbortSignal,
 	clientId = GITHUB_CLIENT_ID,
 	sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms))
-): Promise<{ token: string } | { failure: 'cancelled' | 'expired' | 'denied' | 'other'; error?: string }> {
+): Promise<{ token: string; expiresIn?: number } | { failure: 'cancelled' | 'expired' | 'denied' | 'other'; error?: string }> {
 	let interval = code.interval;
 	while (Date.now() < code.expiresAt) {
 		await sleep(interval * 1000);
 		if (signal.aborted) return { failure: 'cancelled' };
-		let json: { access_token?: string; error?: string; error_description?: string; interval?: number };
+		let json: { access_token?: string; expires_in?: number; error?: string; error_description?: string; interval?: number };
 		try {
 			const res = await fetchImpl('https://github.com/login/oauth/access_token', {
 				method: 'POST',
@@ -101,7 +108,9 @@ export async function pollForToken(
 		} catch {
 			continue; // a dropped connection is a reason to ask again, not to give up
 		}
-		if (json.access_token) return { token: json.access_token };
+		// an app set to expire its tokens says when; without its client secret the token cannot be
+		// renewed, so an expired one simply means signing in again
+		if (json.access_token) return { token: json.access_token, ...(json.expires_in ? { expiresIn: json.expires_in } : {}) };
 		if (json.error === 'authorization_pending') continue;
 		if (json.error === 'slow_down') {
 			interval = json.interval ?? interval + 5;
@@ -123,4 +132,9 @@ export async function accountOf(fetchImpl: FetchLike, token: string): Promise<{ 
 	if (!res.ok) return null;
 	const user = (await res.json()) as { login?: unknown; id?: unknown };
 	return typeof user.login === 'string' && typeof user.id === 'number' ? { login: user.login, id: user.id } : null;
+}
+
+/** a token past its expiry (a minute early, so it does not run out mid-upload) is no sign-in at all */
+export function sessionExpired(session: GithubSession, now = Date.now()): boolean {
+	return session.expiresAt !== undefined && now >= session.expiresAt - 60_000;
 }

@@ -6,6 +6,7 @@ import {
 	pollForToken,
 	accountOf,
 	githubSignInAvailable,
+	sessionExpired,
 	GITHUB_SCOPES
 } from '../../../../../../electron/src/githubAuth';
 
@@ -89,4 +90,29 @@ it('learns whose token it is, and is not offered without a client ID', async () 
 	expect(await accountOf(scripted([{ login: 'ada', id: 42 }]).fetchImpl, 't')).toEqual({ login: 'ada', id: 42 });
 	expect(githubSignInAvailable('')).toBe(false);
 	expect(githubSignInAvailable('Iv1.texpile0000')).toBe(true);
+});
+
+it('knows when an expiring token has run out, and that the others never do', async () => {
+	const code = {
+		deviceCode: 'dev',
+		userCode: 'A',
+		verificationUri: 'https://github.com/login/device',
+		interval: 1,
+		expiresAt: Date.now() + 60_000
+	};
+	expect(
+		await pollForToken(scripted([{ access_token: 't', expires_in: 28_800 }]).fetchImpl, code, new AbortController().signal, 'x', noSleep)
+	).toEqual({
+		token: 't',
+		expiresIn: 28_800
+	});
+	const session = { token: 't', login: 'ada', id: 1, scopes: [] };
+	expect(sessionExpired(session)).toBe(false);
+	expect(sessionExpired({ ...session, expiresAt: 100_000 }, 30_000)).toBe(false);
+	expect(sessionExpired({ ...session, expiresAt: 100_000 }, 45_000)).toBe(true);
+});
+
+it('ships with Texpile’s own OAuth app', async () => {
+	const { GITHUB_CLIENT_ID } = await import('../../../../../../electron/src/githubAuthConfig');
+	expect(githubSignInAvailable(GITHUB_CLIENT_ID)).toBe(true);
 });
