@@ -1759,5 +1759,22 @@
 	"timeline_git": "Git 历史记录",
 	"timeline_actions": "时间线操作",
 	"timeline_no_file": "打开文件以查看其历史记录。",
-	"timeline_empty": "还没有历史记录。每次保存都会在这里保留一份副本。"
+	"timeline_empty": "还没有历史记录。每次保存都会在这里保留一份副本。",
+	"github_signin_title": "登录 GitHub",
+	"github_your_code": "你的代码：{code}",
+	"github_code_detail": "要完成登录，请前往 GitHub 并在那里粘贴这个一次性代码。",
+	"github_copy_continue": "复制并前往 GitHub",
+	"github_waiting_title": "正在等待 GitHub…",
+	"github_waiting": "在浏览器中打开 {uri} 并粘贴你的一次性代码：{code}",
+	"github_signin_failed": "无法登录 GitHub",
+	"github_signin_expired": "代码在输入前已过期。请重新登录以获取新代码。",
+	"github_signin_denied": "登录在 GitHub 上被拒绝。",
+	"github_signin_network": "无法连接到 GitHub。",
+	"github_signin_failed_generic": "GitHub 没有完成登录。",
+	"github_signed_in": "已以 {login} 身份登录 GitHub",
+	"github_signed_out": "已退出 GitHub（{login}）",
+	"github_signin_browser": "在浏览器中登录 GitHub",
+	"github_signin_or": "或在下方回答",
+	"palette_github_sign_in": "登录 GitHub",
+	"palette_github_sign_out": "退出 GitHub（{login}）"
 }

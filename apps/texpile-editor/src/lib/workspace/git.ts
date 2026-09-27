@@ -391,6 +391,8 @@ export type GitAskpassRequest = {
 	host: string | null;
 	/** the answer is kept in the system keychain once it works (electron/src/gitSignIns.ts) */
 	kept?: boolean;
+	/** a github.com question that signing in to GitHub in the browser can answer (githubSignIn.ts) */
+	github?: boolean;
 };
 
 /** drop the sign-ins Texpile kept in the keychain; false where there is no desktop bridge */

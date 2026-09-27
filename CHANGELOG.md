@@ -5,6 +5,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: sign in to GitHub in the browser with a one-time code (VS Code's device flow); the account answers git for Sync, Publish and Fork, and Sign out of GitHub ends it. Offered once Texpile's GitHub OAuth app client ID is configured (electron/src/githubAuthConfig.ts)
 - feat: local history: every save keeps a copy (as in VS Code), listed with the file's git versions in a new Timeline below Contents, with compare, restore, rename, delete and create entry; it works in projects without git
 - feat: a progress bar runs across Source Control while git works
 - feat: comparisons have previous and next change buttons (Alt+F5 and Shift+Alt+F5 in the source comparison) and Put back beside each change

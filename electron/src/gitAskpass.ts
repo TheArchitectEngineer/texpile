@@ -16,6 +16,8 @@ import { tmpdir } from 'node:os';
 import { describePrompt, writeAskpassScripts, askpassEnv } from './gitAskpassClient';
 import type { GitAuthEnv } from './gitRemote';
 import { SignIns, keepable, keychainVault, settle } from './gitSignIns';
+import { forgetGithubSession, githubSession, registerGithubAuthIpc } from './githubSession';
+import { githubSignInAvailable } from './githubAuth';
 
 /** One operation's worth of questions. `answers` is why a sign-in is typed once: publishing to
  *  GitHub reads the credential and then pushes with it, and git asks the same two questions both
@@ -28,6 +30,8 @@ type Session = {
 	typed: Map<string, string>;
 	/** sign-ins answered from the keychain, forgotten if the operation is refused */
 	recalled: Set<string>;
+	/** a github.com question was answered with the GitHub sign-in's token */
+	usedGithub: boolean;
 };
 
 let signIns: SignIns | null = null;
@@ -43,7 +47,7 @@ export function forgetSignIns(): void {
 }
 
 const sessions = new Map<string, Session>();
-const waiting = new Map<number, { session: Session; resolve: (answer: string | null) => void }>();
+const waiting = new Map<number, { session: Session; subject: string; resolve: (answer: string | null) => void }>();
 let nextId = 1;
 let bridge: Promise<{ dir: string; handle: string } | null> | null = null;
 
@@ -115,6 +119,14 @@ async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; 
 	if (promptType === 'none') return '';
 	const request = describePrompt(req.kind === 'ssh' ? 'ssh' : 'https', req.prompt, promptType);
 	const keep = req.kind !== 'ssh' && keepable(request.subject);
+	// VS Code's GitHub credential provider: the signed-in account answers github.com's questions
+	const forGithub = keep && request.host === 'github.com';
+	const signedIn = forGithub ? githubAnswer(request.subject) : null;
+	if (signedIn !== null) {
+		session.usedGithub = true;
+		session.answers.set(req.prompt, signedIn);
+		return signedIn;
+	}
 	if (keep) {
 		const kept = signInStore().recall(req.prompt);
 		if (kept !== null) {
@@ -125,9 +137,15 @@ async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; 
 	}
 	const id = nextId++;
 	const reply = await new Promise<string | null>((resolve) => {
-		waiting.set(id, { session, resolve });
+		waiting.set(id, { session, subject: request.subject, resolve });
 		// `kept`: the prompt says the answer is remembered once it works, since it will be
-		session.sender.send('git:askpass', { id, ...request, kept: keep && signInStore().available });
+		// `github`: the question can be answered by signing in to GitHub in the browser instead
+		session.sender.send('git:askpass', {
+			id,
+			...request,
+			kept: keep && signInStore().available,
+			github: forGithub && githubSignInAvailable()
+		});
 	});
 	if (reply === null) {
 		session.cancelled = true;
@@ -136,6 +154,13 @@ async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; 
 	session.answers.set(req.prompt, reply);
 	if (keep) session.typed.set(req.prompt, reply);
 	return reply;
+}
+
+/** the signed-in GitHub account's answer to a username or password question; null when signed out */
+function githubAnswer(subject: string): string | null {
+	const signed = githubSession();
+	if (!signed) return null;
+	return subject === 'username' ? signed.login : subject === 'password' ? signed.token : null;
 }
 
 function dropQuestions(session: Session): void {
@@ -162,7 +187,7 @@ export async function withAskpass<T extends { ok: boolean; failure?: string }>(
 	const b = await ensureBridge();
 	if (!b) return op({});
 	const token = randomBytes(24).toString('hex');
-	const session: Session = { sender, cancelled: false, answers: new Map(), typed: new Map(), recalled: new Set() };
+	const session: Session = { sender, cancelled: false, answers: new Map(), typed: new Map(), recalled: new Set(), usedGithub: false };
 	sessions.set(token, session);
 	function onGone() {
 		dropQuestions(session);
@@ -172,6 +197,8 @@ export async function withAskpass<T extends { ok: boolean; failure?: string }>(
 		const result = await op(askpassEnv(b.dir, b.handle, token, process.execPath));
 		// kept only once they worked; a kept one that was refused is dropped, so the next try asks
 		settle(signInStore(), result, session.typed, session.recalled);
+		// a token GitHub refused (revoked, expired) is signed out, so the next try asks again
+		if (session.usedGithub && !result.ok && result.failure === 'auth') forgetGithubSession();
 		return !result.ok && session.cancelled ? { ...result, failure: 'cancelled' } : result;
 	} finally {
 		sessions.delete(token);
@@ -183,6 +210,19 @@ export async function withAskpass<T extends { ok: boolean; failure?: string }>(
 export function registerAskpassIpc(): void {
 	ipcMain.handle('git:forgetSignIns', () => {
 		forgetSignIns();
+		return true;
+	});
+	registerGithubAuthIpc(signInStore);
+	// the question answered by the GitHub sign-in the window just completed: the token is read here
+	ipcMain.handle('git:askpassUseGithub', (e, id: unknown) => {
+		const w = typeof id === 'number' ? waiting.get(id) : undefined;
+		if (!w || w.session.sender !== e.sender) return false;
+		const subject = typeof w.subject === 'string' ? w.subject : '';
+		const answer = githubAnswer(subject);
+		if (answer === null) return false;
+		waiting.delete(id as number);
+		w.session.usedGithub = true;
+		w.resolve(answer);
 		return true;
 	});
 	// null (or anything not a string) is Cancel. Only the window that was asked can answer.

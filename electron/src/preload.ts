@@ -316,6 +316,19 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	localHistoryRename: (path: string, id: string, label: string) => invokeFs('history:rename', path, id, label),
 	localHistoryRemoveAll: () => invokeFs('history:removeAll'),
 	localHistoryMove: (from: string, to: string) => invokeFs('history:move', from, to),
+	/** Signing in to GitHub in the browser (githubAuth.ts): offered only once Texpile's OAuth app is configured. */
+	githubSignInAvailable: () => ipcRenderer.invoke('github:available'),
+	/** the signed-in GitHub account's login, or null */
+	githubAccount: () => ipcRenderer.invoke('github:account'),
+	/** the one-time code to show -> { ok, userCode?, verificationUri?, failure? } */
+	githubStartSignIn: () => ipcRenderer.invoke('github:startSignIn'),
+	githubOpenVerification: () => ipcRenderer.invoke('github:openVerification'),
+	/** waits until the code was typed at GitHub, or it expired or was cancelled -> { ok, login?, failure? } */
+	githubFinishSignIn: () => ipcRenderer.invoke('github:finishSignIn'),
+	githubCancelSignIn: () => ipcRenderer.invoke('github:cancelSignIn'),
+	githubSignOut: () => ipcRenderer.invoke('github:signOut'),
+	/** answer git's github.com question with the account just signed in -> true */
+	gitAskpassUseGithub: (id: number) => ipcRenderer.invoke('git:askpassUseGithub', id),
 	/** drop every sign-in Texpile kept in the keychain -> true. */
 	gitForgetSignIns: () => ipcRenderer.invoke('git:forgetSignIns'),
 	/** git clone into <parent>/<name> -> { ok, path?, failure? }; progress arrives on onGitCloneProgress. */

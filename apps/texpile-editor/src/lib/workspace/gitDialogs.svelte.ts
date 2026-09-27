@@ -2,6 +2,7 @@
 // is published, and git's own sign-in questions. ScmActions awaits the first two the way it awaits
 // confirmAsk; the third arrives from main whenever git asks (electron/src/gitAskpass.ts).
 // GitDialogsHost draws all three.
+import { answerWithGithub } from './githubSignIn.svelte';
 import { nativeBridge } from './fileSystem';
 import type { GitAskpassRequest, GitRemote } from './git';
 
@@ -130,4 +131,11 @@ export function listenForGitQuestions(): () => void {
 export function answerQuestion(id: number, answer: string | null): void {
 	questions = questions.filter((q) => q.id !== id);
 	void nativeBridge()?.gitAskpassReply?.(id, answer);
+}
+
+/** Sign in with GitHub in the browser instead of typing a token: the question waits, off screen,
+ *  while the author signs in, and comes back if they do not */
+export async function answerWithGithubSignIn(question: GitAskpassRequest): Promise<void> {
+	questions = questions.filter((q) => q.id !== question.id);
+	if (!(await answerWithGithub(question.id))) questions = [...questions, question];
 }

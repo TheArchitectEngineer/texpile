@@ -4,10 +4,10 @@
 	// nobody can see (electron/src/gitAskpass.ts). Git's own credential helpers are asked first, so
 	// this appears only when they have nothing, and a helper that has one keeps it after it works.
 	import { onMount } from 'svelte';
-	import { KeyRound, ShieldQuestionMark } from '@lucide/svelte';
+	import { KeyRound, ShieldQuestionMark, Globe } from '@lucide/svelte';
 	import Modal from '../Modal.svelte';
 	import ModalActions from '../ModalActions.svelte';
-	import { answerQuestion, type GitQuestion } from '$lib/workspace/gitDialogs.svelte';
+	import { answerQuestion, answerWithGithubSignIn, type GitQuestion } from '$lib/workspace/gitDialogs.svelte';
 	import { m } from '$lib/paraglide/messages';
 
 	let { question }: { question: GitQuestion } = $props();
@@ -56,6 +56,14 @@
 		<p class="text-muted mb-3 text-sm">{m.vcs_hostkey_desc()}</p>
 		<pre class="bg-surface-100-900 rounded-base overflow-x-auto p-3 text-xs whitespace-pre-wrap">{question.prompt}</pre>
 	{:else}
+		{#if question.github}
+			<!-- VS Code's GitHub account: the browser signs in, and no token is typed or kept by hand -->
+			<button class="btn btn-sm preset-filled-primary-500 mb-2 w-full gap-1.5" onclick={() => void answerWithGithubSignIn(question)}>
+				<Globe class="size-4" />
+				{m.github_signin_browser()}
+			</button>
+			<p class="text-muted mb-3 text-center text-xs">{m.github_signin_or()}</p>
+		{/if}
 		{#if question.subject === 'password' && github}
 			<p class="text-muted mb-3 text-sm">
 				{m.vcs_signin_github_hint()}

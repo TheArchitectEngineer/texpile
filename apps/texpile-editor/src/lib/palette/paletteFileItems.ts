@@ -1,6 +1,20 @@
-import { FilePlus2, FolderGit2, FolderOpen, KeyRound, Play, RefreshCw, RotateCw, Save, Settings, Users, Wrench } from '@lucide/svelte';
+import {
+	FilePlus2,
+	FolderGit2,
+	FolderOpen,
+	Github,
+	KeyRound,
+	Play,
+	RefreshCw,
+	RotateCw,
+	Save,
+	Settings,
+	Users,
+	Wrench
+} from '@lucide/svelte';
 import { isDirty } from '$lib/workspace/workspaceStore';
 import { nativeBridge } from '$lib/workspace/fileSystem';
+import { githubStatus, signInToGithub, signOutOfGithub } from '$lib/workspace/githubSignIn.svelte';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { collabHost } from '$lib/collab/hostStore.svelte';
 import { combo } from '$lib/chrome/shortcutText';
@@ -87,6 +101,17 @@ export function fileItems(a: PaletteActions): PaletteItem[] {
 			keywords: 'git github download repository remote',
 			icon: FolderGit2,
 			run: () => clone()
+		});
+	// VS Code's Accounts menu, for GitHub: sign in in the browser, or out
+	const github = githubStatus.current;
+	if (a.isHostWorkspace() && github.available)
+		items.push({
+			id: 'file.githubAccount',
+			label: github.login ? m.palette_github_sign_out({ login: github.login }) : m.palette_github_sign_in(),
+			group,
+			keywords: 'github account login logout browser oauth token',
+			icon: Github,
+			run: () => void (github.login ? signOutOfGithub() : signInToGithub())
 		});
 	const forget = a.forgetSignIns;
 	if (a.isHostWorkspace() && forget)

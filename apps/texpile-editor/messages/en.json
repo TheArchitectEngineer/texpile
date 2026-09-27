@@ -1759,5 +1759,22 @@
 	"timeline_git": "Git History",
 	"timeline_actions": "Timeline actions",
 	"timeline_no_file": "Open a file to see its history.",
-	"timeline_empty": "No history yet. Every save keeps a copy here."
+	"timeline_empty": "No history yet. Every save keeps a copy here.",
+	"github_signin_title": "Sign in to GitHub",
+	"github_your_code": "Your code: {code}",
+	"github_code_detail": "To finish signing in, go to GitHub and paste this one-time code there.",
+	"github_copy_continue": "Copy & Continue to GitHub",
+	"github_waiting_title": "Waiting for GitHub…",
+	"github_waiting": "Open {uri} in your browser and paste your one-time code: {code}",
+	"github_signin_failed": "Could not sign in to GitHub",
+	"github_signin_expired": "The code expired before it was entered. Sign in again for a new one.",
+	"github_signin_denied": "The sign-in was declined on GitHub.",
+	"github_signin_network": "GitHub could not be reached.",
+	"github_signin_failed_generic": "GitHub did not complete the sign-in.",
+	"github_signed_in": "Signed in to GitHub as {login}",
+	"github_signed_out": "Signed out of GitHub ({login})",
+	"github_signin_browser": "Sign in with GitHub in your browser",
+	"github_signin_or": "or answer below",
+	"palette_github_sign_in": "Sign in to GitHub",
+	"palette_github_sign_out": "Sign out of GitHub ({login})"
 }

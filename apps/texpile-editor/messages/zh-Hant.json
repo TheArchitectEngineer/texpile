@@ -1759,5 +1759,22 @@
 	"timeline_git": "Git 歷程記錄",
 	"timeline_actions": "時間軸動作",
 	"timeline_no_file": "開啟檔案以查看其歷程記錄。",
-	"timeline_empty": "還沒有歷程記錄。每次儲存都會在這裡保留一份副本。"
+	"timeline_empty": "還沒有歷程記錄。每次儲存都會在這裡保留一份副本。",
+	"github_signin_title": "登入 GitHub",
+	"github_your_code": "你的代碼：{code}",
+	"github_code_detail": "要完成登入，請前往 GitHub 並在那裡貼上這個一次性代碼。",
+	"github_copy_continue": "複製並前往 GitHub",
+	"github_waiting_title": "正在等待 GitHub…",
+	"github_waiting": "在瀏覽器中開啟 {uri} 並貼上你的一次性代碼：{code}",
+	"github_signin_failed": "無法登入 GitHub",
+	"github_signin_expired": "代碼在輸入前已過期。請重新登入以取得新代碼。",
+	"github_signin_denied": "登入在 GitHub 上被拒絕。",
+	"github_signin_network": "無法連線到 GitHub。",
+	"github_signin_failed_generic": "GitHub 沒有完成登入。",
+	"github_signed_in": "已以 {login} 身分登入 GitHub",
+	"github_signed_out": "已登出 GitHub（{login}）",
+	"github_signin_browser": "在瀏覽器中登入 GitHub",
+	"github_signin_or": "或在下方回答",
+	"palette_github_sign_in": "登入 GitHub",
+	"palette_github_sign_out": "登出 GitHub（{login}）"
 }

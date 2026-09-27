@@ -1759,5 +1759,22 @@
 	"timeline_git": "Git-Verlauf",
 	"timeline_actions": "Aktionen der Zeitachse",
 	"timeline_no_file": "Öffnen Sie eine Datei, um ihren Verlauf zu sehen.",
-	"timeline_empty": "Noch kein Verlauf. Jedes Speichern legt hier eine Kopie ab."
+	"timeline_empty": "Noch kein Verlauf. Jedes Speichern legt hier eine Kopie ab.",
+	"github_signin_title": "Bei GitHub anmelden",
+	"github_your_code": "Ihr Code: {code}",
+	"github_code_detail": "Um die Anmeldung abzuschließen, öffnen Sie GitHub und fügen Sie dort diesen Einmalcode ein.",
+	"github_copy_continue": "Kopieren und weiter zu GitHub",
+	"github_waiting_title": "Warten auf GitHub…",
+	"github_waiting": "Öffnen Sie {uri} im Browser und fügen Sie Ihren Einmalcode ein: {code}",
+	"github_signin_failed": "Anmeldung bei GitHub fehlgeschlagen",
+	"github_signin_expired": "Der Code ist abgelaufen, bevor er eingegeben wurde. Melden Sie sich erneut an, um einen neuen zu erhalten.",
+	"github_signin_denied": "Die Anmeldung wurde auf GitHub abgelehnt.",
+	"github_signin_network": "GitHub ist nicht erreichbar.",
+	"github_signin_failed_generic": "GitHub hat die Anmeldung nicht abgeschlossen.",
+	"github_signed_in": "Bei GitHub angemeldet als {login}",
+	"github_signed_out": "Von GitHub abgemeldet ({login})",
+	"github_signin_browser": "Im Browser bei GitHub anmelden",
+	"github_signin_or": "oder unten antworten",
+	"palette_github_sign_in": "Bei GitHub anmelden",
+	"palette_github_sign_out": "Von GitHub abmelden ({login})"
 }
