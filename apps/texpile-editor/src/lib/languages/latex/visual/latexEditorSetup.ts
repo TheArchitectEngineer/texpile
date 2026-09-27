@@ -65,7 +65,8 @@ import { createNodeFlashPlugin } from '$lib/editor/visual/extensions/flash-plugi
 import { drawnOrSource } from '$lib/editor/visual/extensions/drawnChips/DrawnChipView';
 import { drawnChipAtomsPlugin } from '$lib/editor/visual/extensions/drawnChips/drawnChipAtoms';
 import { latexChipKind } from '$lib/languages/latex/visual/extensions/drawn/latexChipKind';
-import { footnoteNumbersPlugin } from '$lib/languages/latex/visual/extensions/drawn/footnoteNumbers';
+import { footnoteNumbersPlugin } from '$lib/editor/visual/extensions/drawnChips/footnoteNumbers';
+import { latexFootnoteMarks } from '$lib/languages/latex/visual/extensions/drawn/latexFootnoteMarks';
 import { createLinkPlugin } from '$lib/editor/visual/extensions/link';
 import { pmComments } from '$lib/editor/visual/extensions/pmComments';
 import { listRuleWithoutIndent } from './listItemIndent';
@@ -200,7 +201,7 @@ export function latexEditorPlugins(setup: LatexEditorSetup): Plugin[] {
 		createBlockHandlePlugin(),
 		wholeBlockDragPlugin(),
 		dropPastNodeViewsPlugin(),
-		footnoteNumbersPlugin(),
+		footnoteNumbersPlugin(latexFootnoteMarks),
 		createNodeFlashPlugin(),
 		...pmComments({
 			onSelect: (id) => onSelectComment?.(id),

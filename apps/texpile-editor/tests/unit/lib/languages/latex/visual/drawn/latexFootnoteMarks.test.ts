@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { EditorState } from 'prosemirror-state';
 import { schema } from '$lib/languages/latex/schema/latexPMSchema';
-import { footnoteNumbersKey, footnoteNumbersPlugin, footnoteNumbersOf } from '$lib/languages/latex/visual/extensions/drawn/footnoteNumbers';
+import { footnoteNumbersKey, footnoteNumbersPlugin, footnoteNumbersOf } from '$lib/editor/visual/extensions/drawnChips/footnoteNumbers';
+import { latexFootnoteMarks } from '$lib/languages/latex/visual/extensions/drawn/latexFootnoteMarks';
 
 const chip = (text: string) => schema.node('inline_latex', null, [schema.text(text)]);
 
-describe('footnoteNumbers', () => {
+describe('latexFootnoteMarks', () => {
 	it('counts as LaTeX does: a given number steps nothing, a commented one is not there', () => {
 		const doc = schema.node('doc', null, [
 			schema.node('paragraph', null, [
@@ -16,7 +17,7 @@ describe('footnoteNumbers', () => {
 				chip('\\footnotemark\\footnote{three}')
 			])
 		]);
-		const state = EditorState.create({ doc, plugins: [footnoteNumbersPlugin()] });
+		const state = EditorState.create({ doc, plugins: [footnoteNumbersPlugin(latexFootnoteMarks)] });
 		const numbers = footnoteNumbersKey
 			.getState(state)!
 			.find()
