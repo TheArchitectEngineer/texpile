@@ -13,6 +13,7 @@ import {
 	type LocalHistoryEntry
 } from './localHistory.svelte';
 import { basename, detectEol, fromLf, toLf } from './fileSystem';
+import { openFile } from './workspaceStore';
 import { promptAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
 import { m } from '$lib/paraglide/messages';
@@ -67,17 +68,25 @@ export class LocalHistoryActions {
 			toaster.error({ title: m.history_restore_failed({ name: basename(path) }), description: m.history_entry_gone() });
 			return;
 		}
+		let current: string | null;
 		try {
 			if (this.deps.getLoadedPath() === path) this.deps.discardPendingSave();
 			// the file's own line endings, whatever the copy was kept with
-			const current = await this.deps.readTextIfPresent(path);
+			current = await this.deps.readTextIfPresent(path);
 			await this.deps.writeText(path, current === null ? content : fromLf(toLf(content), detectEol(current)));
 		} catch (e) {
 			toaster.error({ title: m.history_restore_failed({ name: basename(path) }), description: e instanceof Error ? e.message : String(e) });
 			return;
 		}
-		if (this.deps.getLoadedPath() === path) await this.deps.loadFile(path);
+		// a deleted file comes back (its folder too, if that went), and is opened
+		if (current === null) openFile(path);
+		else if (this.deps.getLoadedPath() === path) await this.deps.loadFile(path);
 		await addLocalHistory(path, toLf(content), 'restored');
+	}
+
+	/** the file as it is on disk now; null when it is gone */
+	currentText(path: string): Promise<string | null> {
+		return this.deps.readTextIfPresent(path);
 	}
 
 	/** Rename: the entry's label, which starts as how it was made ("File Saved") */

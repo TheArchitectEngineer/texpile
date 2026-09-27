@@ -5,6 +5,7 @@ import { refreshGitStatus, gitRunning } from './gitStore';
 import { nativeBridge } from './fileSystem';
 import { NO_BRIDGE, errMsg, type PushFailure } from './git';
 import { uploadReason } from './uploadReason';
+import { autoCheckDone, resumeAutoCheck } from './scmAutoCheck.svelte';
 import { toastGitFailure } from './gitFailureToast';
 import { toaster } from '$lib/modals/toaster-svelte';
 import { m } from '$lib/paraglide/messages';
@@ -40,6 +41,8 @@ export class ScmFetch {
 	checkForNew = async (): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return;
+		await autoCheckDone(); // one fetch at a time
+		if (this.host.busy) return;
 		this.host.busy = true;
 		gitRunning.current = 'fetch';
 		let res: GitFetchResult;
@@ -55,6 +58,7 @@ export class ScmFetch {
 			if (res.failure !== 'cancelled') toastGitFailure(m.vcs_toast_fetch_failed(), uploadReason(res), res);
 			return;
 		}
+		resumeAutoCheck();
 		const behind = res.behind ?? 0;
 		if (!behind) toaster.success({ title: m.vcs_fetch_none({ remote }) });
 		else

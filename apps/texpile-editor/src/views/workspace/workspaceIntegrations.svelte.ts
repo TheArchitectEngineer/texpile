@@ -13,6 +13,7 @@ import { gitHead, gitTracking, isGitRepo } from '$lib/workspace/gitStore';
 import { gitignoreLines } from '$lib/workspace/buildArtifacts';
 import { provideScmHandlers } from '$lib/workspace/scmHandlers.svelte';
 import { ScmFetch } from '$lib/workspace/scmFetch.svelte';
+import { AutoCheck } from '$lib/workspace/scmAutoCheck.svelte';
 import { LocalHistoryActions, provideLocalHistoryActions } from '$lib/workspace/localHistoryActions.svelte';
 import { ScmPublishNew } from '$lib/workspace/scmPublishNew';
 import { refreshProjectIntel } from '$lib/workspace/projectIntel';
@@ -148,6 +149,12 @@ export class WorkspaceIntegrations {
 		});
 		$effect(() => provideLocalHistoryActions(history));
 		const fetcher = new ScmFetch(this.scm);
+		// co-authors' new versions, looked for every few minutes while this project is open
+		const autoCheck = new AutoCheck({ isBusy: () => this.scm.busy, sync: () => void this.scm.sync() });
+		$effect(() => {
+			autoCheck.start();
+			return autoCheck.stop;
+		});
 		const publisher = new ScmPublishNew(this.scm);
 		$effect(() =>
 			provideScmHandlers({
@@ -156,7 +163,8 @@ export class WorkspaceIntegrations {
 				publishNew: () => void publisher.run(),
 				compare: (path) => this.scm.openDiff(path),
 				hasUpstream: () => !!gitTracking.current,
-				keepSide: (path, side) => void this.scm.combine.keepSide(path, side)
+				keepSide: (path, side) => void this.scm.combine.keepSide(path, side),
+				chooseWhole: (path, choose) => void this.scm.combine.chooseWhole(path, choose)
 			})
 		);
 

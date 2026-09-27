@@ -65,6 +65,13 @@ export function registerGitIpc(): void {
 			);
 		});
 	}
+	// the automatic check for new versions (VS Code's autofetch): the same fetch, with no one asked
+	handleFsE('git:fetchQuiet', (e, root: unknown) =>
+		timeSpan(
+			'git:fetchQuiet',
+			withAskpass(e.sender, (env) => helperCall('git.gitFetch', [root, env]) as Promise<{ ok: boolean; failure?: string }>, { quiet: true })
+		)
+	);
 	// a clone reports its progress as it goes, to the window that asked for it, and only that
 	// window can stop it
 	let clones = 0;

@@ -5,6 +5,10 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: while combining, a file one side deleted or a figure both sides changed asks which version to keep (Keep my version, Keep their version, Delete the file), and Finish combining waits for the answer
+- feat: Timeline: Compare with Previous shows what one save or version changed; Find Entry to Restore (Timeline menu and palette) lists every file with local history, deleted ones included, and brings a deleted file back
+- feat: Texpile checks for co-authors' new versions every three minutes while in front and says when some arrive, without ever asking for a sign-in; Preferences > Collaboration turns it off
+
 - fix: Timeline: a version from before a rename opens under the file's name then, and Load more reaches versions past the first 50
 - fix: Save version keeps a rename whole, takes in a file whose conflicts are all chosen after a stash, and waits while a place is still marked
 - fix: Discard puts back changes staged in a terminal; a file staged as new, or the new name of a rename, goes to the Trash; where there is no Trash it asks before deleting outright

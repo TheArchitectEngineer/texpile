@@ -3,6 +3,7 @@ import {
 	FolderGit2,
 	FolderOpen,
 	Github,
+	History,
 	KeyRound,
 	Play,
 	RefreshCw,
@@ -15,6 +16,8 @@ import {
 import { isDirty } from '$lib/workspace/workspaceStore';
 import { nativeBridge } from '$lib/workspace/fileSystem';
 import { githubStatus, signInToGithub, signOutOfGithub } from '$lib/workspace/githubSignIn.svelte';
+import { canKeepLocalHistory } from '$lib/workspace/localHistory.svelte';
+import { openLocalHistoryFinder } from '$lib/workspace/localHistoryFinder.svelte';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { collabHost } from '$lib/collab/hostStore.svelte';
 import { combo } from '$lib/chrome/shortcutText';
@@ -112,6 +115,16 @@ export function fileItems(a: PaletteActions): PaletteItem[] {
 			keywords: 'github account login logout browser oauth token',
 			icon: Github,
 			run: () => void (github.login ? signOutOfGithub() : signInToGithub())
+		});
+	// VS Code's Local History: Find Entry to Restore, the way back to a deleted file's copies
+	if (a.isHostWorkspace() && canKeepLocalHistory())
+		items.push({
+			id: 'file.localHistoryFind',
+			label: m.palette_history_find(),
+			group,
+			keywords: 'local history restore recover deleted lost file copy backup undo timeline',
+			icon: History,
+			run: () => openLocalHistoryFinder()
 		});
 	const forget = a.forgetSignIns;
 	if (a.isHostWorkspace() && forget)

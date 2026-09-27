@@ -204,6 +204,36 @@ export class LocalHistory {
 		});
 	}
 
+	/**
+	 * Every file with history under `under`, newest first, whether or not it is still there: VS
+	 * Code's Find Entry to Restore, which is how a deleted file's copies are found at all, since the
+	 * Timeline shows only a file that is open.
+	 */
+	all(under: string): Promise<{ resource: string; count: number; newest: number }[]> {
+		return this.queue(async () => {
+			const prefix = resourceKey(under) + sep;
+			let folders: string[];
+			try {
+				folders = await readdir(this.home);
+			} catch {
+				return [];
+			}
+			const found: { resource: string; count: number; newest: number }[] = [];
+			for (const name of folders) {
+				let resource: string;
+				try {
+					resource = (JSON.parse(await readFile(join(this.home, name, ENTRIES_FILE), 'utf8')) as Model).resource;
+				} catch {
+					continue;
+				}
+				if (typeof resource !== 'string' || !resourceKey(resource).startsWith(prefix)) continue;
+				const { entries } = await this.load(resource);
+				if (entries.length) found.push({ resource, count: entries.length, newest: entries.at(-1)!.timestamp });
+			}
+			return found.sort((a, b) => b.newest - a.newest);
+		});
+	}
+
 	/** VS Code's Delete All: every entry of every file */
 	removeAll(): Promise<void> {
 		return this.queue(() => rm(this.home, { recursive: true, force: true }));

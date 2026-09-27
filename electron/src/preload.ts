@@ -286,6 +286,7 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitSync: (root: string) => invokeFs('git:sync', root),
 	/** fetch the upstream's remote and count, taking nothing in -> { ok, remote?, ahead?, behind?, failure? }. */
 	gitFetch: (root: string) => invokeFs('git:fetch', root),
+	gitFetchQuiet: (root: string) => invokeFs('git:fetchQuiet', root),
 	/** merge the upstream Sync just fetched, leaving what both sides changed marked -> { ok, failure?, conflicts? }. */
 	gitCombine: (root: string) => invokeFs('git:combine', root),
 	/** commit the merge once no file holds a marked place -> { ok, failure?, files? }. */
@@ -316,6 +317,7 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	localHistoryRename: (path: string, id: string, label: string) => invokeFs('history:rename', path, id, label),
 	localHistoryRemoveAll: () => invokeFs('history:removeAll'),
 	localHistoryMove: (from: string, to: string) => invokeFs('history:move', from, to),
+	localHistoryAll: (root: string) => invokeFs('history:all', root),
 	/** Signing in to GitHub in the browser (githubAuth.ts): offered only once Texpile's OAuth app is configured. */
 	githubSignInAvailable: () => ipcRenderer.invoke('github:available'),
 	/** the signed-in GitHub account's login, or null */

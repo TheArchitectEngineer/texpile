@@ -165,8 +165,39 @@ describe.skipIf(!AVAILABLE)('keeping one side of a whole file', () => {
 		commit(root, 'main.tex', 'My first line.\nSecond line.\n', 'My edit');
 		await gitSync(root);
 		await gitCombine(root);
+		// nothing in the file says a choice is waiting, so the row says it, and Finish waits for it
+		const row = (await gitStatus(root)).entries?.find((e) => e.path === join(root, 'main.tex'));
+		expect(row).toMatchObject({ choose: 'deleted-by-them', markers: true });
+		expect(await gitFinishCombine(root)).toMatchObject({ ok: false, failure: 'markers', files: [join(root, 'main.tex')] });
 		expect(await gitKeepSide(root, join(root, 'main.tex'), 'theirs')).toEqual({ ok: true });
 		expect(existsSync(join(root, 'main.tex'))).toBe(false);
+		expect(await gitFinishCombine(root)).toEqual({ ok: true });
+	});
+
+	it('asks which figure to keep when both sides changed one, rather than keeping mine without a word', async () => {
+		const fixture = await makePublished();
+		const { root, other } = fixture;
+		const png = (n: number) => Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, n]);
+		writeFileSync(join(other, 'figure.png'), png(1));
+		run(other, 'add', 'figure.png');
+		run(other, 'commit', '-qm', 'Add the figure');
+		run(other, 'push', '-q');
+		run(root, 'pull', '-q');
+		writeFileSync(join(other, 'figure.png'), png(2));
+		run(other, 'commit', '-qam', 'Their figure');
+		run(other, 'push', '-q');
+		writeFileSync(join(root, 'figure.png'), png(3));
+		run(root, 'commit', '-qam', 'My figure');
+		await gitSync(root);
+		await gitCombine(root);
+
+		const row = (await gitStatus(root)).entries?.find((e) => e.path === join(root, 'figure.png'));
+		expect(row).toMatchObject({ choose: 'binary', markers: true });
+		expect((await gitFinishCombine(root)).failure).toBe('markers');
+		expect(await gitKeepSide(root, join(root, 'figure.png'), 'theirs')).toEqual({ ok: true });
+		expect(readFileSync(join(root, 'figure.png'))).toEqual(png(2));
+		// kept means settled: the row leaves the conflicts, and Finish saves the merge
+		expect((await gitStatus(root)).entries?.find((e) => e.path === join(root, 'figure.png'))?.choose).toBeUndefined();
 		expect(await gitFinishCombine(root)).toEqual({ ok: true });
 	});
 

@@ -42,7 +42,8 @@ const DEFAULT_SETTINGS = {
 	aiAgentModel: '', // a preset's --model, from the list it gives (agentModels.ts); '' = its own default
 	setupSeen: '', // the app version whose welcome screen was finished or skipped (renderer lib/setup)
 	openFolders: [] as string[], // folders open across windows; maintained here for session restore
-	toolDirs: [] as string[] // searched before PATH by every program Texpile starts; see shell/toolDirs.ts
+	toolDirs: [] as string[], // searched before PATH by every program Texpile starts; see shell/toolDirs.ts
+	checkForNewVersions: true // fetch co-authors' versions every few minutes while focused (renderer scmAutoCheck)
 };
 
 // The UI languages we ship. Anything else, or a failed probe, falls back to English.

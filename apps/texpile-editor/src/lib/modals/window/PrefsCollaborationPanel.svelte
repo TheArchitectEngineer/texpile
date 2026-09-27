@@ -1,6 +1,8 @@
 <script lang="ts">
 	// The Collaboration category: the name the other people in a session see.
 	import { tip } from '$lib/components/tooltip.svelte';
+	import { Switch } from '@skeletonlabs/skeleton-svelte';
+	import { settings, updateSettings } from '$lib/settings';
 	import { userData, updateUserData } from '$lib/storage/userData';
 	import { collabHost } from '$lib/collab/hostStore.svelte';
 	import { collabGuest } from '$lib/collab/guestStore.svelte';
@@ -51,6 +53,16 @@
 {#if gitId}
 	<h3 class="text-muted pt-5 text-xs font-semibold tracking-wide uppercase">{m.prefs_collab_git()}</h3>
 	<p class="text-muted pt-1 pb-1 text-xs leading-relaxed">{m.prefs_collab_git_note()}</p>
+	<div class="{ROW} pl-4">
+		{@render label(m.prefs_check_new_versions(), m.prefs_check_new_versions_note())}
+		<Switch
+			checked={settings.current.checkForNewVersions !== false}
+			onCheckedChange={(d) => updateSettings({ checkForNewVersions: d.checked })}
+		>
+			<Switch.Control><Switch.Thumb /></Switch.Control>
+			<Switch.HiddenInput />
+		</Switch>
+	</div>
 	<div class="{ROW} pl-4">
 		{@render label(m.prefs_collab_git_name())}
 		<span class="text-muted max-w-64 shrink-0 truncate text-sm">{gitId.name ?? m.prefs_collab_git_none()}</span>

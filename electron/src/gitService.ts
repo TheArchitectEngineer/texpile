@@ -3,7 +3,7 @@
 import { simpleGit, type SimpleGit, type FileStatusResult } from 'simple-git';
 import { dirname, resolve, relative, join, isAbsolute, sep } from 'node:path';
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { open, readFile, type FileHandle } from 'node:fs/promises';
 import { unsafeRepoFrom } from './unsafeRepo';
 import { FOLDER_ROW_AT, capRows, collapseUntracked } from './gitStatusLimit';
 import { hasConflictMarkers } from './conflictMarkers';
@@ -32,6 +32,8 @@ export type GitStatusEntry = {
 	/** a file both sides changed that still holds a place marked for someone to choose. Only set
 	 *  on those files: once every place is chosen it is ready to finish the merge with. */
 	markers?: boolean;
+	/** a file both sides changed that is settled by keeping one whole side: why (wholeFileChoice) */
+	choose?: WholeFileChoice;
 	/** a rename's old path, absolute: saving the rename takes in both, putting it back restores this */
 	from?: string;
 	/** a folder row that also holds files .gitignore leaves out: never deleted as a whole */
@@ -215,6 +217,37 @@ export function isUnmerged(x: string, y: string): boolean {
 	return x === 'U' || y === 'U' || (x === 'A' && y === 'A') || (x === 'D' && y === 'D');
 }
 
+/**
+ * A file both sides changed with no places to choose between, only the whole file: one side
+ * deleted it, or it is not text (a figure, a PDF), where git leaves your version in place and
+ * nothing in it says a choice is waiting. VS Code asks about the first two; a writer's figures are
+ * where a silent pick of one side hurts most, so the third is asked about too.
+ */
+export type WholeFileChoice = 'deleted-by-them' | 'deleted-by-us' | 'binary';
+
+export async function wholeFileChoice(x: string, y: string, abs: string): Promise<WholeFileChoice | null> {
+	// git leaves the side that kept the file on disk; gone from there, it was deleted, which is a choice
+	if (x === 'U' && y === 'D') return existsSync(abs) ? 'deleted-by-them' : null;
+	if (x === 'D' && y === 'U') return existsSync(abs) ? 'deleted-by-us' : null;
+	if ((x === 'U' && y === 'U') || (x === 'A' && y === 'A')) return (await looksBinary(abs)) ? 'binary' : null;
+	return null;
+}
+
+/** git's own test: a NUL byte in the first 8000 */
+async function looksBinary(abs: string): Promise<boolean> {
+	let file: FileHandle | undefined;
+	try {
+		file = await open(abs, 'r');
+		const head = Buffer.alloc(8000);
+		const { bytesRead } = await file.read(head, 0, head.length, 0);
+		return head.subarray(0, bytesRead).includes(0);
+	} catch {
+		return false;
+	} finally {
+		await file?.close();
+	}
+}
+
 /** a deleted or unreadable file has nothing marked in it */
 export async function stillMarked(abs: string): Promise<boolean> {
 	try {
@@ -279,7 +312,12 @@ export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult>
 			if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) continue;
 			const entry: GitStatusEntry = { path: join(workspaceRoot, rel), x: f.index, y: f.working_dir };
 			if (f.from && f.index === 'R') entry.from = resolve(repoRoot, f.from);
-			if (isUnmerged(f.index, f.working_dir)) entry.markers = await stillMarked(absFromRepo);
+			if (isUnmerged(f.index, f.working_dir)) {
+				// a whole-file choice is still a choice to make: marked until it is made
+				const choose = await wholeFileChoice(f.index, f.working_dir, absFromRepo);
+				if (choose) entry.choose = choose;
+				entry.markers = !!choose || (await stillMarked(absFromRepo));
+			}
 			entries.push(entry);
 		}
 		const { rows, truncated } = capRows(await withFolderRows(g, workspaceRoot, entries), (e) => isUnmerged(e.x, e.y));

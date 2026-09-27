@@ -84,6 +84,9 @@ export type AppSettings = {
 	aiAgentModel: string;
 	/** folders searched before PATH; per machine, so never in a project's config */
 	toolDirs: string[];
+	/** look for co-authors' new versions every few minutes while the window is in front (VS Code's
+	 *  git.autofetch, on by default here: a writer's conflicts come from editing before a Sync) */
+	checkForNewVersions: boolean;
 };
 
 /** default compile command. -cd runs the compile in the main file's own directory, so a main file in
@@ -124,7 +127,8 @@ const DEFAULTS: AppSettings = {
 	aiAgent: '',
 	aiAgentCommand: '',
 	aiAgentModel: '',
-	toolDirs: []
+	toolDirs: [],
+	checkForNewVersions: true
 };
 
 const LS_KEY = 'texpile:settings';

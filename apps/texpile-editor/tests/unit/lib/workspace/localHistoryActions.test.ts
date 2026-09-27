@@ -13,6 +13,8 @@ const history = {
 vi.mock('$lib/modals/confirm.svelte', () => ({ promptAsk }));
 vi.mock('$lib/modals/toaster-svelte', () => ({ toaster: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('$lib/workspace/localHistory.svelte', () => ({ ...history, sourceLabel: (s?: string) => s ?? 'File Saved', LOCAL_REF: 'local:' }));
+const openFile = vi.fn();
+vi.mock('$lib/workspace/workspaceStore', () => ({ openFile }));
 
 const { LocalHistoryActions } = await import('$lib/workspace/localHistoryActions.svelte');
 
@@ -55,4 +57,13 @@ it('opens an entry against the file as a compare tab that reads from the history
 	const { actions, deps } = make(null);
 	actions.compare('/p/main.tex', ENTRY);
 	expect(deps.openCompareTab).toHaveBeenCalledWith('/p/main.tex', expect.objectContaining({ hash: 'local:aB3d.tex' }));
+});
+
+it('brings back a deleted file as the copy was kept, and opens it', async () => {
+	const { actions, deps } = make(null);
+	deps.readTextIfPresent.mockResolvedValueOnce(null);
+	await actions.restore('/p/chapters/methods.tex', ENTRY);
+	expect(deps.writeText).toHaveBeenCalledWith('/p/chapters/methods.tex', 'Old line.\nSecond.\n');
+	expect(openFile).toHaveBeenCalledWith('/p/chapters/methods.tex');
+	expect(deps.loadFile).not.toHaveBeenCalled();
 });

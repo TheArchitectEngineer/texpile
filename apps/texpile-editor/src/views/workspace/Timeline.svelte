@@ -10,12 +10,17 @@
 	import SectionHeader from './SectionHeader.svelte';
 	import { workspaceRoot } from '$lib/workspace/workspaceStore';
 	import { isGitRepo, gitHead } from '$lib/workspace/gitStore';
-	import { gitFileLog } from '$lib/workspace/gitVersion';
+	import { gitFileAt, gitFileLog } from '$lib/workspace/gitVersion';
+	import { showTwoVersions } from '$lib/workspace/twoVersions.svelte';
+	import { openLocalHistoryFinder } from '$lib/workspace/localHistoryFinder.svelte';
+	import { basename } from '$lib/workspace/fileSystem';
 	import { showVersionChanges } from '$lib/workspace/versionChanges.svelte';
 	import {
 		canKeepLocalHistory,
 		listLocalHistory,
 		localHistoryRevision,
+		readLocalHistory,
+		entryBefore,
 		sourceLabel,
 		type LocalHistoryEntry
 	} from '$lib/workspace/localHistory.svelte';
@@ -119,6 +124,56 @@
 		return days < 7 ? m.vcs_ago_days({ count: days }) : new Date(at).toLocaleDateString();
 	}
 
+	/** VS Code's Compare with Previous: what this save or version changed, not how it differs from now */
+	function previousOf(item: Item): (() => Promise<string | null>) | null {
+		const p = path;
+		const root = workspaceRoot.current;
+		if (!p) return null;
+		if (item.kind === 'local') {
+			const prev = entryBefore(local, item.entry.id);
+			return prev ? () => readLocalHistory(p, prev.id) : null;
+		}
+		if (!root) return null;
+		// the file's own version before this one, under the name it had then; past the loaded page,
+		// the version before this one in the project
+		const prev = versions[versions.indexOf(item.entry) + 1];
+		const [where, ref] = prev ? [prev.path ?? p, prev.hash] : [item.entry.path ?? p, `${item.entry.hash}^`];
+		return async () => {
+			const res = await gitFileAt(root, where, ref);
+			return res.ok ? (res.content ?? '') : null;
+		};
+	}
+
+	function comparePrevious(item: Item) {
+		const before = previousOf(item);
+		const p = path;
+		const root = workspaceRoot.current;
+		if (!before || !p) return;
+		if (item.kind === 'local') {
+			const id = item.entry.id;
+			showTwoVersions({
+				title: sourceLabel(item.entry.source),
+				subtitle: m.history_previous_subtitle({ name: basename(p), date: entryDate(item.at) }),
+				path: p,
+				before,
+				after: () => readLocalHistory(p, id)
+			});
+			return;
+		}
+		const { hash, subject } = item.entry;
+		const then = item.entry.path ?? p;
+		showTwoVersions({
+			title: subject,
+			subtitle: m.vcs_previous_subtitle({ name: basename(p) }),
+			path: p,
+			before,
+			after: async () => {
+				const res = root ? await gitFileAt(root, then, hash) : null;
+				return res?.ok ? (res.content ?? '') : null;
+			}
+		});
+	}
+
 	function open(item: Item) {
 		const actions = localHistoryActions.current;
 		if (!path || !actions) return;
@@ -166,6 +221,9 @@
 {/snippet}
 
 {#snippet headerBody()}
+	{#if canKeepLocalHistory()}
+		<button type="button" class={ROW} onclick={() => run(openLocalHistoryFinder)}>{m.history_find()}</button>
+	{/if}
 	{#if path && canKeepLocalHistory()}
 		<button
 			type="button"
@@ -201,6 +259,12 @@
 		<!-- nothing below a closed header -->
 	{:else if !path}
 		<p class="text-faint px-1 text-xs">{m.timeline_no_file()}</p>
+		<!-- a deleted file cannot be opened to see its Timeline: its copies are found from here -->
+		{#if canKeepLocalHistory()}
+			<button type="button" class="text-muted hover:text-surface-950-50 px-1 text-left text-xs" onclick={openLocalHistoryFinder}
+				>{m.history_find()}</button
+			>
+		{/if}
 	{:else if !items.length}
 		<p class="text-faint px-1 text-xs">{m.timeline_empty()}</p>
 	{:else}
@@ -223,6 +287,9 @@
 					</button>
 					{#snippet rowBody()}
 						<button type="button" class={ROW} onclick={() => run(() => open(item))}>{m.history_compare_with_file()}</button>
+						{#if previousOf(item)}
+							<button type="button" class={ROW} onclick={() => run(() => comparePrevious(item))}>{m.history_compare_previous()}</button>
+						{/if}
 						{#if item.kind === 'local' && path}
 							{@const entry = item.entry}
 							{@const p = path}

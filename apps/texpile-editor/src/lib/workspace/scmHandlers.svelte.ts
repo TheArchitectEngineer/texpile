@@ -2,6 +2,7 @@
 // beside the branch) or from the palette, carried out by the open workspace's ScmActions. A module
 // rather than props, as versionChanges.svelte.ts: the rows are four components below the workspace,
 // and the palette is not below it at all.
+import type { WholeFileChoice } from './wholeFileChoice';
 import { tick } from 'svelte';
 export type ScmHandlers = {
 	/** add new files or folders (a trailing slash) to the project's .gitignore */
@@ -16,6 +17,8 @@ export type ScmHandlers = {
 	hasUpstream(): boolean;
 	/** one side's whole file, for a file both sides changed */
 	keepSide(path: string, side: 'mine' | 'theirs'): void;
+	/** ask which side of a deleted or non-text file to keep (wholeFileChoice.ts), then keep it */
+	chooseWhole(path: string, choose: WholeFileChoice): void;
 };
 
 let current = $state<ScmHandlers | null>(null);

@@ -113,3 +113,18 @@ it('keeps every copy when the listing is lost, as VS Code rebuilds it from the f
 	expect(await h.list(FILE)).toHaveLength(3);
 	expect(readdirSync(join(home, folder)).filter((n) => n !== 'entries.json')).toHaveLength(3);
 });
+
+it('lists every file with history under a folder, deleted ones too, newest first', async () => {
+	const { h } = history();
+	const project = join(tmpdir(), 'project');
+	const methods = join(project, 'chapters', 'methods.tex');
+	await h.add(FILE, 'intro', undefined, undefined, 1_000);
+	await h.add(methods, 'methods', undefined, undefined, 5_000);
+	await h.add(join(tmpdir(), 'elsewhere', 'other.tex'), 'not this project', undefined, undefined, 9_000);
+	expect(await h.all(project)).toEqual([
+		{ resource: methods, count: 1, newest: 5_000 },
+		{ resource: FILE, count: 1, newest: 1_000 }
+	]);
+	// a folder named like the project's start is not inside it
+	expect(await h.all(join(tmpdir(), 'proj'))).toEqual([]);
+});

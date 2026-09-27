@@ -21,7 +21,11 @@ export type LocalHistoryBridge = {
 	localHistoryRename?: (path: string, id: string, label: string) => Promise<boolean>;
 	localHistoryRemoveAll?: () => Promise<void>;
 	localHistoryMove?: (from: string, to: string) => Promise<string[]>;
+	localHistoryAll?: (root: string) => Promise<LocalHistoryFile[]>;
 };
+
+/** a file with Local History, for Find entry to restore; `exists` false for one since deleted */
+export type LocalHistoryFile = { resource: string; count: number; newest: number; exists: boolean };
 
 /** A comparison against an entry is a compare tab like any version's; its "hash" says where to read. */
 export const LOCAL_REF = 'local:';
@@ -57,6 +61,12 @@ export async function listLocalHistory(path: string): Promise<LocalHistoryEntry[
 	return (await attempt(() => nativeBridge()?.localHistoryList?.(path), [] as LocalHistoryEntry[])).slice().reverse();
 }
 
+/** the entry saved just before `id`, in a list newest first as listLocalHistory gives it */
+export function entryBefore(newestFirst: LocalHistoryEntry[], id: string): LocalHistoryEntry | null {
+	const at = newestFirst.findIndex((e) => e.id === id);
+	return at >= 0 ? (newestFirst[at + 1] ?? null) : null;
+}
+
 export function readLocalHistory(path: string, id: string): Promise<string | null> {
 	return attempt(() => nativeBridge()?.localHistoryRead?.(path, id), null);
 }
@@ -76,6 +86,11 @@ export async function renameLocalHistory(path: string, id: string, label: string
 export async function removeAllLocalHistory(): Promise<void> {
 	await attempt(() => nativeBridge()?.localHistoryRemoveAll?.(), undefined);
 	revision++;
+}
+
+/** every file under the project with history, newest first, deleted ones included */
+export async function listAllLocalHistory(root: string): Promise<LocalHistoryFile[]> {
+	return attempt(() => nativeBridge()?.localHistoryAll?.(root), [] as LocalHistoryFile[]);
 }
 
 /** A file or folder was renamed or moved: its entries go with it, and each file gets an entry

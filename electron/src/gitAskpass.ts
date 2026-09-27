@@ -32,6 +32,8 @@ type Session = {
 	recalled: Set<string>;
 	/** a github.com question was answered with the GitHub sign-in's token */
 	usedGithub: boolean;
+	/** the automatic check: answered from sign-ins already held, never by asking */
+	quiet: boolean;
 };
 
 let signIns: SignIns | null = null;
@@ -135,6 +137,12 @@ async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; 
 			return kept;
 		}
 	}
+	// Nobody asked for the automatic check, so nobody is asked: a question the sign-ins held cannot
+	// answer ends it, as VS Code's silent fetch does (which answers none, not even its GitHub one)
+	if (session.quiet) {
+		session.cancelled = true;
+		return null;
+	}
 	const id = nextId++;
 	const reply = await new Promise<string | null>((resolve) => {
 		waiting.set(id, { session, subject: request.subject, resolve });
@@ -182,12 +190,21 @@ function dropQuestions(session: Session): void {
  */
 export async function withAskpass<T extends { ok: boolean; failure?: string; error?: string }>(
 	sender: WebContents,
-	op: (env: GitAuthEnv) => Promise<T>
+	op: (env: GitAuthEnv) => Promise<T>,
+	opts: { quiet?: boolean } = {}
 ): Promise<T> {
 	const b = await ensureBridge();
 	if (!b) return op({});
 	const token = randomBytes(24).toString('hex');
-	const session: Session = { sender, cancelled: false, answers: new Map(), typed: new Map(), recalled: new Set(), usedGithub: false };
+	const session: Session = {
+		sender,
+		cancelled: false,
+		answers: new Map(),
+		typed: new Map(),
+		recalled: new Set(),
+		usedGithub: false,
+		quiet: !!opts.quiet
+	};
 	sessions.set(token, session);
 	function onGone() {
 		dropQuestions(session);
@@ -195,8 +212,9 @@ export async function withAskpass<T extends { ok: boolean; failure?: string; err
 	sender.once('destroyed', onGone);
 	try {
 		const result = await op(askpassEnv(b.dir, b.handle, token, process.execPath));
-		// kept only once they worked; a kept one that was refused is dropped, so the next try asks
-		settle(signInStore(), result, session.typed, session.recalled);
+		// kept only once they worked; a kept one that was refused is dropped, so the next try asks.
+		// A question left unanswered says nothing about the answers before it.
+		if (!session.cancelled) settle(signInStore(), result, session.typed, session.recalled);
 		// a token GitHub refused (revoked, expired) is signed out, so the next try asks again
 		if (session.usedGithub && refusedPassword(result)) forgetGithubSession();
 		return !result.ok && session.cancelled ? { ...result, failure: 'cancelled' } : result;

@@ -39,6 +39,7 @@ import { ScmBranches } from './scmBranches.svelte';
 import { ScmMilestones } from './scmMilestones.svelte';
 import { ScmIgnore } from './scmIgnore.svelte';
 import { ScmDiscard } from './scmDiscard.svelte';
+import { autoCheckDone, resumeAutoCheck } from './scmAutoCheck.svelte';
 import { offerFork } from './scmFork.svelte';
 import { uploadReason } from './uploadReason';
 import { toastGitFailure } from './gitFailureToast';
@@ -428,7 +429,8 @@ export class ScmActions {
 	sync = async (): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || this.busy) return;
-		if (this.blockedByOperation()) return;
+		await autoCheckDone(); // one fetch at a time
+		if (this.busy || this.blockedByOperation()) return;
 		this.busy = true;
 		gitRunning.current = 'sync';
 		let again = false;
@@ -437,6 +439,7 @@ export class ScmActions {
 			if (!(await this.ensureIdentity(root))) return;
 			if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
 			const res = await gitSync(root);
+			if (res.ok) resumeAutoCheck();
 			if (res.ok && res.pulled) {
 				// files changed on disk under the editor: the same reload a restore does
 				const loadedPath = this.deps.getLoadedPath();

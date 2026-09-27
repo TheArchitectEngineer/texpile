@@ -2,6 +2,7 @@
 // own data rather than the project, so it is there for a folder that never had git and never
 // travels with the project.
 import { app } from 'electron';
+import { existsSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import { handleFs } from './ipcResult';
 import { LocalHistory } from '../localHistory';
@@ -32,5 +33,7 @@ export function registerLocalHistoryIpc(): void {
 	handleFs('history:remove', async (p: unknown, id: unknown) => store().remove(path(p), text(id, 64)));
 	handleFs('history:rename', async (p: unknown, id: unknown, label: unknown) => store().rename(path(p), text(id, 64), text(label, 200)));
 	handleFs('history:removeAll', async () => store().removeAll());
+	// the project's files with history, and whether each is still there
+	handleFs('history:all', async (root: unknown) => (await store().all(path(root))).map((f) => ({ ...f, exists: existsSync(f.resource) })));
 	handleFs('history:move', async (from: unknown, to: unknown) => store().move(path(from), path(to)));
 }

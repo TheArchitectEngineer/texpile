@@ -9,6 +9,7 @@
 	import { isTexpileManaged } from '$lib/comments/managed';
 	import { STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
 	import { badgeOf, gitWriting, isNewFile } from '$lib/workspace/gitStore';
+	import { chooseNote, keepLabel } from '$lib/workspace/wholeFileChoice';
 	import type { GitStatusEntry } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
 
@@ -30,10 +31,7 @@
 
 	let openMenu = $state<string | null>(null);
 
-	const KEEP: ['mine' | 'theirs', () => string][] = [
-		['mine', () => m.vcs_keep_file_mine()],
-		['theirs', () => m.vcs_keep_file_theirs()]
-	];
+	const KEEP: ('mine' | 'theirs')[] = ['mine', 'theirs'];
 
 	/** new files have no committed copy, so discarding one deletes it rather than reverting it */
 	function isUntracked(c: GitStatusEntry) {
@@ -54,7 +52,11 @@
 		/>
 		<button
 			class="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-			onclick={() => !c.files && (onOpen ?? onOpenDiff)(c.path)}
+			onclick={() => {
+				// a deleted or non-text file has no places to open at: the question is which side to keep
+				if (locked && c.choose) scmHandlers.current?.chooseWhole(c.path, c.choose);
+				else if (!c.files) (onOpen ?? onOpenDiff)(c.path);
+			}}
 			use:tip={relPath(c.path)}
 		>
 			{#if c.files}
@@ -63,11 +65,19 @@
 				<span class="max-w-[60%] shrink-0 truncate {STATUS_COLOR[badge]}">{baseName(c.path)}/</span>
 				<span class="text-muted truncate text-xs tabular-nums">{m.vcs_folder_files({ count: c.files.toLocaleString() })}</span>
 			{:else}
-				<span class="truncate {STATUS_COLOR[badge]} {STATUS_DECOR[badge] ?? ''}" use:tip={STATUS_TITLE[badge]}>{baseName(c.path)}</span>
+				<span
+					class="truncate {STATUS_COLOR[badge]} {STATUS_DECOR[badge] ?? ''} {c.choose ? 'max-w-[60%] shrink-0' : ''}"
+					use:tip={STATUS_TITLE[badge]}>{baseName(c.path)}</span
+				>
 			{/if}
 			{#if dirName(c.path) && !c.files}<span class="text-muted truncate text-xs">{dirName(c.path)}</span>{/if}
 			<!-- every marked place in it is chosen: nothing more to do here before Finish -->
-			{#if locked && c.markers === false}
+			{#if locked && c.choose}
+				<!-- the name keeps its room; the note gives way, its whole text in the tip -->
+				<span class="text-warning-ink min-w-0 truncate text-xs" use:tip={`${chooseNote(c.choose)}. ${m.vcs_choose_tip()}`}
+					>{chooseNote(c.choose)}</span
+				>
+			{:else if locked && c.markers === false}
 				<span class="text-success-ink flex shrink-0 items-center gap-0.5 text-xs" use:tip={m.vcs_conflict_ready_tip()}>
 					<Check class="size-3" />{m.vcs_conflict_ready()}
 				</span>
@@ -121,7 +131,7 @@
 							<!-- the whole file one way, where there are no places to click: a figure, a PDF, a file
 							     one side deleted -->
 							{#if locked && scmHandlers.current}
-								{#each KEEP as [side, label] (side)}
+								{#each KEEP as side (side)}
 									<button
 										type="button"
 										class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"
@@ -132,7 +142,7 @@
 										}}
 									>
 										<Check class="size-4 shrink-0" />
-										{label()}
+										{keepLabel(c.choose, side)}
 									</button>
 								{/each}
 							{/if}

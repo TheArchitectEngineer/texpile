@@ -1,5 +1,6 @@
 // client-side git access over Electron IPC. never throws: a non-repo folder, a missing
 // git binary, or a missing bridge comes back as { ok: false }
+import type { WholeFileChoice } from './wholeFileChoice';
 import { nativeBridge } from './fileSystem';
 
 /** single-letter tree badge (VS Code convention). 'C' is a file both sides changed, which git
@@ -18,6 +19,8 @@ export type GitStatusEntry = {
 	markers?: boolean;
 	/** a folder of new files shown as one row (electron/src/gitStatusLimit.ts): how many it holds */
 	files?: number;
+	/** a file both sides changed that is settled by keeping one whole side, and why */
+	choose?: WholeFileChoice;
 	/** a rename's old path: saving the rename takes in both, putting it back restores this */
 	from?: string;
 	/** a folder row that also holds files .gitignore leaves out: never deleted as a whole */

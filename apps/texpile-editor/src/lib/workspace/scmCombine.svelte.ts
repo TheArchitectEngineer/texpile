@@ -1,6 +1,7 @@
 // Combining two lines of work from the Source Control panel: what Sync offers when both sides
 // changed the same lines, and the Finish and Cancel that end it. The places themselves are chosen
 // in the source editor (lib/editor/source/cmConflicts.ts).
+import { askWholeFile, type WholeFileChoice } from './wholeFileChoice';
 import { workspaceRoot } from './workspaceStore';
 import { refreshGitStatus, refreshGitHistory, gitChanges, isConflicted } from './gitStore';
 import { gitCombine, gitFinishCombine, gitCancelCombine, gitKeepSide, type GitCombineResult } from './gitCombine';
@@ -87,8 +88,15 @@ export class ScmCombine {
 			toaster.success({ title: m.vcs_toast_combined(), description: m.vcs_toast_combined_send({ remote }) });
 			return;
 		}
+		// the first file with places to choose at; a figure or a deleted file has none to open to, and
+		// its row asks which version to keep
+		const marked = conflicts.find((p) => !gitChanges.current.find((c) => samePath(c.path, p))?.choose);
+		if (!marked) {
+			toaster.info({ title: m.vcs_toast_combine_started(), description: m.vcs_toast_combine_whole_desc() });
+			return;
+		}
 		toaster.info({ title: m.vcs_toast_combine_started(), description: m.vcs_toast_combine_started_desc() });
-		await this.openConflict(conflicts[0]);
+		await this.openConflict(marked);
 	}
 
 	/** the file in the source editor at its first marked place. A file one side deleted has none:
@@ -141,6 +149,13 @@ export class ScmCombine {
 			return;
 		}
 		await this.reload(root);
+	};
+
+	/** VS Code's Keep Our Version / Delete File, and the same for a figure: asked, then kept */
+	chooseWhole = async (path: string, choose: WholeFileChoice): Promise<void> => {
+		if (this.host.busy) return;
+		const side = await askWholeFile(basename(path), choose);
+		if (side) await this.keepSide(path, side);
 	};
 
 	cancel = async (): Promise<void> => {

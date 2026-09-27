@@ -3,7 +3,19 @@
 // author's back; this is the step they choose instead: start that merge and leave each such place
 // marked in its file, then finish it once every place is chosen, or cancel it.
 import { resolve } from 'node:path';
-import { git, errMsg, isMissingGit, resolveRepoRoot, gitDirsOf, operationIn, stillMarked, toRepoRel, type GitOpResult } from './gitService';
+import {
+	git,
+	errMsg,
+	isMissingGit,
+	isUnmerged,
+	resolveRepoRoot,
+	gitDirsOf,
+	operationIn,
+	stillMarked,
+	toRepoRel,
+	wholeFileChoice,
+	type GitOpResult
+} from './gitService';
 import { OVERWRITE_RE, aheadBehind, mergeInProgress, outputOf, parseBlockingFiles } from './gitRemote';
 
 export type GitCombineResult = GitOpResult & {
@@ -69,9 +81,14 @@ export async function gitFinishCombine(workspaceRoot: string): Promise<GitCombin
 	const g = git(root);
 	try {
 		if (!(await mergeInProgress(g))) return { ok: false, failure: 'not-combining' };
-		const unmerged = (await g.raw(['diff', '--name-only', '--diff-filter=U', '-z'])).split('\0').filter(Boolean);
+		const conflicted = (await g.status()).files.filter((f) => isUnmerged(f.index, f.working_dir));
+		const unmerged = conflicted.map((f) => f.path);
 		const marked: string[] = [];
-		for (const abs of absolute(root, unmerged)) if (await stillMarked(abs)) marked.push(abs);
+		for (const f of conflicted) {
+			const abs = resolve(root, f.path);
+			// a place still marked, or a whole file nobody has chosen a side of yet
+			if ((await wholeFileChoice(f.index, f.working_dir, abs)) || (await stillMarked(abs))) marked.push(abs);
+		}
 		if (marked.length) return { ok: false, failure: 'markers', files: marked };
 		// -A: a file one side deleted is settled by its absence as much as by its presence
 		if (unmerged.length) await g.raw(['add', '-A', '--', ...unmerged]);
@@ -111,8 +128,14 @@ export async function gitKeepSide(workspaceRoot: string, path: string, side: 'mi
 	if (!rel || rel.startsWith('..') || (side !== 'mine' && side !== 'theirs')) return { ok: false, error: 'Not a file in this repository' };
 	try {
 		if (!(await mergeInProgress(g))) return { ok: false, error: 'Nothing is being combined' };
+		const f = (await g.status()).files.find((e) => e.path === rel && isUnmerged(e.index, e.working_dir));
+		if (!f) return { ok: false, error: 'This file is not being combined' };
+		const whole = await wholeFileChoice(f.index, f.working_dir, resolve(rr.root, rel));
 		try {
 			await g.raw(['checkout', side === 'mine' ? '--ours' : '--theirs', '--', rel]);
+			// nothing in a figure or a kept file shows the choice was made: recording it is what does,
+			// as VS Code's Keep Our Version stages it (a deletion is recorded by the rm below)
+			if (whole) await g.raw(['add', '--', rel]);
 		} catch (e) {
 			if (!/does not have (our|their) version/i.test(errMsg(e))) throw e;
 			await g.raw(['rm', '-q', '--', rel]);
