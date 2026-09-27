@@ -1812,5 +1812,7 @@
 	"vcs_auto_new_detail": "編輯前先同步，以免你的變更與對方的衝突。",
 	"prefs_check_new_versions": "檢查共同作者的新版本",
 	"prefs_check_new_versions_note": "當 Texpile 在前景時，每隔幾分鐘詢問此專案同步的遠端儲存庫是否有人上傳了內容。在你同步之前不會取入任何內容，也不會要求你登入。",
-	"vcs_toast_combine_whole_desc": "請在原始碼控制中為每個檔案選擇要保留的版本，然後點選「完成合併」。"
+	"vcs_toast_combine_whole_desc": "請在原始碼控制中為每個檔案選擇要保留的版本，然後點選「完成合併」。",
+	"vcs_publish_files_title": "選擇要發佈的內容",
+	"vcs_publish_files_desc": "勾選的內容會進入第一個版本並上傳到 GitHub。取消勾選的內容會加入 .gitignore，只保留在這台電腦上。"
 }

@@ -3,7 +3,18 @@
 // command factory it shares; the helper process serves both (helper/helperWorker.ts).
 import { dirname, resolve, relative, isAbsolute } from 'node:path';
 import { milestonesByCommit, type GitMilestone } from './gitTags';
-import { git, isMissingGit, errMsg, resolveRepoRoot, toRepoRel, markGitMissing, type GitShowResult, type GitOpResult } from './gitService';
+import {
+	git,
+	isLocked,
+	isMissingGit,
+	errMsg,
+	resolveRepoRoot,
+	retryLocked,
+	toRepoRel,
+	markGitMissing,
+	type GitShowResult,
+	type GitOpResult
+} from './gitService';
 
 // ── history ────────────────────────────────────────────────────────────────────
 
@@ -338,13 +349,15 @@ export async function gitRestore(workspaceRoot: string, hash: string, message: s
 
 		for (const rel of changed) {
 			try {
-				await g.raw(['checkout', hash, '--', rel]);
-			} catch {
+				await retryLocked(() => g.raw(['checkout', hash, '--', rel]));
+			} catch (e) {
+				// a lock that outlasted the retries is a failure, not a file to remove
+				if (isLocked(e)) throw e;
 				// absent at the target revision: it was added afterwards, so restoring means removing it
-				await g.raw(['rm', '-f', '--ignore-unmatch', '--', rel]);
+				await retryLocked(() => g.raw(['rm', '-f', '--ignore-unmatch', '--', rel]));
 			}
 		}
-		await g.commit(message);
+		await retryLocked(() => g.commit(message));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };

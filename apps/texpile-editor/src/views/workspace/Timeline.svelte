@@ -9,7 +9,7 @@
 	import TextPrompt from '$lib/chrome/menubar/TextPrompt.svelte';
 	import SectionHeader from './SectionHeader.svelte';
 	import { workspaceRoot } from '$lib/workspace/workspaceStore';
-	import { isGitRepo, gitHead } from '$lib/workspace/gitStore';
+	import { isGitRepo, gitHead, gitHeldBack } from '$lib/workspace/gitStore';
 	import { gitFileAt, gitFileLog } from '$lib/workspace/gitVersion';
 	import { showTwoVersions } from '$lib/workspace/twoVersions.svelte';
 	import { openLocalHistoryFinder } from '$lib/workspace/localHistoryFinder.svelte';
@@ -85,7 +85,7 @@
 		const root = workspaceRoot.current;
 		const limit = gitLimit;
 		void gitHead.current;
-		if (!p || !root || !isGitRepo.current) {
+		if (!p || !root || !isGitRepo.current || gitHeldBack.current) {
 			versions = [];
 			moreGit = false;
 			return;
@@ -314,6 +314,14 @@
 							<button type="button" class={ROW} onclick={() => run(() => showVersionChanges(entry))}>{m.vcs_version_changes_open()}</button>
 							<button type="button" class={ROW} onclick={() => run(() => navigator.clipboard.writeText(entry.hash).catch(() => {}))}
 								>{m.vcs_copy_id()}</button
+							>
+							<button
+								type="button"
+								class={ROW}
+								onclick={() =>
+									run(() =>
+										navigator.clipboard.writeText(entry.body ? `${entry.subject}\n\n${entry.body}` : entry.subject).catch(() => {})
+									)}>{m.vcs_copy_message()}</button
 							>
 						{/if}
 					{/snippet}

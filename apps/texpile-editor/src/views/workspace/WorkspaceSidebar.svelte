@@ -2,7 +2,7 @@
 	// The left sidebar: folder header + explorer / source-control / find-in-files, with the file
 	// tree and (in explorer) a resizable table-of-contents. Presentational — logic stays in the view.
 	import type { GitBranchesResult } from '$lib/workspace/gitBranches';
-	import { parentRepoToConfirm, useParentRepo } from '$lib/workspace/parentRepo.svelte';
+	import { parentRepoToConfirm } from '$lib/workspace/parentRepo.svelte';
 	import { untrack } from 'svelte';
 	import { tip } from '$lib/components/tooltip.svelte';
 	import FileTree from '$lib/filetree/FileTree.svelte';
@@ -30,6 +30,7 @@
 		gitHistoryHasMore,
 		refreshGitHistory,
 		refreshGitStatus,
+		useParentRepoNow,
 		showMoreGitHistory
 	} from '$lib/workspace/gitStore';
 	import { basename, type TreeEntry } from '$lib/workspace/fileSystem';
@@ -348,7 +349,7 @@
 				root={workspaceRoot.current ?? ''}
 				isRepo={isGitRepo.current}
 				parentRepo={parentRepoToConfirm(workspaceRoot.current, gitRepoRoot.current)}
-				onUseParentRepo={() => workspaceRoot.current && gitRepoRoot.current && useParentRepo(workspaceRoot.current, gitRepoRoot.current)}
+				onUseParentRepo={() => void useParentRepoNow(workspaceRoot.current)}
 				gitMissing={gitMissing.current}
 				onRecheckGit={scmRecheckGit}
 				operation={gitOperation.current}

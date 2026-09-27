@@ -6,7 +6,7 @@
 	import { tick } from 'svelte';
 	import { GitBranch, Check, Cloud, Plus, ChevronDown, Loader2 } from '@lucide/svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
-	import type { GitBranchesResult } from '$lib/workspace/gitBranches';
+	import { branchNameFrom, type GitBranchesResult } from '$lib/workspace/gitBranches';
 	import { gitHead } from '$lib/workspace/gitStore';
 	import { m } from '$lib/paraglide/messages';
 
@@ -38,8 +38,9 @@
 	const wanted = $derived(filter.trim().toLowerCase());
 	const local = $derived((branches?.local ?? []).filter((b) => b.name.toLowerCase().includes(wanted)));
 	const remote = $derived((branches?.remote ?? []).filter((b) => b.name.toLowerCase().includes(wanted)));
-	// a new branch is offered for a name nothing local already has
-	const offerNew = $derived(!!filter.trim() && !(branches?.local ?? []).some((b) => b.name === filter.trim()));
+	// a new branch is offered for a name nothing local already has, spelled the way git will take it
+	const newName = $derived(branchNameFrom(filter));
+	const offerNew = $derived(!!newName && !(branches?.local ?? []).some((b) => b.name === newName));
 
 	async function show(next: boolean) {
 		open = next;
@@ -71,7 +72,7 @@
 		const exact = (branches?.local ?? []).find((b) => b.name === name);
 		if (exact) void act(() => onSwitch(exact.name));
 		else if (local.length === 1 && !offerNew) void act(() => onSwitch(local[0].name));
-		else if (offerNew) void act(() => onCreate(name));
+		else if (offerNew) void act(() => onCreate(newName));
 	}
 
 	const ROW = 'hover:preset-tonal flex w-full items-center gap-2 px-3 py-1 text-left text-sm disabled:opacity-50';
@@ -122,12 +123,12 @@
 							<button
 								type="button"
 								class={ROW}
-								onclick={() => act(() => onCreate(filter.trim()))}
+								onclick={() => act(() => onCreate(newName))}
 								disabled={working}
 								use:tip={m.vcs_branch_create_tip()}
 							>
 								<Plus class="size-3.5 shrink-0" />
-								<span class="truncate">{m.vcs_branch_create({ name: filter.trim() })}</span>
+								<span class="truncate">{m.vcs_branch_create({ name: newName })}</span>
 							</button>
 						{/if}
 						{#each local as b (b.name)}

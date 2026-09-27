@@ -9,7 +9,7 @@ import { attachSessionHandlers } from '$lib/collab/workspaceSession';
 import { DocRegistries } from '$lib/workspace/docRegistries.svelte';
 import { ScmActions } from '$lib/workspace/scmActions.svelte';
 import { ChangeBaseline } from '$lib/workspace/changeBaseline.svelte';
-import { gitHead, gitTracking, isGitRepo } from '$lib/workspace/gitStore';
+import { gitHead, gitOperation, gitTracking, isGitRepo } from '$lib/workspace/gitStore';
 import { gitignoreLines } from '$lib/workspace/buildArtifacts';
 import { provideScmHandlers } from '$lib/workspace/scmHandlers.svelte';
 import { ScmFetch } from '$lib/workspace/scmFetch.svelte';
@@ -168,11 +168,13 @@ export class WorkspaceIntegrations {
 			})
 		);
 
-		// again whenever HEAD moves: the file's last saved version is then a different one
+		// again whenever HEAD moves: the file's last saved version is then a different one; and when a
+		// merge starts or ends, since a file being combined has no marks
 		$effect(() => {
 			const path = doc.path;
 			void gitHead.current;
 			void isGitRepo.current;
+			void gitOperation.current;
 			untrack(() => void this.changeBaseline.load(path));
 		});
 

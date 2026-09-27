@@ -5,6 +5,14 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: Publish to GitHub from a folder with no .gitignore asks which files and folders to include, as VS Code does; unticked ones are added to .gitignore
+- fix: a repository in a folder above the project colours nothing, counts nothing and marks nothing until you choose to use it, as in VS Code
+- fix: a leftover `=======` line also keeps a file from counting as settled, as in VS Code; a file being combined shows no change marks in the margin
+- fix: a new branch name with spaces is made into one with dashes instead of being refused
+- fix: a repository locked by another git is retried up to ten times, for every change Texpile makes, as VS Code does; Restore no longer drops a file when the lock outlasts that
+- fix: the Source Control progress bar appears at once and stays a moment after git finishes, so steps run back to back read as one
+- feat: a git version's menu in the Timeline copies its message
+
 - feat: while combining, a file one side deleted or a figure both sides changed asks which version to keep (Keep my version, Keep their version, Delete the file), and Finish combining waits for the answer
 - feat: Timeline: Compare with Previous shows what one save or version changed; Find Entry to Restore (Timeline menu and palette) lists every file with local history, deleted ones included, and brings a deleted file back
 - feat: Texpile checks for co-authors' new versions every three minutes while in front and says when some arrive, without ever asking for a sign-in; Preferences > Collaboration turns it off

@@ -2,8 +2,8 @@
 // margin (lib/editor/source/cmChangeMarkers.ts). Read when the file opens and again whenever HEAD
 // moves - a version saved here or in a terminal, a sync, a switch of branch.
 import { gitShowHead } from './git';
-import { isGitRepo } from './gitStore';
-import { toLf } from './fileSystem';
+import { isGitRepo, gitHeldBack, gitChanges, isConflicted } from './gitStore';
+import { samePath, toLf } from './fileSystem';
 
 export class ChangeBaseline {
 	/** null: no markers, which is right for a file with no saved version (every line would be new) */
@@ -12,7 +12,10 @@ export class ChangeBaseline {
 
 	async load(path: string | null): Promise<void> {
 		const mine = ++this.seq;
-		if (!path || !isGitRepo.current) {
+		// a file being combined has no marks, as VS Code's quick diff leaves one alone: its conflict
+		// colours already say what differs, and bars against the last version would only double them
+		const combining = !!path && gitChanges.current.some((c) => isConflicted(c.x, c.y) && samePath(c.path, path));
+		if (!path || !isGitRepo.current || gitHeldBack.current || combining) {
 			this.text = null;
 			return;
 		}

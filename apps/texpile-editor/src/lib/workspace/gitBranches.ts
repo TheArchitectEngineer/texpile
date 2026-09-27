@@ -63,3 +63,17 @@ export function gitTrackBranch(root: string, remoteName: string): Promise<GitSwi
 	const n = nativeBridge();
 	return call(n?.gitTrackBranch ? () => n.gitTrackBranch!(root, remoteName) : null);
 }
+
+/**
+ * VS Code's sanitizeBranchName, with its default git.branchWhitespaceChar: a name typed the way a
+ * writer would ("camera ready") becomes one git accepts ("camera-ready") instead of being refused.
+ * Spaces and the characters git forbids in a ref become dashes; leading dashes go.
+ */
+export function branchNameFrom(typed: string): string {
+	// nothing typed is no name (VS Code's rule would make it '-', which its input box then refuses)
+	if (!typed.trim()) return '';
+	return typed
+		.trim()
+		.replace(/^-+/, '')
+		.replace(/^\.|\/\.|\.\.|~|\^|:|\/$|\.lock$|\.lock\/|\\|\*|\s|^\s*$|\.$|\[|\]$/g, '-');
+}

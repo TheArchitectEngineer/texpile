@@ -9,6 +9,7 @@ import {
 	isMissingGit,
 	isUnmerged,
 	resolveRepoRoot,
+	retryLocked,
 	gitDirsOf,
 	operationIn,
 	stillMarked,
@@ -56,7 +57,8 @@ export async function gitCombine(workspaceRoot: string): Promise<GitCombineResul
 		// by the upstream's own name rather than @{u}: git writes what it was given into every marked
 		// place, and "Their version · @{u}" means nothing to the person choosing.
 		// A conflict exits 1 with its report on stdout, which simple-git resolves rather than throws.
-		const msg = await outputOf(g.raw(['merge', '--no-edit', status.tracking]));
+		const tracking = status.tracking;
+		const msg = await outputOf(retryLocked(() => g.raw(['merge', '--no-edit', tracking])));
 		if (await mergeInProgress(g)) return { ok: true, with: status.tracking, conflicts: absolute(root, (await g.status()).conflicted) };
 		if (OVERWRITE_RE.test(msg)) return { ok: false, failure: 'dirty', files: absolute(root, parseBlockingFiles(msg)) };
 		const [, behind] = await aheadBehind(g);
@@ -91,8 +93,8 @@ export async function gitFinishCombine(workspaceRoot: string): Promise<GitCombin
 		}
 		if (marked.length) return { ok: false, failure: 'markers', files: marked };
 		// -A: a file one side deleted is settled by its absence as much as by its presence
-		if (unmerged.length) await g.raw(['add', '-A', '--', ...unmerged]);
-		await g.raw(['commit', '--no-edit']);
+		if (unmerged.length) await retryLocked(() => g.raw(['add', '-A', '--', ...unmerged]));
+		await retryLocked(() => g.raw(['commit', '--no-edit']));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -106,7 +108,7 @@ export async function gitCancelCombine(workspaceRoot: string): Promise<GitOpResu
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const g = git(rr.root);
 	try {
-		if (await mergeInProgress(g)) await g.raw(['merge', '--abort']);
+		if (await mergeInProgress(g)) await retryLocked(() => g.raw(['merge', '--abort']));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -132,13 +134,13 @@ export async function gitKeepSide(workspaceRoot: string, path: string, side: 'mi
 		if (!f) return { ok: false, error: 'This file is not being combined' };
 		const whole = await wholeFileChoice(f.index, f.working_dir, resolve(rr.root, rel));
 		try {
-			await g.raw(['checkout', side === 'mine' ? '--ours' : '--theirs', '--', rel]);
+			await retryLocked(() => g.raw(['checkout', side === 'mine' ? '--ours' : '--theirs', '--', rel]));
 			// nothing in a figure or a kept file shows the choice was made: recording it is what does,
 			// as VS Code's Keep Our Version stages it (a deletion is recorded by the rm below)
-			if (whole) await g.raw(['add', '--', rel]);
+			if (whole) await retryLocked(() => g.raw(['add', '--', rel]));
 		} catch (e) {
 			if (!/does not have (our|their) version/i.test(errMsg(e))) throw e;
-			await g.raw(['rm', '-q', '--', rel]);
+			await retryLocked(() => g.raw(['rm', '-q', '--', rel]));
 		}
 		return { ok: true };
 	} catch (e) {

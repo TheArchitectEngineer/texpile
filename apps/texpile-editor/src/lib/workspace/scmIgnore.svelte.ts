@@ -23,7 +23,7 @@ export class ScmIgnore {
 
 	/** The project folder's own .gitignore, which git reads for everything below it wherever the
 	 *  repository starts. A folder's path ends in a slash, and so does its line. */
-	files = (paths: string[]): Promise<void> => {
+	files = (paths: string[], quiet = false): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || !paths.length) return Promise.resolve();
 		const lines = paths.map((p) => ignoreLineFor(relativeTo(root, p)));
@@ -31,7 +31,13 @@ export class ScmIgnore {
 			paths.length === 1
 				? m.vcs_toast_ignored_file({ name: basename(paths[0].replace(/[\\/]+$/, '')) })
 				: m.vcs_toast_ignored_files({ count: paths.length });
-		return this.#append(lines, title);
+		return this.#append(lines, quiet ? null : title);
+	};
+
+	/** whether the project folder has a .gitignore of its own yet */
+	exists = async (): Promise<boolean> => {
+		const root = workspaceRoot.current;
+		return !!root && (await this.deps.readTextIfPresent(joinPath(root, '.gitignore'))) !== null;
 	};
 
 	async #append(lines: string[], done: string | null): Promise<void> {

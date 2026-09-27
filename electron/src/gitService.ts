@@ -107,14 +107,23 @@ export function git(baseDir: string): SimpleGit {
 // takes no lock (GIT_OPTIONAL_LOCKS in helper/helperWorker.ts), but it cannot speak for them.
 const LOCKED_RE = /index\.lock|unable to create '[^']*\.lock'|cannot lock ref/i;
 
-/** once more after a moment when the repository was locked, which is usually over by then */
-export async function retryLocked<T>(run: () => Promise<T>, wait = 400): Promise<T> {
-	try {
-		return await run();
-	} catch (e) {
-		if (!LOCKED_RE.test(errMsg(e))) throw e;
-		await new Promise((r) => setTimeout(r, wait));
-		return run();
+export function isLocked(e: unknown): boolean {
+	return LOCKED_RE.test(errMsg(e));
+}
+
+/**
+ * Again while the repository is locked, as VS Code retries every operation: up to ten more times,
+ * waiting 50 ms, 200, 450 ... (the attempt squared, times 50), about 19 seconds in all. A lock is
+ * usually another git finishing its own write.
+ */
+export async function retryLocked<T>(run: () => Promise<T>): Promise<T> {
+	for (let attempt = 1; ; attempt++) {
+		try {
+			return await run();
+		} catch (e) {
+			if (attempt > 10 || !isLocked(e)) throw e;
+			await new Promise((r) => setTimeout(r, attempt * attempt * 50));
+		}
 	}
 }
 
@@ -425,7 +434,7 @@ export async function gitUnstage(workspaceRoot: string, paths: string[]): Promis
 			return { ok: false, error: errMsg(e) };
 		}
 		try {
-			await g.raw(['rm', '-q', '--cached', '-r', '--', ...(rel.length ? rel : ['.'])]);
+			await retryLocked(() => g.raw(['rm', '-q', '--cached', '-r', '--', ...(rel.length ? rel : ['.'])]));
 			return { ok: true };
 		} catch (e2) {
 			return { ok: false, error: errMsg(e2) };

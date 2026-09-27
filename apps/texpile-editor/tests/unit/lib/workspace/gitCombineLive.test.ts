@@ -131,17 +131,18 @@ describe.skipIf(!AVAILABLE)('combining two lines of work', () => {
 });
 
 describe('the marker check on the git side', () => {
-	it('counts any opening or closing marker line left behind, as VS Code does', () => {
+	it('counts any one marker line left behind, as VS Code does', () => {
 		expect(hasConflictMarkers('a\n<<<<<<< HEAD\nx\n=======\ny\n>>>>>>> origin/main\nb\n')).toBe(true);
 		expect(hasConflictMarkers('<<<<<<< HEAD\r\nx\r\n=======\r\ny\r\n>>>>>>> b')).toBe(true);
 		// only the first line of a place deleted: the other two would go into the version
 		expect(hasConflictMarkers('x\n=======\ny\n>>>>>>> origin/main\n')).toBe(true);
-		expect(hasConflictMarkers('<<<<<<< HEAD\nx\n=======\ny\n')).toBe(true);
-		expect(hasConflictMarkers('<<<<<<<\nx\n')).toBe(true);
-		// not a marker: indented, too long, or a Markdown heading's underline on its own
+		// the separator alone, in either line ending: it would print in the PDF
+		expect(hasConflictMarkers('Mine.\n=======\nTheirs.\n')).toBe(true);
+		expect(hasConflictMarkers('Mine.\r\n=======\r\nTheirs.\r\n')).toBe(true);
+		// not a marker: indented, too long, or with nothing after the arrows
 		expect(hasConflictMarkers(' <<<<<<< HEAD\nx\n')).toBe(false);
 		expect(hasConflictMarkers('<<<<<<<< HEAD\nx\n')).toBe(false);
-		expect(hasConflictMarkers('Title\n=======\n')).toBe(false);
+		expect(hasConflictMarkers('========\n')).toBe(false);
 		expect(hasConflictMarkers('plain text\n')).toBe(false);
 	});
 });

@@ -1812,5 +1812,7 @@
 	"vcs_auto_new_detail": "Synchronisieren Sie vor dem Bearbeiten, damit Ihre und deren Änderungen nicht kollidieren.",
 	"prefs_check_new_versions": "Nach neuen Versionen von Mitautoren suchen",
 	"prefs_check_new_versions_note": "Fragt alle paar Minuten, solange Texpile im Vordergrund ist, beim Remote dieses Projekts nach, ob jemand etwas hochgeladen hat. Übernommen wird erst beim Synchronisieren, und nach einer Anmeldung wird nie gefragt.",
-	"vcs_toast_combine_whole_desc": "Wählen Sie in der Versionskontrolle für jede Datei, welche Version bleibt, und klicken Sie dann auf „Zusammenführen abschließen“."
+	"vcs_toast_combine_whole_desc": "Wählen Sie in der Versionskontrolle für jede Datei, welche Version bleibt, und klicken Sie dann auf „Zusammenführen abschließen“.",
+	"vcs_publish_files_title": "Auswählen, was veröffentlicht wird",
+	"vcs_publish_files_desc": "Alles Angehakte kommt in die erste Version und zu GitHub. Was Sie abwählen, wird in .gitignore eingetragen und bleibt nur auf diesem Computer."
 }

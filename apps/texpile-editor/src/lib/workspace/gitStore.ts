@@ -1,5 +1,6 @@
 // reactive git state for the open folder. refreshed from WorkspaceView's refreshTree()
 // (every tree-refresh trigger updates it for free) and after each Source Control write.
+import { parentRepoToConfirm, useParentRepo } from './parentRepo.svelte';
 import { box } from '$lib/runes/box.svelte';
 import {
 	gitStatus as fetchGitStatus,
@@ -29,6 +30,8 @@ export const gitBehind = box<number>(0);
 
 /** there is at least one version: before the first, a branch has nothing to publish */
 export const gitHasCommits = box<boolean>(false);
+/** a repository above the open folder, not used until the author agrees (parentRepo.svelte.ts) */
+export const gitHeldBack = box<boolean>(false);
 
 /** HEAD is a commit rather than a branch, so there is no branch to publish or sync */
 export const gitDetached = box<boolean>(false);
@@ -161,6 +164,7 @@ function clearGitState(): void {
 	gitRepoRoot.current = null;
 	gitHead.current = null;
 	isGitRepo.current = false;
+	gitHeldBack.current = false;
 	gitBranch.current = null;
 	gitTracking.current = null;
 	gitAhead.current = 0;
@@ -195,8 +199,20 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 		return { missingGit: gitMissing.current };
 	}
 	isGitRepo.current = true;
-	gitOperation.current = res.operation ?? null;
 	gitRepoRoot.current = res.repoRoot ?? null;
+	// A repository above the folder is not used until the author says so, as VS Code opens none
+	// (git.openRepositoryInParentFolders): no colours in the tree, no count on the badge, no marks in
+	// the margin, no checking for new versions. Source Control shows the question meanwhile.
+	gitHeldBack.current = parentRepoToConfirm(root, res.repoRoot ?? null) !== null;
+	if (gitHeldBack.current) {
+		gitOperation.current = null;
+		gitTracking.current = null;
+		gitChanges.current = [];
+		gitStatusMap.current = {};
+		gitFolderStatus.current = {};
+		return { missingGit: false };
+	}
+	gitOperation.current = res.operation ?? null;
 	if ((res.head ?? null) !== gitHead.current) gitHead.current = res.head ?? null;
 	if (res.head !== undefined && res.head !== lastHead) {
 		const moved = lastHead !== undefined;
@@ -217,6 +233,14 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 	gitStatusMap.current = map;
 	gitFolderStatus.current = foldersOf(map, root);
 	return { missingGit: false };
+}
+
+/** Source Control's Use this repository: remembered, and taken up at once by the tree, the badge
+ *  and the margin, which held back until now */
+export async function useParentRepoNow(root: string | null): Promise<void> {
+	if (!root || !gitRepoRoot.current) return;
+	useParentRepo(root, gitRepoRoot.current);
+	await refreshGitStatus(root);
 }
 
 /** reloads the timeline. Separate from status: status runs on every tree refresh, and the log is

@@ -1,7 +1,7 @@
 // Branches for the Source Control panel: the list behind the branch name, switching to one,
 // starting one, and taking up one that exists only on a remote. VS Code's Git: Checkout to...,
 // with the refusals said in words: git will not switch over unsaved work it would overwrite.
-import { git, errMsg, isMissingGit, resolveRepoRoot, gitDirsOf, operationIn, type GitOpResult } from './gitService';
+import { git, errMsg, isMissingGit, resolveRepoRoot, retryLocked, gitDirsOf, operationIn, type GitOpResult } from './gitService';
 import { OVERWRITE_RE, parseBlockingFiles } from './gitRemote';
 import { resolve } from 'node:path';
 
@@ -109,7 +109,7 @@ async function run(workspaceRoot: string, args: (root: string) => Promise<string
 		if (operationIn((await gitDirsOf(root)).gitDir)) return { ok: false, failure: 'busy' };
 		const planned = await args(root);
 		if (!Array.isArray(planned)) return planned;
-		await g.raw(planned);
+		await retryLocked(() => g.raw(planned));
 		const branch = (await g.raw(['symbolic-ref', '-q', '--short', 'HEAD'])).trim();
 		return { ok: true, branch };
 	} catch (e) {

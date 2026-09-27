@@ -3,7 +3,7 @@
 // command factory it shares; the helper process serves both (helper/helperWorker.ts).
 import { simpleGit, type SimpleGit, type SimpleGitOptions } from 'simple-git';
 import { spawn } from 'node:child_process';
-import { git, isMissingGit, errMsg, resolveRepoRoot, upstreamExists, type GitOpResult } from './gitService';
+import { git, isMissingGit, errMsg, resolveRepoRoot, retryLocked, upstreamExists, type GitOpResult } from './gitService';
 
 // -- remotes --------------------------------------------------------------------
 
@@ -283,7 +283,7 @@ async function takeIn(g: SimpleGit, diverged: boolean): Promise<TakeIn> {
 	if (!diverged) {
 		// nothing here the remote lacks: move forward to it. Git refuses, touching nothing, when a
 		// file it would change has unsaved work in it.
-		const msg = await outputOf(g.raw(['merge', '--ff-only', '@{u}']));
+		const msg = await outputOf(retryLocked(() => g.raw(['merge', '--ff-only', '@{u}'])));
 		if (OVERWRITE_RE.test(msg)) return { ok: false, failure: 'dirty', files: parseBlockingFiles(msg), error: msg };
 		const [, behind] = await aheadBehind(g);
 		return behind === 0 ? { ok: true } : { ok: false, failure: 'other', error: msg || 'git did not move to the new versions' };
@@ -296,10 +296,10 @@ async function takeIn(g: SimpleGit, diverged: boolean): Promise<TakeIn> {
 	if (dirty.length) return { ok: false, failure: 'dirty', files: dirty };
 
 	// a conflict exits 1 with its report on stdout, which simple-git resolves rather than throws
-	const msg = await outputOf(g.raw(['merge', '--no-edit', '@{u}']));
+	const msg = await outputOf(retryLocked(() => g.raw(['merge', '--no-edit', '@{u}'])));
 	if (await mergeInProgress(g)) {
 		const conflicted = (await g.status()).conflicted;
-		await g.raw(['merge', '--abort']);
+		await retryLocked(() => g.raw(['merge', '--abort']));
 		return conflicted.length
 			? { ok: false, failure: 'conflict', files: conflicted, error: msg }
 			: { ok: false, failure: 'other', error: msg };
