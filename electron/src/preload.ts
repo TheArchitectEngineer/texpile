@@ -240,6 +240,9 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	savePdfAs: (body: { src: string; defaultPath: string; to?: string }) => invokeFs('shell:savePdfAs', body),
 	/** Save PDF bytes the viewer holds (a guest has no file on disk) -> { saved, path? }. */
 	savePdfBytes: (body: { bytes: Uint8Array; defaultName: string; to?: string }) => invokeFs('shell:savePdfBytes', body),
+	/** Ask where a Typst export goes (a file to save, or a folder for its pages) -> the path, or null. */
+	pickExportTarget: (body: { kind: 'file' | 'folder'; defaultPath: string; extension?: string; title?: string }) =>
+		invokeFs('shell:pickExportTarget', body),
 
 	/** per-file git status + branch -> { ok, branch?, entries? }. */
 	gitStatus: (root: string) => invokeFs('git:status', root),

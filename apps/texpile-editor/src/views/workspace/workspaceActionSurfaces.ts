@@ -22,6 +22,7 @@ import type { PaneLayout } from '$lib/workspace/paneLayout.svelte';
 import type { DraftController } from '$lib/draft/draftController.svelte';
 import type { TypstPreviewController } from '$lib/languages/typst/preview/previewController.svelte';
 import { typstSymbolPicker } from '$lib/languages/typst/symbols/typstSymbolPicker.svelte';
+import { typstExport } from '$lib/languages/typst/export/typstExportState.svelte';
 import type { CompilePipeline } from '$lib/workspace/compilePipeline.svelte';
 import type { WorkspaceNav } from './workspaceNav.svelte';
 import type { WorkspaceDoc } from './workspaceDoc.svelte';
@@ -308,6 +309,8 @@ export function makePaletteActions(d: ActionSurfaceDeps) {
 		refreshTree: () => void d.files().refreshTree(),
 		openTypstPreview: () => d.typstPreview.enable(),
 		isTypstProject: () => d.cc.typstProject,
+		canExportTypst: () => typstExport.available,
+		exportTypst: () => typstExport.show(),
 		canZoteroCite: () => d.integrations.canZoteroCite(),
 		insertZoteroCitation: () => d.integrations.insertZoteroCitation(),
 		canCiteByDoi: () => d.integrations.canCiteByDoi(),

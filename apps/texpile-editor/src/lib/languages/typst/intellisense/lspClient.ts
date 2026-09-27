@@ -461,6 +461,20 @@ export async function exportTypstPdf(root: string | null, file: string, outDir?:
 }
 
 /**
+ * The client, with tinymist told to write the next export to `outputPath` and sent the newest text,
+ * for the Export dialog (languages/typst/export), whose own request follows. Where to write travels
+ * as configuration for the reason exportTypstPdf gives. Null without a server.
+ */
+export async function typstClientForExport(root: string | null, outputPath: string): Promise<LSPClient | null> {
+	const client = await typstClient(root);
+	if (!client) return null;
+	serverSettings.outputPath = outputPath;
+	pushSettings(client);
+	client.sync(); // as exportTypstPdf: the last keystrokes may still be waiting on a sync debounce
+	return client;
+}
+
+/**
  * Subscribe to "the user clicked somewhere in the preview; put the caret there".
  *
  * The framed page cannot reach us directly and does not need to: it sends the span it was clicked

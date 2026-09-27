@@ -41,6 +41,7 @@
 	import ZoteroCitationDialog from '$lib/zotero/ZoteroCitationDialog.svelte';
 	import CiteByDoiDialog from '$lib/cite/CiteByDoiDialog.svelte';
 	import TemplateDetailsDialog from '$lib/workspace/templates/TemplateDetailsDialog.svelte';
+	import TypstExportDialog from '$lib/languages/typst/export/TypstExportDialog.svelte';
 	import { settings } from '$lib/settings';
 	import { basename, dirname, isDesktop } from '$lib/workspace/fileSystem';
 	import { diskProvider } from '$lib/workspace/diskProvider';
@@ -395,6 +396,7 @@
 	<ZoteroCitationDialog />
 	<CiteByDoiDialog />
 	<TemplateDetailsDialog />
+	<TypstExportDialog />
 
 	<WorkspaceModals
 		bind:mainPrompt={files.mainPrompt}

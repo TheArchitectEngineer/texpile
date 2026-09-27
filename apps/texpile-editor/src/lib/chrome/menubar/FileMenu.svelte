@@ -16,6 +16,8 @@
 		openFolderSelect: (value: string) => void;
 		canNewFile: boolean;
 		typstProject: boolean;
+		/** the main file is Typst and tinymist can export it (see languages/typst/export) */
+		canExportTypst: boolean;
 		canOpenFolder: boolean;
 		canSaveAsTemplate: boolean;
 		canCloseWorkspace: boolean;
@@ -29,6 +31,7 @@
 		openFolderSelect,
 		canNewFile,
 		typstProject,
+		canExportTypst,
 		canOpenFolder,
 		canSaveAsTemplate,
 		canCloseWorkspace,
@@ -115,6 +118,9 @@
 				</Menu.Item>
 				{#if canSaveAsTemplate}
 					<Menu.Item value="save-as-template" class={itemClass}><Menu.ItemText>{m.menubar_save_as_template()}</Menu.ItemText></Menu.Item>
+				{/if}
+				{#if canExportTypst}
+					<Menu.Item value="export-typst" class={itemClass}><Menu.ItemText>{m.typst_export_menu()}</Menu.ItemText></Menu.Item>
 				{/if}
 				{#if canCloseWorkspace}
 					<Menu.Item value="close-workspace" class={itemClass}><Menu.ItemText>{m.menubar_close_workspace()}</Menu.ItemText></Menu.Item>

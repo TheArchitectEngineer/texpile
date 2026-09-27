@@ -4,6 +4,7 @@ import { fileMode } from '$lib/workspace/fileMode.svelte';
 import { DraftController } from '$lib/draft/draftController.svelte';
 import { TypstPreviewController } from '$lib/languages/typst/preview/previewController.svelte';
 import { TypstDocumentStream } from '$lib/languages/typst/intellisense/typstDocumentStream';
+import { typstExport } from '$lib/languages/typst/export/typstExportState.svelte';
 import { CompilePipeline } from '$lib/workspace/compilePipeline.svelte';
 import { projectConfigSync as projectConfig, compileConfig } from '$lib/workspace/projectConfigSync.svelte';
 import { texFiles, mainFile, workspaceRoot } from '$lib/workspace/workspaceStore';
@@ -84,6 +85,13 @@ export function createWorkspacePipelines(d: PipelineDeps) {
 		getRoot: () => workspaceRoot.current,
 		getOpenTypstFile: () => (!d.guest() && doc.kind === 'typ' && !doc.binaryWarning ? doc.path : null),
 		getText: () => doc.texSource
+	});
+	// the Export dialog (languages/typst/export) saves and refreshes through this workspace while it
+	// is up; a guest has no tinymist of its own to export with
+	$effect(() => {
+		if (d.guest()) return;
+		typstExport.connect({ flushSaves: () => d.editFlow().saver.flushAndWait(), refreshTree: () => void d.files().refreshTree() });
+		return () => typstExport.connect(null);
 	});
 	// compile / terminal / PDF-watch orchestration lives in lib/workspace/compilePipeline.svelte.ts
 	const compiler: CompilePipeline = new CompilePipeline({

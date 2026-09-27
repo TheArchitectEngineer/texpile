@@ -1,4 +1,16 @@
-import { FilePlus2, FolderOpen, LayoutTemplate, Play, RefreshCw, RotateCw, Save, Settings, Users, Wrench } from '@lucide/svelte';
+import {
+	FileOutput,
+	FilePlus2,
+	FolderOpen,
+	LayoutTemplate,
+	Play,
+	RefreshCw,
+	RotateCw,
+	Save,
+	Settings,
+	Users,
+	Wrench
+} from '@lucide/svelte';
 import { isDirty } from '$lib/workspace/workspaceStore';
 import { nativeBridge } from '$lib/workspace/fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
@@ -20,6 +32,15 @@ export function fileItems(a: PaletteActions): PaletteItem[] {
 			hint: combo('S'),
 			icon: Save,
 			run: () => a.save()
+		});
+	if (a.canExportTypst?.())
+		items.push({
+			id: 'typst.export',
+			label: m.typst_export_palette(),
+			group,
+			keywords: 'typst export pdf png svg html image pdf/a pdf/ua accessible tinymist',
+			icon: FileOutput,
+			run: () => a.exportTypst?.()
 		});
 	if (a.canManageTree()) {
 		// the compile target decides the document rows, exactly as in the File > New menus:

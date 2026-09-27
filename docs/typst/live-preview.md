@@ -19,5 +19,7 @@ A Typst document renders as you type in a pane beside the editor, through tinymi
 
 The arrow button at the top of the divider shows the current line in the preview, the pane's Follow switch keeps it on the caret, and a click in the preview jumps back to the source. Guests in a shared session see the host's preview.
 
+The eye button in the preview toolbar shows the document as a reader with a color vision deficiency sees it, without changing any file. It is the same check as the PDF pane's [color vision check](../latex/compiling.md). The toolbar also has Save PDF, and Export for PNG, SVG, HTML, and PDF standards: [Export](export.md).
+
 > [!NOTE]
 > The preview needs tinymist installed. Editing works without it.

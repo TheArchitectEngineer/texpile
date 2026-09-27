@@ -29,6 +29,7 @@ const steps: Array<() => Promise<void>> = [
 	async () => (await import('./templatesIpc.js')).registerTemplatesIpc(),
 	async () => (await import('./gitIpc.js')).registerGitIpc(),
 	async () => (await import('./pdfSaveIpc.js')).registerPdfSaveIpc(),
+	async () => (await import('./exportTargetIpc.js')).registerExportTargetIpc(),
 	async () => (await import('./typstIpc.js')).registerTypstIpc(),
 	async () => (await import('./toolchainIpc.js')).registerToolchainIpc(),
 	async () => (await import('./tinymistIpc.js')).registerTinymistIpc(),

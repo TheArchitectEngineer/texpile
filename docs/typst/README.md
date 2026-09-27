@@ -54,4 +54,5 @@ The [Equations](../visual-editing/math.md), [Images](../visual-editing/images.md
 An empty folder offers Typst templates on its Typst tab: a paper with a title block, abstract, equation, figure, table, and citations; a report or thesis with a title page, a table of contents, and a file per chapter; a letter; and slides that start a new slide at every top-level heading. Each keeps its layout in `template.typ`, so `main.typ` holds only your text, and none of them needs a package or a network connection. Browse Typst templates… goes online to Typst Universe for more. See [Templates](../projects.md#templates).
 
 [Live preview](live-preview.md)
+[Export](export.md)
 [Installing tinymist](../installation/typst/README.md)

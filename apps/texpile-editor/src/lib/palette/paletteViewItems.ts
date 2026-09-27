@@ -1,5 +1,6 @@
 import { Columns2, Eye, GitCompare, PanelLeft, Search } from '@lucide/svelte';
 import { combo } from '$lib/chrome/shortcutText';
+import { COLOR_VISION_MODES, colorVision, colorVisionLabel } from '$lib/preview/colorVision/colorVision';
 import type { PaletteActions } from '$lib/workspace/commandPalette.svelte';
 import type { PaletteItem } from './paletteCommands';
 import { m } from '$lib/paraglide/messages';
@@ -46,6 +47,22 @@ export function viewItems(a: PaletteActions): PaletteItem[] {
 			icon: PanelLeft,
 			run: () => a.toggleSidebar()
 		});
+	// the previews' color vision check. The simulations are found by typing (color, blind, protan...)
+	// rather than listed, four rows of one feature in the browse list; the way back is listed while on
+	for (const mode of COLOR_VISION_MODES) {
+		if (mode === colorVision.current) continue;
+		items.push({
+			id: `view.colorVision.${mode}`,
+			label: mode === 'none' ? m.color_vision_off() : m.color_vision_palette({ mode: colorVisionLabel(mode) }),
+			group,
+			keywords: 'color colour vision blind blindness deficiency accessibility simulate preview',
+			icon: Eye,
+			searchOnly: mode !== 'none',
+			run: () => {
+				colorVision.current = mode;
+			}
+		});
+	}
 	if (a.canSearch())
 		items.push({
 			id: 'view.findInFiles',
