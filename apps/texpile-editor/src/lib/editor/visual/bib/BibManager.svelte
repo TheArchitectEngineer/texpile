@@ -13,8 +13,11 @@
 		serializeBibtex,
 		fitsVisualEditor,
 		getEntryTypeOptions,
+		sameWorkAs,
 		isKeyUnique as checkKeyUnique
 	} from '$lib/languages/bib/biblatex';
+	import { onMount } from 'svelte';
+	import { citedKeys, loadCitedKeys } from '$lib/workspace/citedKeys';
 	import type { ZodIssue } from 'zod';
 	import { referenceStore } from '$lib/stores/editorStore';
 	import CodeMirrorLatex from '$lib/components/CodeMirrorLatex.svelte';
@@ -78,6 +81,30 @@
 	});
 
 	const entryTypeOptions = getEntryTypeOptions();
+
+	// the entry in the form against every other entry, as it is typed: a DOI pasted into a new
+	// entry says at once that the paper is already here
+	const formTwins = $derived(
+		sameWorkAs(
+			currentReference as BiblatexReference,
+			refs.filter((r) => r.key !== originalKey)
+		)
+	);
+
+	// what the folder's documents cite, for the rows' "not cited" note: read now, and again when
+	// the reader comes back from writing elsewhere
+	onMount(() => {
+		function reload() {
+			void loadCitedKeys();
+		}
+		reload();
+		addEventListener('focus', reload);
+		addEventListener('texpile:fs-changed', reload);
+		return () => {
+			removeEventListener('focus', reload);
+			removeEventListener('texpile:fs-changed', reload);
+		};
+	});
 
 	function isKeyUnique(k: string) {
 		return checkKeyUnique(k, refs, originalKey ?? undefined);
@@ -304,6 +331,7 @@
 				<ul>
 					<BibReferenceList
 						{refs}
+						cited={citedKeys.current}
 						selectedKey={isEditing ? (currentReference.key ?? null) : null}
 						onEdit={editReference}
 						onDelete={deleteReference}
@@ -342,7 +370,15 @@
 						<button class="btn preset-filled-primary-500" type="button" onclick={saveRawEntry}>{m.bib_update_reference_button()}</button>
 					</div>
 				{:else}
-					<BibEntryForm bind:currentReference {formErrors} {entryTypeOptions} {isEditing} onSave={saveReference} onCancel={resetForm} />
+					<BibEntryForm
+						bind:currentReference
+						{formErrors}
+						{entryTypeOptions}
+						{isEditing}
+						twins={formTwins}
+						onSave={saveReference}
+						onCancel={resetForm}
+					/>
 				{/if}
 
 				{#if !isEditing}

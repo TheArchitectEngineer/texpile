@@ -1286,5 +1286,9 @@
 	"bib_warn_missing": "Ausente: {fields}",
 	"bib_warn_missing_one_of": "Requer um destes campos: {fields}",
 	"bib_warn_conflict": "Use somente um destes campos: {fields}",
+	"bib_warn_same_work_doi": "Mesmo artigo que {key}: os dois têm este DOI",
+	"bib_warn_same_work_arxiv": "Mesmo artigo que {key}: os dois têm este número do arXiv",
+	"bib_not_cited": "Não citada",
+	"bib_not_cited_tooltip": "Nenhum documento desta pasta cita esta referência, então ela fica fora da bibliografia.",
 	"bib_warnings_heading": "O biblatex informará"
 }

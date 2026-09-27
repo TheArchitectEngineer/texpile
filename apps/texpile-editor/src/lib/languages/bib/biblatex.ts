@@ -33,6 +33,7 @@ export { bibDisplayText, bibAuthorShort } from './bibDisplayText';
 
 export { validateEntry, type BibProblem } from './bibValidate';
 export { bibProblemText } from './bibProblemText';
+export { sameWorkAs, sameWorkIn, type SameWork } from './bibSameWork';
 
 // legacy field name -> the one biblatex renames it to (journal -> journaltitle)
 export { BIB_FIELD_ALIASES } from './bibDatamodel';
