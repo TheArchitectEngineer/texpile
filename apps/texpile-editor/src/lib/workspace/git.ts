@@ -223,7 +223,7 @@ export async function gitShowAt(path: string, ref: string): Promise<GitShowResul
 }
 
 /** `untracked`: new files, in no version, that the restore refused to replace (absolute paths) */
-export type GitRestoreResult = GitOpResult & { untracked?: string[] };
+export type GitRestoreResult = GitOpResult & { untracked?: string[]; failure?: 'same' };
 
 /** roll the workspace back to a commit, recorded as a new commit rather than a reset. */
 export async function gitRestore(root: string, hash: string, message: string): Promise<GitRestoreResult> {

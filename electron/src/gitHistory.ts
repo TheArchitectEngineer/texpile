@@ -329,6 +329,8 @@ export type GitRestoreResult = GitOpResult & {
 	/** new files, never in a version, that the restore would have replaced with that version's
 	 *  copies: absolute paths. Refused rather than overwritten, since git could not give them back */
 	untracked?: string[];
+	/** 'same': the files already are as that version has them, so there is nothing to restore */
+	failure?: 'same';
 };
 
 export async function gitRestore(workspaceRoot: string, hash: string, message: string): Promise<GitRestoreResult> {
@@ -354,7 +356,7 @@ export async function gitRestore(workspaceRoot: string, hash: string, message: s
 		// and the restore "succeeds" leaving that file as it is now
 		const where = scope ? ['--', scope] : [];
 		const changed = (await g.raw(['diff', '--name-only', '--no-renames', '-z', hash, 'HEAD', ...where])).split('\0').filter(Boolean);
-		if (!changed.length) return { ok: false, error: 'That version matches the current one.' };
+		if (!changed.length) return { ok: false, failure: 'same', error: 'That version matches the current one.' };
 
 		// a new file the author has not saved in any version, at a name that version has: checkout
 		// would replace it without a word. The dirty check above leaves new files out on purpose.

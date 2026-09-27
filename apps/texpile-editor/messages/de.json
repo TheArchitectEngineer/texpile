@@ -1802,7 +1802,7 @@
 	"history_previous_subtitle": "{name}: was sich seit der Kopie davor geändert hat ({date})",
 	"vcs_previous_subtitle": "{name}: was diese Version geändert hat",
 	"history_find": "Eintrag zum Wiederherstellen suchen…",
-	"palette_history_find": "Lokaler Verlauf: Eintrag zum Wiederherstellen suchen",
+	"palette_history_find": "Eintrag aus dem lokalen Verlauf zum Wiederherstellen suchen",
 	"history_find_title": "Lokaler Verlauf",
 	"history_find_search": "Dateien suchen",
 	"history_find_none": "Noch keine Datei in diesem Projekt hat einen lokalen Verlauf.",
@@ -1826,5 +1826,6 @@
 	"vcs_ssh_key_refused": "Der Server hat Ihren SSH-Schlüssel nicht angenommen. Prüfen Sie, ob der Schlüssel dort Ihrem Konto hinzugefügt ist, oder verwenden Sie stattdessen die https-Adresse mit Passwort oder Token.",
 	"vcs_ssh_host_changed": "Der SSH-Schlüssel des Servers hat sich seit Ihrer letzten Verbindung geändert, daher hat Texpile keine Verbindung hergestellt. Das passiert, wenn ein Server ersetzt wird, kann aber auch bedeuten, dass die Verbindung abgefangen wird: Fragen Sie zuerst beim Betreiber des Servers nach. Bestätigt er die Änderung, entfernen Sie den alten Schlüssel aus der Datei known_hosts dieses Computers.",
 	"vcs_restore_untracked": "Diese Version enthält Dateien mit denselben Namen wie neue Dateien, die Sie noch in keiner Version gespeichert haben ({files}), und das Wiederherstellen würde sie ersetzen. Speichern Sie sie zuerst in einer Version oder benennen Sie sie um.",
-	"vcs_clone_checkout": "Das Projekt wurde heruntergeladen, aber seine Dateien konnten nicht in den Ordner geschrieben werden, daher wurde nichts behalten. Git meldete: {reason}. Üblich sind ein Dateiname, den dieser Computer nicht erlaubt, oder eine große Datei (Git LFS), deren Download fehlgeschlagen ist."
+	"vcs_clone_checkout": "Das Projekt wurde heruntergeladen, aber seine Dateien konnten nicht in den Ordner geschrieben werden, daher wurde nichts behalten. Git meldete: {reason}. Üblich sind ein Dateiname, den dieser Computer nicht erlaubt, oder eine große Datei (Git LFS), deren Download fehlgeschlagen ist.",
+	"vcs_restore_same": "Die Dateien entsprechen bereits dieser Version"
 }

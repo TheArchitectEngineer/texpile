@@ -281,6 +281,10 @@ export class ScmActions {
 		this.busy = true;
 		const res = await gitRestore(root, entry.hash, m.vcs_restore_message({ name: entry.subject }));
 		this.busy = false;
+		if (!res.ok && res.failure === 'same') {
+			toaster.info({ title: m.vcs_restore_same() });
+			return false;
+		}
 		if (!res.ok) {
 			// new files in the way are named, so they can be saved in a version (or renamed) first
 			const names = (res.untracked ?? []).map((p) => basename(p)).join(', ');
