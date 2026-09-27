@@ -103,7 +103,7 @@
 		const actions = localHistoryActions.current;
 		if (!path || !actions) return;
 		if (item.kind === 'local') actions.compare(path, item.entry);
-		else actions.compareVersion(path, item.entry.hash, item.entry.subject);
+		else actions.compareVersion(path, item.entry.hash, item.entry.subject, item.entry.path);
 	}
 
 	async function run(fn: () => Promise<void> | void) {

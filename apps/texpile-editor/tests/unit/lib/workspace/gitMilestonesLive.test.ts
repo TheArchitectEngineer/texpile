@@ -3,8 +3,18 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { gitMarkMilestone, gitRemoveMilestone, parseTags, tagNameFor } from '../../../../../../electron/src/gitTags';
 import { gitLog } from '../../../../../../electron/src/gitHistory';
-import { gitSync } from '../../../../../../electron/src/gitRemote';
+import { gitSync, milestonesMissingOn } from '../../../../../../electron/src/gitRemote';
+import { simpleGit } from 'simple-git';
+import { writeFileSync, chmodSync } from 'node:fs';
+import { join } from 'node:path';
 import { AVAILABLE, run, out, commit, removeTempDirs, makePublished } from './gitLiveFixture';
+
+/** a remote that takes nothing: the stand-in for someone else's repository */
+function refuseEveryPush(remote: string) {
+	const hook = join(remote, 'hooks', 'pre-receive');
+	writeFileSync(hook, '#!/bin/sh\necho "read only" >&2\nexit 1\n');
+	chmodSync(hook, 0o755);
+}
 
 afterEach(removeTempDirs);
 
@@ -51,6 +61,33 @@ describe.skipIf(!AVAILABLE)('milestones', () => {
 		expect(await gitRemoveMilestone(root, 'nothing')).toMatchObject({ ok: false, failure: 'missing' });
 		expect(await gitMarkMilestone(root, 'not-a-hash', 'x')).toMatchObject({ ok: false, failure: 'invalid' });
 		expect(await gitMarkMilestone(root, out(root, 'rev-parse', 'HEAD'), '  ')).toMatchObject({ ok: false, failure: 'invalid' });
+	});
+});
+
+describe.skipIf(!AVAILABLE || process.platform === 'win32')('milestones where the remote cannot be written to', () => {
+	it('still removes one that was never uploaded, and keeps one the remote has', async () => {
+		const { root, remote } = await makePublished();
+		const hash = out(root, 'rev-parse', 'HEAD');
+		await gitMarkMilestone(root, hash, 'Uploaded');
+		await gitSync(root);
+		refuseEveryPush(remote);
+		await gitMarkMilestone(root, hash, 'Only here');
+		expect(await gitRemoveMilestone(root, 'only-here')).toEqual({ ok: true, name: 'only-here' });
+		// the remote has this one and would bring it back with the next Sync: refused, and kept
+		expect((await gitRemoveMilestone(root, 'uploaded')).ok).toBe(false);
+		expect(out(root, 'tag', '-l')).toBe('uploaded');
+	});
+
+	it('is no reason for Sync to push when it sits on another branch', async () => {
+		const { root } = await makePublished();
+		run(root, 'switch', '-q', '-c', 'aside');
+		commit(root, 'aside.tex', 'Aside.\n', 'Aside');
+		await gitMarkMilestone(root, out(root, 'rev-parse', 'HEAD'), 'On aside');
+		// --follow-tags would not send it from here, so pushing for it would only meet the remote's
+		// refusal: on GitHub, a push with nothing to send still needs write access
+		expect(await milestonesMissingOn(simpleGit(root), 'origin')).toBe(true);
+		run(root, 'switch', '-q', '-');
+		expect(await milestonesMissingOn(simpleGit(root), 'origin')).toBe(false);
 	});
 });
 

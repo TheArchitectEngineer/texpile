@@ -25,7 +25,7 @@ export type LocalHistoryDeps = {
 	readTextIfPresent(path: string): Promise<string | null>;
 	writeText(path: string, content: string): Promise<void>;
 	loadFile(path: string): Promise<void>;
-	openCompareTab(path: string, compare: { hash: string; subject: string }): void;
+	openCompareTab(path: string, compare: { hash: string; subject: string; path?: string }): void;
 };
 
 /** "5 Mar 2026, 14:02": VS Code's local history date label */
@@ -37,8 +37,8 @@ export class LocalHistoryActions {
 	constructor(private deps: LocalHistoryDeps) {}
 
 	/** a git version of the file against the file as it is now: the Timeline's git rows */
-	compareVersion(path: string, hash: string, subject: string): void {
-		this.deps.openCompareTab(path, { hash, subject });
+	compareVersion(path: string, hash: string, subject: string, pathThen?: string): void {
+		this.deps.openCompareTab(path, { hash, subject, ...(pathThen ? { path: pathThen } : {}) });
 	}
 
 	/** the entry against the file as it is now, in a compare tab */

@@ -20,6 +20,8 @@ export type GitLogEntry = {
 	subject: string;
 	/** the rest of the message after its first line, when it has more */
 	body?: string;
+	/** in one file's log: the file's path in this version, absolute, when it was named differently */
+	path?: string;
 	author: string;
 	/** author date, ISO 8601 */
 	date: string;
@@ -126,29 +128,60 @@ export async function gitLog(workspaceRoot: string, limit = 100): Promise<GitLog
 	}
 }
 
+/**
+ * `git log -z --format=%x01%H --name-only` → each version's hash and the file's name in it,
+ * repo-relative. -z so a name outside ASCII (a chapter called 章.tex) comes through as it is, not
+ * as git's quoted octal. A version that lists no name (a merge) is left out.
+ */
+export function parseFileNames(raw: string): Map<string, string> {
+	const out = new Map<string, string>();
+	let hash = '';
+	for (const token of raw.split('\0')) {
+		if (token.startsWith('\x01')) hash = token.slice(1).trim();
+		else if (hash && token.replace(/^\n/, '') && !out.has(hash)) out.set(hash, token.replace(/^\n/, ''));
+	}
+	return out;
+}
+
 /** One file's versions, newest first, following it across renames: the git half of the Timeline
  *  (VS Code's Git History timeline source, `git log --follow -- <file>`). */
 export async function gitFileLog(workspaceRoot: string, path: string, limit = 50): Promise<GitLogResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
-	const [rel] = toRepoRel(rr.root, [path]);
+	const root = rr.root;
+	const [rel] = toRepoRel(root, [path]);
 	if (!rel || rel.startsWith('..')) return { ok: true, entries: [] };
+	const max = `--max-count=${Math.max(1, Math.min(limit, 200))}`;
 	try {
-		const raw = await git(rr.root).raw([
+		const raw = await git(root).raw([
 			'log',
 			'--follow',
-			`--max-count=${Math.max(1, Math.min(limit, 200))}`,
+			max,
 			`--format=${REC_FMT}%H${FIELD_FMT}%h${FIELD_FMT}%an${FIELD_FMT}%aI${FIELD_FMT}%P${FIELD_FMT}%s${BODY_FMT}%b`,
 			'--',
 			rel
 		]);
-		return { ok: true, entries: parseGitLog(raw) };
+		// --follow reaches back past renames, where the file had another name: each version carries
+		// the name it had then, or a comparison would look up a path that version never held
+		const nameAt = parseFileNames(await git(root).raw(['log', '--follow', '-z', max, '--format=%x01%H', '--name-only', '--', rel]));
+		return { ok: true, entries: withNamesThen(parseGitLog(raw), nameAt, rel, root) };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
 		// an unborn HEAD, or a file git has never seen: no versions, which is not a failure
 		if (/does not have any commits yet|unknown revision|bad revision/i.test(errMsg(e))) return { ok: true, entries: [] };
 		return { ok: false, error: errMsg(e) };
 	}
+}
+
+/** `path` on each version where the file was named other than `rel`. A version git lists no name
+ *  for (a merge) had the name of the version before it, so names are carried oldest to newest. */
+function withNamesThen(entries: GitLogEntry[], nameAt: Map<string, string>, rel: string, root: string): GitLogEntry[] {
+	let then = rel;
+	const named = [...entries].reverse().map((e) => {
+		then = nameAt.get(e.hash) ?? then;
+		return then === rel ? e : { ...e, path: resolve(root, then) };
+	});
+	return named.reverse();
 }
 
 export type GitChangesResult = {
@@ -180,16 +213,18 @@ export async function gitChangesSince(workspaceRoot: string, hash: string): Prom
 	}
 }
 
-/** a file's contents at an arbitrary commit, for diffing a version against the working copy. */
-export async function gitShowAt(absPath: string, ref: string): Promise<GitShowResult> {
-	if (!absPath) return { ok: false, hasHead: false, error: 'Missing path' };
-	if (!ref) return { ok: false, hasHead: false, error: 'Missing revision' };
-	const rr = await resolveRepoRoot(dirname(absPath));
-	if (!rr.root) return { ok: false, hasHead: false, reason: rr.reason };
+/** A revision from the window: a commit hash or HEAD, perhaps with a parent step. Anything else is
+ *  refused before it reaches git, above all something starting with '-', which `git show` would
+ *  take as an option (`--output=<path>` writes a file). Exported for the tests. */
+export function isShowableRef(ref: string): boolean {
+	return /^(HEAD|[0-9a-f]{4,64})(\^[0-9]?|~[0-9]{1,4})?$/i.test(ref);
+}
+
+/** the file at `ref` in the repository at `root`; '' where it did not exist then */
+async function showFile(root: string, absPath: string, ref: string): Promise<GitShowResult> {
 	try {
-		const [rel] = toRepoRel(rr.root, [absPath]);
-		const content = await git(rr.root).show([`${ref}:${rel}`]);
-		return { ok: true, hasHead: true, content };
+		const [rel] = toRepoRel(root, [absPath]);
+		return { ok: true, hasHead: true, content: await git(root).show([`${ref}:${rel}`]) };
 	} catch (e) {
 		if (isMissingGit(e)) {
 			markGitMissing();
@@ -202,6 +237,15 @@ export async function gitShowAt(absPath: string, ref: string): Promise<GitShowRe
 		}
 		return { ok: false, hasHead: false, error: msg };
 	}
+}
+
+/** a file's contents at an arbitrary commit, for diffing a version against the working copy. */
+export async function gitShowAt(absPath: string, ref: string): Promise<GitShowResult> {
+	if (!absPath) return { ok: false, hasHead: false, error: 'Missing path' };
+	if (!isShowableRef(ref)) return { ok: false, hasHead: false, error: 'Invalid revision' };
+	const rr = await resolveRepoRoot(dirname(absPath));
+	if (!rr.root) return { ok: false, hasHead: false, reason: rr.reason };
+	return showFile(rr.root, absPath, ref);
 }
 
 /** the repo-relative paths git printed, as absolute paths, keeping only those inside the folder */
@@ -251,23 +295,11 @@ export async function gitChangesIn(workspaceRoot: string, hash: string): Promise
 /** A file as it was at `ref`, found through the project folder rather than the file's own: a file
  *  in a folder deleted since has no directory left to find its repository from. */
 export async function gitFileAt(workspaceRoot: string, absPath: string, ref: string): Promise<GitShowResult> {
-	if (!absPath || !ref) return { ok: false, hasHead: false, error: 'Missing path or revision' };
+	if (!absPath) return { ok: false, hasHead: false, error: 'Missing path' };
+	if (!isShowableRef(ref)) return { ok: false, hasHead: false, error: 'Invalid revision' };
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, hasHead: false, reason: rr.reason };
-	try {
-		const [rel] = toRepoRel(rr.root, [absPath]);
-		return { ok: true, hasHead: true, content: await git(rr.root).show([`${ref}:${rel}`]) };
-	} catch (e) {
-		if (isMissingGit(e)) {
-			markGitMissing();
-			return { ok: false, hasHead: false, reason: 'no-git' };
-		}
-		const msg = errMsg(e);
-		if (/exists on disk, but not in|does not exist in|unknown revision|bad revision|invalid object name|ambiguous argument/i.test(msg)) {
-			return { ok: true, hasHead: false, content: '' };
-		}
-		return { ok: false, hasHead: false, error: msg };
-	}
+	return showFile(rr.root, absPath, ref);
 }
 
 /**

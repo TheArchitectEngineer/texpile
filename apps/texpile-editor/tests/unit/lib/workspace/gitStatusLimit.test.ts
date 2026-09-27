@@ -28,6 +28,13 @@ it('leaves a small folder of new files as its files, and never folds a changed t
 });
 
 it('cuts a list past the cap and says how long it was', () => {
-	expect(capRows([1, 2, 3], 5)).toEqual({ rows: [1, 2, 3] });
-	expect(capRows([1, 2, 3, 4, 5, 6], 5)).toEqual({ rows: [1, 2, 3, 4, 5], truncated: 6 });
+	expect(capRows([1, 2, 3], undefined, 5)).toEqual({ rows: [1, 2, 3] });
+	expect(capRows([1, 2, 3, 4, 5, 6], undefined, 5)).toEqual({ rows: [1, 2, 3, 4, 5], truncated: 6 });
+});
+
+it('never cuts a conflict, however far down the list it is', () => {
+	// the panel counts conflicts to know whether a merge can be finished
+	const conflict = (n: number) => n % 10 === 0;
+	expect(capRows([1, 2, 3, 4, 5, 6, 10, 20], conflict, 5)).toEqual({ rows: [1, 2, 3, 10, 20], truncated: 8 });
+	expect(capRows([1, 10, 20, 30], conflict, 2)).toEqual({ rows: [10, 20, 30], truncated: 4 });
 });

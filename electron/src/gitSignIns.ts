@@ -57,10 +57,15 @@ export class SignIns {
 	}
 }
 
-/** After an operation: what was typed is kept if it worked, and what the keychain answered is
- *  dropped if the host refused it, so the next attempt asks rather than failing the same way. */
+// failures that come after the host let the author in: the sign-in worked even though the
+// operation did not (a conflict to combine, a remote that moved on, a rule GitHub enforces)
+const SIGNED_IN_FAILURES = new Set(['conflict', 'rejected', 'secret', 'protected']);
+
+/** After an operation: what was typed is kept if it worked - the operation succeeding, or failing
+ *  only after the host accepted it - and what the keychain answered is dropped if the host refused
+ *  it, so the next attempt asks rather than failing the same way. */
 export function settle(store: SignIns, result: { ok: boolean; failure?: string }, typed: Map<string, string>, recalled: Set<string>): void {
-	if (result.ok) store.keep(typed);
+	if (result.ok || SIGNED_IN_FAILURES.has(result.failure ?? '')) store.keep(typed);
 	else if (result.failure === 'auth') store.forget(recalled);
 }
 

@@ -254,7 +254,7 @@ export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult>
 			if (isUnmerged(f.index, f.working_dir)) entry.markers = await stillMarked(absFromRepo);
 			entries.push(entry);
 		}
-		const { rows, truncated } = capRows(await withFolderRows(g, workspaceRoot, entries));
+		const { rows, truncated } = capRows(await withFolderRows(g, workspaceRoot, entries), (e) => isUnmerged(e.x, e.y));
 		return {
 			ok: true,
 			branch: status.current,

@@ -12,6 +12,8 @@ import { browser } from '$lib/runtime';
 import { layout, updateLayout } from '$lib/storage/layout';
 import { gitShowHead, gitShowAt, type GitShowResult } from '$lib/workspace/git';
 import { LOCAL_REF, readLocalHistory } from '$lib/workspace/localHistory.svelte';
+import { gitFileAt } from '$lib/workspace/gitVersion';
+import { workspaceRoot } from '$lib/workspace/workspaceStore';
 import { VisualParser } from '$lib/workspace/visualParse.svelte';
 import { m } from '$lib/paraglide/messages';
 
@@ -23,10 +25,13 @@ export type DiffDeps = {
 	getMacros(): string;
 };
 
-/** a git version, or a Local History entry ('local:<id>') compared the same way */
-async function versionText(path: string, ref: string): Promise<GitShowResult> {
-	if (!ref.startsWith(LOCAL_REF)) return gitShowAt(path, ref);
-	const content = await readLocalHistory(path, ref.slice(LOCAL_REF.length));
+/** a git version, or a Local History entry ('local:<id>') compared the same way. A version from
+ *  before a rename is read under the name the file had then. */
+async function versionText(path: string, ref: { hash: string; path?: string }): Promise<GitShowResult> {
+	const root = workspaceRoot.current;
+	if (ref.path && root) return gitFileAt(root, ref.path, ref.hash);
+	if (!ref.hash.startsWith(LOCAL_REF)) return gitShowAt(path, ref.hash);
+	const content = await readLocalHistory(path, ref.hash.slice(LOCAL_REF.length));
 	return content === null ? { ok: false, hasHead: false, error: m.history_entry_gone() } : { ok: true, hasHead: true, content };
 }
 
@@ -41,7 +46,7 @@ export class DiffMode {
 	hasHead = $state(true);
 	layout = $state<'unified' | 'split'>('unified');
 	/** which version the working copy is compared against; null means HEAD */
-	compareRef = $state<{ hash: string; subject: string } | null>(null);
+	compareRef = $state<{ hash: string; subject: string; path?: string } | null>(null);
 
 	// The visual diff compares two documents, so the version goes through the importer too. On
 	// demand, not with every snapshot: a source comparison never needs it and this is the slow half.
@@ -86,7 +91,7 @@ export class DiffMode {
 		this.loading = true;
 		this.error = null;
 		const ref = this.compareRef;
-		const res = ref ? await versionText(path, ref.hash) : await gitShowHead(path);
+		const res = ref ? await versionText(path, ref) : await gitShowHead(path);
 		// cleared even when superseded, or the bar keeps announcing a read that already ended
 		this.loading = false;
 		if (this.deps.getLoadedPath() !== path) return; // a file switch superseded this snapshot

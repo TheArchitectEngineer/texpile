@@ -157,6 +157,8 @@ export type GitLogEntry = {
 	subject: string;
 	/** the rest of the message after its first line, when it has more */
 	body?: string;
+	/** in one file's log: the file's path in this version, when it was named differently */
+	path?: string;
 	author: string;
 	/** author date, ISO 8601 */
 	date: string;

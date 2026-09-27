@@ -22,7 +22,9 @@ let store: (() => SignIns) | null = null;
 let memory: GithubSession | null = null;
 let pending: { code: DeviceCode; abort: AbortController } | null = null;
 
-const fetchImpl = (url: string, init: { method: string; headers: Record<string, string>; body?: string }) => net.fetch(url, init);
+function fetchImpl(url: string, init: { method: string; headers: Record<string, string>; body?: string }): Promise<Response> {
+	return net.fetch(url, init);
+}
 
 function stored(): GithubSession | null {
 	if (memory) return memory;

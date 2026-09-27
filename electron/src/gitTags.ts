@@ -5,7 +5,7 @@
 // would bring it straight back.
 import { git, errMsg, isMissingGit, resolveRepoRoot, type GitOpResult } from './gitService';
 import { classifyPushError, netEnv, OWN_ENVIRONMENT, type GitAuthEnv } from './gitRemote';
-import { simpleGit } from 'simple-git';
+import { simpleGit, type SimpleGit } from 'simple-git';
 
 export type GitMilestone = {
 	/** the tag's ref name: 'sent-to-the-committee' */
@@ -98,6 +98,15 @@ async function syncRemote(root: string): Promise<string | null> {
 	return (await git(root).raw(['config', '--get', `branch.${branch}.remote`])).trim() || null;
 }
 
+/** whether the remote has the tag; null when it cannot be asked (offline, or not allowed to read) */
+async function remoteHasTag(g: SimpleGit, remote: string, name: string): Promise<boolean | null> {
+	try {
+		return (await g.raw(['ls-remote', '--tags', '--refs', remote, `refs/tags/${name}`])).trim() !== '';
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Remove a milestone here and on the remote the branch syncs with: git fetches tags along with
  * the versions they mark, so one left there would come back with the next Sync. A remote that
@@ -117,7 +126,9 @@ export async function gitRemoveMilestone(workspaceRoot: string, name: string, au
 				await net.raw(['push', remote, '--delete', `refs/tags/${name}`]);
 			} catch (e) {
 				const msg = errMsg(e);
-				if (!/remote ref does not exist/i.test(msg)) {
+				// refused (no write access, or offline) before git could say the remote never had it: ask
+				// whether it does. One that was never uploaded is removed here all the same.
+				if (!/remote ref does not exist/i.test(msg) && (await remoteHasTag(net, remote, name)) !== false) {
 					const failure = classifyPushError(msg);
 					return { ok: false, failure: failure === 'auth' || failure === 'network' ? failure : 'other', error: msg };
 				}

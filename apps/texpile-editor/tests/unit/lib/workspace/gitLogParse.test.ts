@@ -3,7 +3,7 @@
 // produce and naive splitting mangles - a subject that is not the last field, a rename that prints
 // two paths on one line.
 import { describe, it, expect } from 'vitest';
-import { parseGitLog, parseNameStatus } from '../../../../../../electron/src/gitHistory';
+import { parseFileNames, parseGitLog, parseNameStatus } from '../../../../../../electron/src/gitHistory';
 
 // NUL between records and US between fields, because neither can appear in a subject or a name
 const REC = '\x00';
@@ -105,5 +105,18 @@ describe('parseNameStatus', () => {
 
 	it('survives empty output', () => {
 		expect(parseNameStatus('')).toEqual([]);
+	});
+});
+
+describe('parseFileNames', () => {
+	it("reads each version's name for the file, unquoted, and skips a version that lists none", () => {
+		// what `git log -z --format=%x01%H --name-only` prints: a merge lists no name
+		const raw = `\x01${'a'.repeat(40)}\0\n章.tex\0\0\x01${'m'.repeat(40)}\0\x01${'b'.repeat(40)}\0\nold name.tex\0`;
+		expect(parseFileNames(raw)).toEqual(
+			new Map([
+				['a'.repeat(40), '章.tex'],
+				['b'.repeat(40), 'old name.tex']
+			])
+		);
 	});
 });

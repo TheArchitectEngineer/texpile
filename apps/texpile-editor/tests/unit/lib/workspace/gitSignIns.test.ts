@@ -42,6 +42,10 @@ it('keeps nothing from an operation that failed, and drops a kept answer the hos
 	const store = new SignIns(vault);
 	settle(store, { ok: false, failure: 'network' }, new Map([[PASS, 'typo']]), new Set());
 	expect(store.recall(PASS)).toBeNull();
+	// a Sync that signed in and then met a conflict: the sign-in worked, and is kept
+	settle(store, { ok: false, failure: 'conflict' }, new Map([[PASS, 'good-token']]), new Set());
+	expect(store.recall(PASS)).toBe('good-token');
+	store.forget([PASS]);
 
 	store.keep([[PASS, 'old-token']]);
 	// a network failure says nothing about the password: it stays

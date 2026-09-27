@@ -38,7 +38,18 @@ export function collapseUntracked<T extends Entry>(entries: T[], folders: string
 	return out;
 }
 
-/** the list cut at MAX_ROWS, and how many rows there were when it was cut */
-export function capRows<T>(rows: T[], max = MAX_ROWS): { rows: T[]; truncated?: number } {
-	return rows.length > max ? { rows: rows.slice(0, max), truncated: rows.length } : { rows };
+/**
+ * The list cut at MAX_ROWS, and how many rows there were when it was cut. Rows `keep` picks (the
+ * conflicts of a merge) always stay: the panel counts them to know whether the merge can be
+ * finished, and each is something the writer must resolve. The rest fill what room is left, in order.
+ */
+export function capRows<T>(rows: T[], keep: (row: T) => boolean = () => false, max = MAX_ROWS): { rows: T[]; truncated?: number } {
+	if (rows.length <= max) return { rows };
+	let room = max - rows.filter(keep).length;
+	const kept = rows.filter((r) => {
+		if (keep(r)) return true;
+		room -= 1;
+		return room >= 0;
+	});
+	return { rows: kept, truncated: rows.length };
 }

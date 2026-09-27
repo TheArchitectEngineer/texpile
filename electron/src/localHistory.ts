@@ -192,7 +192,7 @@ export class LocalHistory {
 		return this.queue(async () => {
 			const src = resourceKey(from);
 			const moved: string[] = [];
-			let folders: string[] = [];
+			let folders: string[];
 			try {
 				folders = await readdir(this.home);
 			} catch {

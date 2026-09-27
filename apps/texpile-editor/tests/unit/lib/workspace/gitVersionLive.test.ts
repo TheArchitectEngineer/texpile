@@ -3,7 +3,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { gitChangesIn, gitFileAt } from '../../../../../../electron/src/gitHistory';
+import { gitChangesIn, gitFileAt, gitFileLog, gitShowAt } from '../../../../../../electron/src/gitHistory';
 import { gitStatus } from '../../../../../../electron/src/gitService';
 import { AVAILABLE, run, out, identify, commit, tempDir, removeTempDirs } from './gitLiveFixture';
 
@@ -65,6 +65,26 @@ describe.skipIf(!AVAILABLE)('what a version changed', () => {
 		commit(root, 'main.tex', 'x\n', 'First');
 		expect((await gitChangesIn(root, '--output=/tmp/x')).ok).toBe(false);
 		expect((await gitChangesIn(root, 'HEAD')).ok).toBe(false);
+		// a revision is never read as an option
+		expect((await gitShowAt(join(root, 'main.tex'), '--output=/tmp/x')).ok).toBe(false);
+		expect((await gitFileAt(root, join(root, 'main.tex'), '-p')).ok).toBe(false);
+		expect((await gitShowAt(join(root, 'main.tex'), 'HEAD~1')).ok).toBe(true);
+	});
+
+	it('names each version of a file as it was called then, so one from before a rename opens', async () => {
+		const root = makeRepo();
+		commit(root, 'draft one.tex', 'A paragraph long enough to be recognised after a rename.\n', 'First');
+		run(root, 'mv', 'draft one.tex', '章.tex');
+		run(root, 'commit', '-q', '-m', 'Rename');
+		commit(root, '章.tex', 'A paragraph long enough to be recognised after a rename.\nAnd more.\n', 'Third');
+		const res = await gitFileLog(root, join(root, '章.tex'));
+		expect(res.entries?.map((e) => [e.subject, e.path])).toEqual([
+			['Third', undefined],
+			['Rename', undefined],
+			['First', join(root, 'draft one.tex')]
+		]);
+		const first = res.entries![2];
+		expect((await gitFileAt(root, first.path!, first.hash)).content).toContain('A paragraph');
 	});
 });
 

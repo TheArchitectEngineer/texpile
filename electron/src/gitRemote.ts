@@ -309,9 +309,12 @@ async function takeIn(g: SimpleGit, diverged: boolean): Promise<TakeIn> {
 	return behind === 0 ? { ok: true } : { ok: false, failure: 'other', error: msg || 'git did not join the two histories' };
 }
 
-/** an annotated tag here (a milestone, gitTags.ts) that the remote does not have */
-async function milestonesMissingOn(g: SimpleGit, remote: string): Promise<boolean> {
-	const local = (await g.raw(['for-each-ref', '--format=%(objecttype) %(refname:short)', 'refs/tags']))
+/** an annotated tag here (a milestone, gitTags.ts) that the remote does not have, and that
+ *  `push --follow-tags` would send: only those on a version the branch contains. One on another
+ *  branch is not a reason to push, and in a clone the author may not write to, pushing for it
+ *  would be refused for nothing. Exported for the tests. */
+export async function milestonesMissingOn(g: SimpleGit, remote: string): Promise<boolean> {
+	const local = (await g.raw(['for-each-ref', '--merged', 'HEAD', '--format=%(objecttype) %(refname:short)', 'refs/tags']))
 		.split('\n')
 		.filter((l) => l.startsWith('tag '))
 		.map((l) => l.slice(4));
