@@ -3,6 +3,7 @@ import type { Node, Mark } from 'prosemirror-model';
 import { latexToTypst } from './latexToTypst';
 import { codeEndsBefore } from './codeExtent';
 import { typRefSpelling } from './refSource';
+import { codeReadsOn, continuesCode, extendsRef, extendsUrl, readsOn } from './readsOn';
 import { createShadow, markupPlaceholder } from '$lib/serializer/shadowLeaves';
 
 // nodes whose handler output is one run: their bytes come from attrs, not from text leaves
@@ -282,22 +283,6 @@ function charAfterSpan(runs: InlineRun[], end: number, k: number): string {
 	return next.content[0] ?? '';
 }
 
-/** would this text extend a ref marker it follows? typst eats [A-Za-z0-9_:.-] after `@`,
- *  giving back only trailing `.`/`:` */
-function extendsRef(s: string): boolean {
-	return /^[\p{L}\p{N}_-]/u.test(s) || /^[.:]+[\p{L}\p{N}_-]/u.test(s);
-}
-
-function extendsUrl(s: string): boolean {
-	const on = /^[0-9A-Za-z#$%&*+\-/=@_~[(]/;
-	return on.test(s) || on.test(s.replace(/^[!,.:;?']+/, ''));
-}
-
-function continuesCode(code: string, s: string): boolean {
-	if (/^[([;]/.test(s) || /^\.[\p{L}_]/u.test(s)) return true;
-	return /[\p{L}\p{N}_-]$/u.test(code) && /^[\p{L}\p{N}\p{M}_-]/u.test(s);
-}
-
 type ActiveMark = { mark: Mark; close: string; expel: boolean; call?: boolean };
 
 const KEYWORD_CODE = /^#(if|for|while|context)\b/;
@@ -338,6 +323,8 @@ function render(parent: Node, startOfLine: boolean, extra: string, singleLine: b
 	let code = '';
 	// a // comment owns the rest of its line: the next emission starts a new one
 	let lineEnd = false;
+	// the last run written that was not whitespace alone, and where it ended
+	let solid: { run: InlineRun; end: number } | null = null;
 
 	function emit(s: string, text = false) {
 		if (!s) return;
@@ -376,7 +363,11 @@ function render(parent: Node, startOfLine: boolean, extra: string, singleLine: b
 		let stolen = '';
 		if (allowSteal && closing.some((a) => a.expel)) {
 			const ws = out.match(/(\s+)$/);
-			if (ws && ws[1].length < out.length) {
+			// the whitespace stays inside where the delimiter would go on as more of what it follows:
+			// `_see @key _`, not `_see @key_`, a reference to `key_`
+			const first = closing.find((a) => a.close)?.close ?? '';
+			const held = !!ws && solid?.end === out.length - ws[1].length && readsOn(solid.run, first);
+			if (ws && ws[1].length < out.length && !held) {
 				out = out.slice(0, -ws[1].length);
 				stolen = ws[1];
 			}
@@ -434,7 +425,10 @@ function render(parent: Node, startOfLine: boolean, extra: string, singleLine: b
 			const intraword =
 				(isAlnum(out[out.length - 1]) && isAlnum(content[0])) ||
 				(isAlnum(runs[end].content[runs[end].content.length - 1]) && isAlnum(charAfterSpan(runs, end, k)));
-			if (intraword) {
+			// so does a delimiter against a code expression it would go on with (`#sym.alpha_`): a
+			// reference or a url beside one takes its call form instead, a code chip has none
+			const againstCode = (solid?.end === out.length && codeReadsOn(solid.run, d.open)) || codeReadsOn(runs[end], d.close);
+			if (intraword || againstCode) {
 				emit(m.type.name === 'strong' ? '#strong[' : '#emph[');
 				active.push({ mark: m, close: ']', expel: false, call: true });
 				bracketBody = true;
@@ -454,6 +448,7 @@ function render(parent: Node, startOfLine: boolean, extra: string, singleLine: b
 		// a `[` body starts fresh markup, where a marker binds like at a line start
 		if (bracketBody && run.kind === 'text') content = escLineStart(content);
 		emit(content, run.kind === 'text');
+		if (content.trim()) solid = { run, end: out.length };
 		if (run.kind === 'other' && /^https?:\/\/\S+$/.test(content)) urlEnd = out.length;
 		if (run.kind === 'other' && content.startsWith('#')) {
 			codeEnd = out.length;

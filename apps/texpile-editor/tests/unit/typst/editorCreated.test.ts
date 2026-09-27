@@ -49,6 +49,45 @@ describe('references (T2)', () => {
 	});
 });
 
+describe('emphasis delimiters beside a reference, a url or a code chip', () => {
+	const chip = (s: string, marks: string[] = []) =>
+		n.inline_latex.create(
+			{ lang: 'typst' },
+			typSchema.text(s),
+			marks.map((name) => m[name].create())
+		);
+	const back = (src: string) =>
+		typstToProseMirror(src + '\n')
+			.doc.child(0)
+			.toJSON();
+
+	it('a space ending the emphasis stays inside it where the delimiter would go on as more of what the space follows', () => {
+		const atoms: [Node, string][] = [
+			[n.typ_ref.create({ target: 'knuth' }).mark([m.em.create()]), '@knuth'],
+			[chip('https://x.org/a', ['em']), 'https://x.org/a'],
+			[chip('#sym.alpha', ['em']), '#sym.alpha']
+		];
+		for (const [atom, written] of atoms) {
+			const p = para(text('see ', ['em']), atom, text(' ', ['em']), text(' now.'));
+			const src = out(p);
+			expect(src).toBe(`_see ${written} _ now.`);
+			expect(back(src)).toEqual(p.toJSON());
+		}
+	});
+
+	it('an emphasis ending or starting against a code chip takes the function form', () => {
+		const ends = para(text('the angle '), text('is ', ['em']), chip('#sym.alpha', ['em']), text(' here.'));
+		expect(out(ends)).toBe('the angle #emph[is #sym.alpha] here.');
+		expect(back(out(ends))).toEqual(ends.toJSON());
+		const starts = para(text('a '), chip('#sym.alpha'), text('(x)', ['em']));
+		expect(out(starts)).toBe('a #sym.alpha#emph[(x)]');
+		expect(back(out(starts))).toEqual(starts.toJSON());
+		// a star does not go on with a code expression, and nothing goes on past a call's parenthesis
+		expect(out(para(text('is ', ['strong']), chip('#sym.alpha', ['strong'])))).toBe('*is #sym.alpha*');
+		expect(out(para(chip('#f(x)', ['em'])))).toBe('_#f(x)_');
+	});
+});
+
 describe('inline raw (T3)', () => {
 	it('inline code holding a backtick takes the function form', () => {
 		const src = out(para(text('a`b', ['code'])));

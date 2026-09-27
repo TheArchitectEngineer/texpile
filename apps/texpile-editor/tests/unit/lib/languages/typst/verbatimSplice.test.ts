@@ -406,6 +406,15 @@ describe('typst: bytes written beside the bytes the file keeps', () => {
 		expect(out).not.toContain('ca*strong*');
 		expect(parseTypstFile(out).doc.child(1).textContent).toBe('Text castrong, and plain after it.');
 	});
+
+	it('so does one that would leave a letter against the marker closing it', () => {
+		const parsed = parseTypstFile('Intro line.\n\nOnly *even* numbers here.\n');
+		const at = posOf(parsed.doc, ' number');
+		const doc = new Transform(parsed.doc).delete(at, at + ' number'.length).doc;
+		const out = serializeTypstFile(parsed, doc);
+		expect(out).toContain('Only #strong[even]s here.');
+		expect(parseTypstFile(out).doc.child(1).toString()).toBe(doc.child(1).toString());
+	});
 });
 
 describe('typst: markup that a seam would open', () => {

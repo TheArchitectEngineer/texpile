@@ -333,9 +333,11 @@ function fuses(bytes: string, tail: string): boolean {
 	return false;
 }
 
-// strong and emphasis open at a word edge only: a delimiter left against a letter reads as a star
+// strong and emphasis open and close at a word edge only: a delimiter left against a letter reads
+// as a star, whether the seam puts the letter before it or after one that closes a word (`*even*s`)
 function tight(before: string, after: string): boolean {
-	return /[\p{L}\p{N}]$/u.test(before) && /^[*_]/.test(after);
+	if (/[\p{L}\p{N}]$/u.test(before) && /^[*_]/.test(after)) return true;
+	return /[\p{L}\p{N}][*_]$/u.test(before) && /^[\p{L}\p{N}]/u.test(after);
 }
 
 function seam(before: string, after: string): boolean {
