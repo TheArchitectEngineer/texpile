@@ -386,7 +386,8 @@ function template(win: BrowserWindow, s: MenuState): MenuItemConstructorOptions[
 					click: () => fire(win, 'spelling:toggle')
 				},
 				{ type: 'separator' },
-				{ label: label(s, 'dictionary', 'Edit dictionary…'), click: () => fire(win, 'spelling:dictionary') }
+				{ label: label(s, 'dictionary', 'Edit dictionary…'), click: () => fire(win, 'spelling:dictionary') },
+				{ label: label(s, 'spellingSettings', 'Spelling and grammar settings…'), click: () => fire(win, 'spelling:settings') }
 			]
 		},
 		...(s.terminalAvailable

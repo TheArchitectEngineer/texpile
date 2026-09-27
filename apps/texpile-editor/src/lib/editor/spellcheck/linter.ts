@@ -2,6 +2,10 @@
 import type { Lint, LintConfig, LintOptions, WorkerLinter } from 'harper.js';
 import { editorConfigStore } from '$lib/stores/editorStore';
 import { mark } from '$lib/debug/startupDoctor';
+import { settings } from '$lib/settings';
+import { observe } from '$lib/runes/observe.svelte';
+import { browser } from '$lib/runtime';
+import { ruleConfig, systemVariant, type EnglishVariant } from './grammarRules';
 
 let linterPromise: Promise<WorkerLinter> | null = null;
 
@@ -23,12 +27,68 @@ async function createLinter(): Promise<WorkerLinter> {
 	mark('harper-ready');
 
 	await linter.importWords(['Texpile', 'LaTeX', 'WYSIWYM', 'CTRL', 'CMD']);
-
-	const config = await linter.getLintConfig();
-	await linter.setLintConfig(config);
+	await configure(linter);
 
 	return linter;
 }
+
+/** the English and the rule choices the checker should have now */
+function wanted(): { variant: EnglishVariant; rules: Record<string, boolean> } {
+	const s = settings.current;
+	return {
+		variant: s.englishVariant || systemVariant(browser ? navigator.languages : []),
+		rules: s.grammarRules ?? {}
+	};
+}
+
+// what the linter was last given, so a settings write about something else changes nothing
+let configuredFor = '';
+
+let configuring: Promise<unknown> = Promise.resolve();
+
+/** gives the linter the English and the rules the settings ask for; false when it had them */
+function configure(linter: WorkerLinter): Promise<boolean> {
+	// one at a time, so two quick changes cannot land their halves out of order
+	const run = configuring.then(() => configureNow(linter));
+	configuring = run.catch(() => {});
+	return run;
+}
+
+async function configureNow(linter: WorkerLinter): Promise<boolean> {
+	const want = wanted();
+	const key = JSON.stringify(want);
+	if (key === configuredFor) return false;
+	const { Dialect } = await import('harper.js');
+	const dialects: Record<EnglishVariant, number> = {
+		american: Dialect.American,
+		british: Dialect.British,
+		australian: Dialect.Australian,
+		canadian: Dialect.Canadian,
+		indian: Dialect.Indian
+	};
+	await linter.setDialect(dialects[want.variant]);
+	const rules = Object.keys(await linter.getDefaultLintConfig());
+	await linter.setLintConfig(ruleConfig(rules, want.rules));
+	configuredFor = key;
+	return true;
+}
+
+const rulesListeners = new Set<() => void>();
+
+/** `fn` runs whenever the English or the rules change, so an editor can check its text again */
+export function onLintRulesChanged(fn: () => void): () => void {
+	rulesListeners.add(fn);
+	return () => rulesListeners.delete(fn);
+}
+
+// a linter not made yet reads the settings when it is; one already running is told
+observe(wanted, () => {
+	if (!linterPromise) return;
+	void linterPromise
+		.then(configure)
+		.then((changed) => changed && rulesListeners.forEach((fn) => fn()))
+		.catch((error) => console.error('[Harper] Failed to apply the grammar settings:', error));
+});
 
 export async function getHarperLinter(): Promise<WorkerLinter> {
 	linterPromise ??= createLinter();
@@ -47,18 +107,25 @@ export async function lintText(
 		shortMessage?: string;
 		type: { typeName: string };
 		replacements?: string[];
+		/** the Harper rule that found it */
+		rule: string;
 	}>;
 	/** worker/wasm failure: callers must NOT cache the empty result as "no problems". */
 	failed?: true;
 }> {
 	try {
 		const linter = await getHarperLinter();
-		const lints: Lint[] = await linter.lint(text, options?.language ? { language: options.language } : undefined);
+		// by rule, so a suggestion can offer to turn off the rule that made it
+		const byRule: Record<string, Lint[]> = await linter.organizedLints(
+			text,
+			options?.language ? { language: options.language } : undefined
+		);
 		// mapping below hydrates wasm objects on the main thread; skip it when the caller already
 		// knows the result is superseded
 		if (options?.isStale?.()) return { matches: [] };
 
-		const matches = lints.map((lint) => {
+		const lints = Object.entries(byRule).flatMap(([rule, found]) => found.map((lint) => ({ rule, lint })));
+		const matches = lints.map(({ rule, lint }) => {
 			const span = lint.span();
 			const suggestions: string[] = [];
 
@@ -73,6 +140,7 @@ export async function lintText(
 			// prosemirror-proofread prefixes typeName with 'proofread-' for the css styling
 			const lintKind = lint.lint_kind();
 
+			ruleOfList.set(suggestions, rule);
 			const match = {
 				offset: span.start,
 				length: span.end - span.start,
@@ -81,16 +149,27 @@ export async function lintText(
 				type: {
 					typeName: lintKind || 'miscellaneous'
 				},
-				replacements: suggestions.length > 0 ? suggestions : undefined
+				replacements: suggestions,
+				rule
 			};
 			return match;
 		});
+		matches.sort((a, b) => a.offset - b.offset || a.length - b.length);
 
 		return { matches };
 	} catch (error) {
 		console.error('[Harper] Linting error:', error);
 		return { matches: [], failed: true };
 	}
+}
+
+// prosemirror-proofread copies the fields of a match it knows into its own problem and drops the
+// rest, but hands the replacements list over as it is: the rule is found again from that list
+const ruleOfList = new WeakMap<object, string>();
+
+/** the rule that found a match, from its replacements list; null for a list no lint made */
+export function ruleOfReplacements(list: unknown): string | null {
+	return (typeof list === 'object' && list !== null && ruleOfList.get(list)) || null;
 }
 
 export async function addWordsToDictionary(words: string[]): Promise<void> {
@@ -101,6 +180,14 @@ export async function addWordsToDictionary(words: string[]): Promise<void> {
 export async function clearDictionary(): Promise<void> {
 	const linter = await getHarperLinter();
 	await linter.clearWords();
+}
+
+let descriptions: Promise<Record<string, string>> | null = null;
+
+/** what each rule looks for, in Harper's words (English, as its findings are) */
+export function lintDescriptions(): Promise<Record<string, string>> {
+	descriptions ??= getHarperLinter().then((linter) => linter.getLintDescriptions());
+	return descriptions;
 }
 
 export async function getLintConfig(): Promise<LintConfig> {

@@ -37,9 +37,14 @@ export function takePreferencesReopen(): boolean {
  */
 export const preferencesTab = box<string | null>(null);
 
-/** the one deep link there is: "your compiler is not installed" -> the panel that lists them. */
+/** "your compiler is not installed" -> the panel that lists them. */
 export function openToolchainPrefs(): void {
-	preferencesTab.current = 'toolchain';
+	openPreferencesAt('toolchain');
+}
+
+/** Preferences on `tab`, scrolled to the section with id prefs-`section` when there is one */
+export function openPreferencesAt(tab: string, section?: string): void {
+	preferencesTab.current = section ? `${tab}#${section}` : tab;
 	preferencesOpen.current = true;
 }
 
