@@ -1,0 +1,132 @@
+// Milestones: a name on a version that matters ("Sent to the committee", "Camera ready"), kept as
+// an annotated git tag so every other tool sees it too. The name the author types is the tag's
+// message; the tag itself gets a ref-safe form of it. Sync carries them to the remote
+// (--follow-tags in gitRemote.ts), and removing one removes it there as well, or the next fetch
+// would bring it straight back.
+import { git, errMsg, isMissingGit, resolveRepoRoot, type GitOpResult } from './gitService';
+import { classifyPushError, netEnv, OWN_ENVIRONMENT, type GitAuthEnv } from './gitRemote';
+import { simpleGit } from 'simple-git';
+
+export type GitMilestone = {
+	/** the tag's ref name: 'sent-to-the-committee' */
+	name: string;
+	/** what the author called it: 'Sent to the committee' */
+	label: string;
+};
+
+export type GitTagResult = GitOpResult & { name?: string; failure?: 'invalid' | 'missing' | 'cancelled' | 'auth' | 'network' | 'other' };
+
+const SEP = '\x1f';
+
+/** exported for the tests: commit hash -> the milestones on it, from for-each-ref lines */
+export function parseTags(raw: string): Record<string, GitMilestone[]> {
+	const out: Record<string, GitMilestone[]> = {};
+	for (const line of raw.split('\n')) {
+		const [name, type, peeled, object, subject] = line.split(SEP);
+		if (!name) continue;
+		// an annotated tag points at a tag object, whose peeled target is the commit; a lightweight
+		// one points at the commit itself and has no message of its own
+		const annotated = type === 'tag';
+		const commit = annotated ? peeled : object;
+		if (!commit) continue;
+		(out[commit] ??= []).push({ name, label: annotated && subject ? subject : name });
+	}
+	return out;
+}
+
+/** every milestone in the repository, by the commit it marks */
+export async function milestonesByCommit(repoRoot: string): Promise<Record<string, GitMilestone[]>> {
+	const raw = await git(repoRoot).raw([
+		'for-each-ref',
+		'--sort=-creatordate',
+		`--format=%(refname:short)${SEP}%(objecttype)${SEP}%(*objectname)${SEP}%(objectname)${SEP}%(contents:subject)`,
+		'refs/tags'
+	]);
+	return parseTags(raw);
+}
+
+/** exported for the tests: a tag name from what the author typed, keeping letters in any script */
+export function tagNameFor(label: string): string {
+	return label
+		.trim()
+		.toLowerCase()
+		.replace(/[\s~^:?*[\\]+/g, '-')
+		.replace(/\.{2,}/g, '.')
+		.replace(/@\{/g, '-')
+		.replace(/[^\p{L}\p{N}._/-]+/gu, '')
+		.replace(/-{2,}/g, '-')
+		.replace(/^[-./]+|[-./]+$/g, '')
+		.replace(/\.lock$/, '');
+}
+
+async function refFree(root: string, name: string): Promise<boolean> {
+	if (!name || name.startsWith('-')) return false;
+	try {
+		await git(root).raw(['check-ref-format', `refs/tags/${name}`]);
+	} catch {
+		return false;
+	}
+	return (await git(root).raw(['tag', '--list', name])).trim() === '';
+}
+
+/** Mark a version as a milestone. Resolves to the tag's name, suffixed when the plain one is taken. */
+export async function gitMarkMilestone(workspaceRoot: string, hash: string, label: string): Promise<GitTagResult> {
+	const text = label.trim();
+	if (!/^[0-9a-f]{4,64}$/i.test(hash) || !text || /[\n\r]/.test(text)) return { ok: false, failure: 'invalid' };
+	const rr = await resolveRepoRoot(workspaceRoot);
+	if (!rr.root) return { ok: false, reason: rr.reason };
+	const root = rr.root;
+	try {
+		const base = tagNameFor(text) || `milestone-${hash.slice(0, 7)}`;
+		let name = base;
+		for (let i = 2; !(await refFree(root, name)); i++) {
+			if (i > 50) return { ok: false, failure: 'invalid' };
+			name = `${base}-${i}`;
+		}
+		await git(root).raw(['tag', '-a', name, '-m', text, hash]);
+		return { ok: true, name };
+	} catch (e) {
+		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
+		return { ok: false, error: errMsg(e) };
+	}
+}
+
+/** the remote the current branch syncs with, read from config; null without one */
+async function syncRemote(root: string): Promise<string | null> {
+	const branch = (await git(root).raw(['symbolic-ref', '-q', '--short', 'HEAD'])).trim();
+	if (!branch) return null;
+	return (await git(root).raw(['config', '--get', `branch.${branch}.remote`])).trim() || null;
+}
+
+/**
+ * Remove a milestone here and on the remote the branch syncs with: git fetches tags along with
+ * the versions they mark, so one left there would come back with the next Sync. A remote that
+ * never had it is not a failure.
+ */
+export async function gitRemoveMilestone(workspaceRoot: string, name: string, auth: GitAuthEnv = {}): Promise<GitTagResult> {
+	const rr = await resolveRepoRoot(workspaceRoot);
+	if (!rr.root) return { ok: false, reason: rr.reason };
+	const root = rr.root;
+	try {
+		if (!name || name.startsWith('-') || (await git(root).raw(['tag', '--list', name])).trim() !== name)
+			return { ok: false, failure: 'missing' };
+		const remote = await syncRemote(root);
+		if (remote) {
+			const net = simpleGit({ baseDir: root, binary: 'git', maxConcurrentProcesses: 1, unsafe: OWN_ENVIRONMENT }).env(netEnv(auth));
+			try {
+				await net.raw(['push', remote, '--delete', `refs/tags/${name}`]);
+			} catch (e) {
+				const msg = errMsg(e);
+				if (!/remote ref does not exist/i.test(msg)) {
+					const failure = classifyPushError(msg);
+					return { ok: false, failure: failure === 'auth' || failure === 'network' ? failure : 'other', error: msg };
+				}
+			}
+		}
+		await git(root).raw(['tag', '-d', name]);
+		return { ok: true, name };
+	} catch (e) {
+		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
+		return { ok: false, error: errMsg(e) };
+	}
+}

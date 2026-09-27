@@ -85,6 +85,8 @@
 		scmSync: () => void;
 		scmRecheckGit: () => void;
 		scmOpenConflict?: (path: string) => void;
+		scmMarkMilestone?: (entry: GitLogEntry, label: string) => Promise<string | null>;
+		scmRemoveMilestone?: (name: string, label: string) => void;
 		scmBranches?: {
 			list: () => Promise<GitBranchesResult>;
 			onSwitch: (name: string) => Promise<string | null>;
@@ -141,6 +143,8 @@
 		scmRecheckGit,
 		scmOpenConflict,
 		scmBranches = null,
+		scmMarkMilestone,
+		scmRemoveMilestone,
 		scmFinishCombine,
 		scmCancelCombine,
 		scmCompare,
@@ -361,6 +365,8 @@
 				onSync={scmSync}
 				onOpenConflict={scmOpenConflict}
 				branches={scmBranches}
+				onMarkMilestone={scmMarkMilestone}
+				onRemoveMilestone={scmRemoveMilestone}
 				onFinishCombine={scmFinishCombine}
 				onCancelCombine={scmCancelCombine}
 				{historyFraction}

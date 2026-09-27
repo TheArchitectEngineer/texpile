@@ -2,6 +2,7 @@
 // file as it was in one, and Restore. Split from gitService.ts, whose repo-root resolution and
 // command factory it shares; the helper process serves both (helper/helperWorker.ts).
 import { dirname, resolve, relative, isAbsolute } from 'node:path';
+import { milestonesByCommit, type GitMilestone } from './gitTags';
 import { git, isMissingGit, errMsg, resolveRepoRoot, toRepoRel, markGitMissing, type GitShowResult, type GitOpResult } from './gitService';
 
 // ── history ────────────────────────────────────────────────────────────────────
@@ -11,6 +12,8 @@ import { git, isMissingGit, errMsg, resolveRepoRoot, toRepoRel, markGitMissing, 
 export type GitFileChange = { path: string; status: 'A' | 'M' | 'D' | 'R'; from?: string };
 
 export type GitLogEntry = {
+	/** names on this version (annotated tags): 'Sent to the committee' */
+	milestones?: GitMilestone[];
 	hash: string;
 	/** abbreviated hash, as git chose to abbreviate it */
 	short: string;
@@ -99,7 +102,10 @@ export async function gitLog(workspaceRoot: string, limit = 100): Promise<GitLog
 			...(rel ? ['--', rel] : [])
 		]);
 		const all = parseGitLog(raw);
-		return { ok: true, entries: all.slice(0, want), hasMore: all.length > want };
+		// a tag listing that fails costs the badges, never the history
+		const marks = await milestonesByCommit(rr.root).catch(() => ({}) as Record<string, GitMilestone[]>);
+		const entries = all.slice(0, want).map((e) => (marks[e.hash] ? { ...e, milestones: marks[e.hash] } : e));
+		return { ok: true, entries, hasMore: all.length > want };
 	} catch (e) {
 		if (isMissingGit(e)) {
 			markGitMissing();

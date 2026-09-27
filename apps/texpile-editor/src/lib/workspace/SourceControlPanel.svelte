@@ -70,6 +70,9 @@
 		onDiscard: (changes: GitStatusEntry[]) => void;
 		onCommit: (message: string, paths: string[]) => Promise<boolean>;
 		onRestore: (entry: GitLogEntry) => void;
+		/** name a version; absent where the app cannot */
+		onMarkMilestone?: (entry: GitLogEntry, label: string) => Promise<string | null>;
+		onRemoveMilestone?: (name: string, label: string) => void;
 		onCompare: (entry: GitLogEntry, path: string) => void;
 		/** what differs between a version and the working copy, read when that version is opened */
 		onLoadChanges: (hash: string) => Promise<GitFileChange[]>;
@@ -114,6 +117,8 @@
 		onDiscard,
 		onCommit,
 		onRestore,
+		onMarkMilestone,
+		onRemoveMilestone,
 		onCompare,
 		onLoadChanges,
 		historyFraction,
@@ -424,6 +429,8 @@
 						{onLoadChanges}
 						{onCompare}
 						{onRestore}
+						{onMarkMilestone}
+						{onRemoveMilestone}
 						baseName={labels.baseName}
 						dirName={labels.dirName}
 					/>

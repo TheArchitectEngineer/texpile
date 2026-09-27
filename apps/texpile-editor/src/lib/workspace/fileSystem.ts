@@ -2,11 +2,8 @@
 // data ops over fs:* IPC, raw file bytes over the texfile:// protocol. no browser transport.
 import type { SourceEncoding, SourceRead } from './sourceEncoding';
 import { browser } from '$lib/runtime';
-import type { GitStatusResult, GitShowResult, GitOpResult, GitLogResult, GitChangesResult, GitPushResult, GitRemoteBridge } from './git';
-import type { GitCombineBridge } from './gitCombine';
-import type { GitCloneBridge } from './gitClone';
-import type { GitVersionBridge } from './gitVersion';
-import type { GitBranchBridge } from './gitBranches';
+import type { GitStatusResult, GitShowResult, GitOpResult, GitLogResult, GitChangesResult, GitPushResult } from './git';
+import type { GitBridges } from './gitBridges';
 
 export type TexFile = {
 	name: string;
@@ -221,11 +218,7 @@ type TexpileNative = {
 	gitShowAt?: (path: string, ref: string) => Promise<GitShowResult>;
 	gitRestore?: (root: string, hash: string, message: string) => Promise<GitOpResult>;
 	gitPush?: (root: string) => Promise<GitPushResult>;
-} & GitRemoteBridge &
-	GitCombineBridge &
-	GitCloneBridge &
-	GitVersionBridge &
-	GitBranchBridge;
+} & GitBridges;
 
 export function nativeBridge(): TexpileNative | undefined {
 	if (!browser) return undefined;

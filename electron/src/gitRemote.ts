@@ -172,7 +172,8 @@ export async function gitPush(workspaceRoot: string, auth: GitAuthEnv = {}): Pro
 		if (!up) return { ok: false, failure: 'no-upstream' };
 		remote = up.remote;
 		// explicit refspec: `git push` alone refuses when the upstream branch is named differently
-		await g.push(up.remote, `${status.current}:${up.ref}`);
+		// --follow-tags: milestones on the versions sent go with them (gitTags.ts)
+		await g.push(up.remote, `${status.current}:${up.ref}`, ['--follow-tags']);
 		return { ok: true, remote };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -194,7 +195,7 @@ export async function gitPublish(workspaceRoot: string, remote: string, auth: Gi
 		const g = netGit(rr.root, auth);
 		const status = await g.status();
 		if (!status.current || status.detached) return { ok: false, failure: 'other', error: 'There is no branch to publish.', remote };
-		await g.push(remote, status.current, ['--set-upstream']);
+		await g.push(remote, status.current, ['--set-upstream', '--follow-tags']);
 		return { ok: true, remote };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -296,6 +297,22 @@ async function takeIn(g: SimpleGit, diverged: boolean): Promise<TakeIn> {
 	return behind === 0 ? { ok: true } : { ok: false, failure: 'other', error: msg || 'git did not join the two histories' };
 }
 
+/** an annotated tag here (a milestone, gitTags.ts) that the remote does not have */
+async function milestonesMissingOn(g: SimpleGit, remote: string): Promise<boolean> {
+	const local = (await g.raw(['for-each-ref', '--format=%(objecttype) %(refname:short)', 'refs/tags']))
+		.split('\n')
+		.filter((l) => l.startsWith('tag '))
+		.map((l) => l.slice(4));
+	if (!local.length) return false;
+	const there = new Set(
+		(await g.raw(['ls-remote', '--tags', '--refs', remote]))
+			.split('\n')
+			.map((l) => l.split('\t')[1]?.replace(/^refs\/tags\//, ''))
+			.filter(Boolean)
+	);
+	return local.some((name) => !there.has(name));
+}
+
 /**
  * Bring this branch level with its upstream: fetch, take in what the remote has, then send what it
  * does not. VS Code's Sync, with one difference that matters to someone who does not use git: it
@@ -326,7 +343,9 @@ export async function gitSync(workspaceRoot: string, auth: GitAuthEnv = {}): Pro
 
 		stage = 'push';
 		const [toSend] = await aheadBehind(g);
-		if (toSend > 0) await g.push(up.remote, `${status.current}:${up.ref}`);
+		// a milestone marked on a version the remote already has goes over only with a push of its
+		// own; asking first keeps Sync from pushing at all in a clone the author cannot write to
+		if (toSend > 0 || (await milestonesMissingOn(g, up.remote))) await g.push(up.remote, `${status.current}:${up.ref}`, ['--follow-tags']);
 		return { ok: true, remote, pulled: behind, pushed: toSend };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };

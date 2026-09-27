@@ -141,7 +141,11 @@ export async function gitCommit(root: string, message: string): Promise<GitOpRes
 /** a rename carries the path it had before in `from` */
 export type GitFileChange = { path: string; status: GitBadge; from?: string };
 
+/** a name on a version, kept as an annotated tag: `name` is the tag, `label` what the author typed */
+export type GitMilestone = { name: string; label: string };
+
 export type GitLogEntry = {
+	milestones?: GitMilestone[];
 	hash: string;
 	short: string;
 	subject: string;

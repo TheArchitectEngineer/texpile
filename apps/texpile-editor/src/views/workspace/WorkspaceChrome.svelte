@@ -19,6 +19,7 @@
 	import { canCombine } from '$lib/workspace/gitCombine';
 	import { canClone } from '$lib/workspace/gitClone';
 	import { canSwitchBranch } from '$lib/workspace/gitBranches';
+	import { canMarkMilestones } from '$lib/workspace/gitMilestones';
 	import { m } from '$lib/paraglide/messages';
 	import type { Snippet } from 'svelte';
 
@@ -195,6 +196,8 @@
 			scmSync={scm.sync}
 			scmRecheckGit={scm.recheckGit}
 			scmOpenConflict={scm.combine.openConflict}
+			scmMarkMilestone={canMarkMilestones() ? scm.milestones.mark : undefined}
+			scmRemoveMilestone={canMarkMilestones() ? scm.milestones.remove : undefined}
 			scmBranches={canSwitchBranch()
 				? { list: scm.branches.list, onSwitch: scm.branches.switchTo, onCreate: scm.branches.create, onTrack: scm.branches.track }
 				: null}

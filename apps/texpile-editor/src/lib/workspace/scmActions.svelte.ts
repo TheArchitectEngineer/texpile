@@ -26,6 +26,7 @@ import {
 import { askIdentity, askPublish, type PublishChoice } from './gitDialogs.svelte';
 import { ScmCombine } from './scmCombine.svelte';
 import { ScmBranches } from './scmBranches.svelte';
+import { ScmMilestones } from './scmMilestones.svelte';
 import { uploadReason } from './uploadReason';
 import { basename, samePath, joinPath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
@@ -77,10 +78,13 @@ export class ScmActions {
 	readonly combine: ScmCombine;
 	/** the branch picker behind the branch name */
 	readonly branches: ScmBranches;
+	/** names on versions, from History */
+	readonly milestones: ScmMilestones;
 
 	constructor(private deps: ScmDeps) {
 		this.combine = new ScmCombine(this, deps);
 		this.branches = new ScmBranches(this, deps);
+		this.milestones = new ScmMilestones(this);
 	}
 
 	/** after installing git: forget that it was missing and look again */
