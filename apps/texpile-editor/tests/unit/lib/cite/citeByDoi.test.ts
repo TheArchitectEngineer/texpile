@@ -168,26 +168,6 @@ describe('citeWork', () => {
 		expect(toasts).toEqual([{ kind: 'success', title: 'Added 1 reference' }]);
 	});
 
-	it('with no main file chosen yet, files the entry for the open document', async () => {
-		mainFile.current = null;
-		// a document of its own: its own bibliography line decides
-		const NOTES = '/paper/notes.tex';
-		disk.set(NOTES, '\\documentclass{article}\n\\usepackage{biblatex}\n\\addbibresource{notes.bib}\n');
-		const notes = { ...deps, openDoc: () => ({ path: NOTES, text: disk.get(NOTES)! }) };
-		await citeWork(await lookUpWork(watson, notes), notes);
-		expect(parseBibtex(disk.get('/paper/notes.bib')!).map((r) => r.key)).toEqual(['watson1953molecular']);
-
-		// a chapter with no bibliography line: the folder's .bib
-		const INTRO = '/paper/chapters/intro.tex';
-		disk.delete('/paper/notes.bib');
-		disk.delete(NOTES);
-		disk.set(INTRO, 'As shown before.');
-		const intro = { ...deps, openDoc: () => ({ path: INTRO, text: disk.get(INTRO)! }) };
-		await citeWork(await lookUpWork(watson, intro), intro);
-		expect(parseBibtex(disk.get(BIB)!).map((r) => r.key)).toEqual(['knuth1984texbook', 'watson1953molecular']);
-		expect(inserted).toEqual([['watson1953molecular'], ['watson1953molecular']]);
-	});
-
 	it('cites the existing entry when the bib gained the work while the dialog was open', async () => {
 		const found = await lookUpWork(watson, deps);
 		disk.set(BIB, `${disk.get(BIB)}\n@article{crick, doi = {10.1038/171737a0}, title = {DNA}}\n`);

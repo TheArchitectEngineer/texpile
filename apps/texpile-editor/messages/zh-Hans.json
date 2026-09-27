@@ -1444,6 +1444,8 @@
 	"zotero_dialog_group_project": "本项目中",
 	"zotero_dialog_group_library": "Zotero 文献库",
 	"cite_doi_insert": "按标题或 DOI 插入引用",
+	"cite_needs_main_title": "请先设置主文件",
+	"cite_needs_main_desc": "新的参考文献会加入主文件使用的参考文献库。",
 	"cite_doi_placeholder": "按标题搜索，或粘贴 DOI、arXiv 编号、ISBN 或 PubMed 编号",
 	"cite_doi_hint": "输入论文标题；标题较常见时可加上作者姓氏或年份。DOI 或 doi.org 链接、arXiv 编号、ISBN，或写成 PMID: 12345 的 PubMed 编号，可以找到对应的文献。",
 	"cite_doi_looking": "正在查找 {id}…",

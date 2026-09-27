@@ -1444,6 +1444,8 @@
 	"zotero_dialog_group_project": "本專案中",
 	"zotero_dialog_group_library": "Zotero 文獻庫",
 	"cite_doi_insert": "依標題或 DOI 插入引用",
+	"cite_needs_main_title": "請先設定主檔案",
+	"cite_needs_main_desc": "新的參考文獻會加入主檔案使用的參考文獻庫。",
 	"cite_doi_placeholder": "依標題搜尋，或貼上 DOI、arXiv 編號、ISBN 或 PubMed 編號",
 	"cite_doi_hint": "輸入論文標題；標題較常見時可加上作者姓氏或年份。DOI 或 doi.org 連結、arXiv 編號、ISBN，或寫成 PMID: 12345 的 PubMed 編號，可以找到對應的文獻。",
 	"cite_doi_looking": "正在查詢 {id}…",

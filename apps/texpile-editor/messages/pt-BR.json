@@ -1283,6 +1283,8 @@
 	"zotero_dialog_group_project": "Neste projeto",
 	"zotero_dialog_group_library": "Biblioteca do Zotero",
 	"cite_doi_insert": "Inserir citação por título ou DOI",
+	"cite_needs_main_title": "Defina o arquivo principal primeiro",
+	"cite_needs_main_desc": "Uma nova referência vai para a bibliografia que o seu arquivo principal usa.",
 	"cite_doi_placeholder": "Busque pelo título ou cole um DOI, ID do arXiv, ISBN ou ID do PubMed",
 	"cite_doi_hint": "Digite o título de um artigo, com o sobrenome de um autor ou o ano se o título for comum. Um DOI ou link do doi.org, um ID do arXiv, um ISBN ou um ID do PubMed escrito como PMID: 12345 encontra exatamente essa obra.",
 	"cite_doi_looking": "Buscando {id}…",

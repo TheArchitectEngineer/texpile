@@ -1,6 +1,8 @@
 // The workspace's outward integrations: the MCP command surface and window-state cache,
 // shared-session handlers, cross-file project intel, the label/bibitem registries, editor
 // file access + graphics resolution, Zotero citations, and source-control actions.
+import { toaster } from '$lib/modals/toaster-svelte';
+import { m } from '$lib/paraglide/messages';
 import { fileMode } from '$lib/workspace/fileMode.svelte';
 import { untrack } from 'svelte';
 import { publishWindowState } from '$lib/workspace/mcpPublish';
@@ -309,10 +311,10 @@ export class WorkspaceIntegrations {
 		return settings.current.zoteroEnabled !== false && !this.d.guest() && zoteroAvailable() && this.citesHere();
 	}
 
-	// Where a citation can go: a LaTeX or Typst file, filed for the main file (see citeAnchor). With a
-	// main chosen, the open file must be in its language: the entries land in the bibliography the
-	// MAIN file declares, so a .typ scratch file open in a LaTeX project has nowhere sensible to point
-	// its citation. With none chosen yet, the open file stands for itself.
+	// Where a citation can go: a LaTeX or Typst file in the main file's language, since the entries
+	// land in the bibliography the MAIN file declares, and a .typ scratch file open in a LaTeX project
+	// has nowhere sensible to point its citation. With no main chosen yet the actions still show, and
+	// choosing one asks for the main file first (needsMain).
 	private citesHere(): boolean {
 		const { kind, path } = this.d.wsdoc.doc;
 		if (!path || (kind !== 'tex' && kind !== 'typ')) return false;
@@ -320,8 +322,20 @@ export class WorkspaceIntegrations {
 	}
 
 	insertZoteroCitation(): void {
-		if (!this.canZoteroCite()) return;
-		void insertCitationFromZotero(this.citeDeps());
+		if (this.canZoteroCite() && !this.needsMain(() => this.insertZoteroCitation())) void insertCitationFromZotero(this.citeDeps());
+	}
+
+	// A folder's main file is set only once someone picks it, usually at the first compile. Until then
+	// a citation has no bibliography to go to: say so, with the picker one click away, and carry on
+	// with the citation once a main file is chosen.
+	private needsMain(retry: () => void): boolean {
+		if (mainFile.current) return false;
+		toaster.warning({
+			title: m.cite_needs_main_title(),
+			description: m.cite_needs_main_desc(),
+			action: { label: m.wsview_pane_pick_main(), onClick: () => void this.d.files().mainPrompt.prompt(retry) }
+		});
+		return true;
 	}
 
 	// Cite by DOI (see lib/cite): the Zotero gate without Zotero - the entry lands in the same
@@ -332,7 +346,7 @@ export class WorkspaceIntegrations {
 	}
 
 	citeByDoi(): void {
-		if (this.canCiteByDoi()) citeByDoiDialog.show(this.citeDeps());
+		if (this.canCiteByDoi() && !this.needsMain(() => this.citeByDoi())) citeByDoiDialog.show(this.citeDeps());
 	}
 
 	private citeDeps(): ZoteroInsertDeps {

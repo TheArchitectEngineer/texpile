@@ -1444,6 +1444,8 @@
 	"zotero_dialog_group_project": "In this project",
 	"zotero_dialog_group_library": "Zotero library",
 	"cite_doi_insert": "Insert citation by title or DOI",
+	"cite_needs_main_title": "Set the main file first",
+	"cite_needs_main_desc": "A new reference goes into the bibliography your main file uses.",
 	"cite_doi_placeholder": "Search by title, or paste a DOI, arXiv ID, ISBN or PubMed ID",
 	"cite_doi_hint": "Type a paper's title, with an author's surname or the year if it is a common one. A DOI or doi.org link, an arXiv ID, an ISBN, or a PubMed ID written as PMID: 12345 finds that exact work.",
 	"cite_doi_looking": "Looking up {id}…",
