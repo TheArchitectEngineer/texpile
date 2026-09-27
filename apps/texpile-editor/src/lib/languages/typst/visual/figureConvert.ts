@@ -107,7 +107,8 @@ export function figureSeg(kids: SyntaxNode[], i: number, src: string): { seg: Se
 				label,
 				labelGap,
 				numbered: parts.isFigure,
-				showCaption: caption.length > 0
+				// a `caption: []` is a caption still: typst draws its "Figure 1:"
+				showCaption: parts.captionMarkup !== null
 			},
 			caption
 		);

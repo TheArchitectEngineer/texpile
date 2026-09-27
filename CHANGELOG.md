@@ -5,6 +5,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- fix: a Typst image figure with Show Caption on keeps its caption when the caption is empty, written as `caption: []` the way LaTeX gets `\caption{}`, so the "Figure 1" line the editor shows is in the document and the setting survives reopening (by @louisqli)
 - fix: in a Typst figure, a `-`, `+`, `=` or `1.` typed at the start of a table cell or the caption stays text instead of becoming a list or a heading, and a cell ending in a line break or a `//` comment no longer breaks the table (by @louisqli)
 - fix: editing a Typst document visually no longer saves bold or italics wrongly when a letter ends up right after them (`*even*s` is not bold), or when italics end on a reference, a link or a symbol (`@key_` is a different reference) (by @louisqli)
 - fix: `\overline`, `\sqrt`, `\hat` and similar typed in the visual math editor put the caret inside them instead of after an empty box (by @hkarlsen06)
