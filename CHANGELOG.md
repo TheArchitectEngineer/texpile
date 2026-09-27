@@ -20,6 +20,22 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: Alt+Enter shows tinymist's quick fixes in Typst source, such as creating a missing file (by @louisqli)
 - feat: a color swatch beside each Typst color, which opens a color picker (by @louisqli)
 - feat: F8 and Shift+F8 move to the next or previous spelling problem, in both editors (by @louisqli)
+- feat: the Typst live preview, diagnostics and Problems panel follow typing in the visual editor too, without waiting for a save (by @louisqli)
+- feat: install tinymist in one click from Preferences › Toolchain, the welcome screen, or the "Compile could not start" notice, so Typst works without installing anything else (by @louisqli)
+- fix: show the real tinymist version for release builds in Preferences › Toolchain instead of VERGEN_IDEMPOTENT_OUTPUT (by @louisqli)
+- feat: the Typst visual editor draws footnotes (numbered in order), page and column breaks, `#v` and `#h` spaces and `#outline`, each with its own settings (by @louisqli)
+- feat: Typst page setup: `#set page`, `text`, `par`, `heading`, `document` and `math.equation` rules show as one readable line each, with settings for the common arguments; anything else they set is kept as written (by @louisqli)
+- feat: a Number all equations switch in a Typst equation's settings writes the document's `#set math.equation(numbering: ..)` rule (by @louisqli)
+- feat: Insert › References, Breaks and spaces, Document parts and Typst source for Typst files, and Aligned, Cases and the matrices under Insert › Math (by @louisqli)
+- feat: click a citation in a Typst document to set its page numbers and citation form, and give a reference to a label its own supplement (by @louisqli)
+- feat: Typst calls that wrap content, such as `#theorem[...]` or `#align(center)[...]`, show as editable boxes, and Insert › Typst source › Environment… adds one (by @louisqli)
+- feat: Typst image figures get a Label field in their settings (by @louisqli)
+- feat: Typst starters for a paper, a report or thesis, a letter, and slides, all compiling offline with no packages (by @louisqli)
+- feat: save a project as your own template from File › Save as template…, and start new projects from it (by @louisqli)
+- feat: browse Typst Universe templates from the Typst tab of a new folder, fetched only when you open the list (by @louisqli)
+- feat: a symbol picker for Typst: search every Typst symbol and emoji by name, meaning or shorthand, browse by category, recent symbols first, from the source toolbar, Insert › Symbol… and the command palette (by @louisqli)
+- feat: export a Typst document as PDF (page range, PDF/A, PDF/UA-1, tagging), PNG, SVG or HTML from File › Export…, the preview toolbar or the command palette (by @louisqli)
+- feat: simulate protanopia, deuteranopia, tritanopia or achromatopsia in the Typst preview, the PDF pane and the live preview, to check a document's colors (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 

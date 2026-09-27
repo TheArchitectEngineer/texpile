@@ -218,7 +218,8 @@ function emit({ version, categories, byCategory, math, markup }) {
 // reads as a symbol, and Unicode's name for each character, which is what a search by meaning
 // matches. Deprecated names are left out. Regenerate when tinymist moves to a new Typst.
 //
-// Source: Typst ${version}
+// Source: Typst ${version}; the character names are Unicode's (Unicode Character Database,
+// Unicode License V3, see UNICODE-LICENSE.txt beside this file)
 
 /** the group a symbol is browsed under: tinymist's categories for \`sym\`, and one for \`emoji\` */
 export type TypstSymbolCategory = ${categories.map((c) => `'${c}'`).join(' | ')};

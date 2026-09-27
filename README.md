@@ -53,7 +53,7 @@ Editing works out of the box; the compiler is only needed to produce a PDF. Mark
 
 ## Privacy
 
-Your documents stay on your disk. The app's only background network traffic is the update check, which you can turn off in Preferences. Installing tinymist from Texpile downloads it from GitHub when you click Install, and at no other time. Shared sessions are end to end encrypted, so Texpile can never see your data.
+Your documents stay on your disk. The app's only background network traffic is the update check, which you can turn off in Preferences. Installing tinymist from Texpile downloads it from GitHub when you click Install, and the Typst template gallery reads packages.typst.org only while it is open. Shared sessions are end to end encrypted, so Texpile can never see your data.
 
 ## Community
 
@@ -65,6 +65,8 @@ Beyond its package dependencies, Texpile vendors or derives from the following p
 
 - [LaTeX Workshop](https://github.com/James-Yu/LaTeX-Workshop) (MIT). Texpile's intellisense for LaTeX is largely derived from LaTeX Workshop.
 - [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0). The live preview's Type1 font parsing is adapted from it.
+- [Typst](https://github.com/typst/typst) (Apache-2.0). The Typst symbol picker's table is generated from Typst's own symbol names.
+- The [Unicode Character Database](https://www.unicode.org/ucd/) (Unicode License V3). The symbol picker searches Unicode's character names; the license is in `apps/texpile-editor/src/lib/languages/typst/symbols/UNICODE-LICENSE.txt`.
 
 ## License
 
