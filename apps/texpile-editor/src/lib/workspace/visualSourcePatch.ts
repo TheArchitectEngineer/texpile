@@ -2,6 +2,7 @@
 import type { EditorView as PMEditorView } from 'prosemirror-view';
 import { computeBlockPatch, syncParseAttrs } from '$lib/editor/visual/blockPatch';
 import { adoptParse } from '$lib/editor/visual/parseOrigins';
+import { parseCarryKey } from '$lib/editor/visual/parseCarry';
 import type { DocumentBuffer } from '$lib/workspace/documentBuffer.svelte';
 import type { ParsedLatexFile } from '$lib/workspace/latexRoundtrip';
 
@@ -22,6 +23,8 @@ export async function patchVisualFromSource(
 	const tr = view.state.tr;
 	if (patch) tr.replaceWith(patch.from, patch.to, patch.nodes);
 	syncParseAttrs(tr, parsed.doc);
+	// the new document is the parse's as it is written out in this dispatch, not only after it
+	tr.setMeta(parseCarryKey, parsed.origins);
 	if (tr.steps.length) view.dispatch(tr);
 	// the patched document is the parse's from here on, even one the patch left as it was: the
 	// same content may now come from other bytes (a restored "..." the parser reads as its

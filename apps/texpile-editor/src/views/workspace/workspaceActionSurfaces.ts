@@ -1,5 +1,6 @@
 // The workspace's three callback surfaces: the editor-column actions WorkspaceMain hands
 // down, the chrome actions the menu bar and sidebar get, and the Ctrl+K palette commands.
+import type { ReplaceSpec } from '$lib/search/replaceInFiles';
 import { fileMode } from '$lib/workspace/fileMode.svelte';
 import { tabs, tabKey, type Tab } from '$lib/workspace/tabs.svelte';
 import { collabGuest } from '$lib/collab/guestStore.svelte';
@@ -59,6 +60,8 @@ export type ActionSurfaceDeps = {
 	setTutorialModalOpen: (open: boolean) => void;
 	openGlobalSearch: () => void;
 	closeGlobalSearch: () => void;
+	/** replace across the folder's files (see ./workspaceReplace.ts) */
+	replaceInFolder: (files: string[], spec: ReplaceSpec) => Promise<void>;
 };
 
 /**
@@ -234,6 +237,7 @@ export function makeChromeActions(d: ActionSurfaceDeps) {
 		refreshTree: () => void toastAfter(m.wsview_toast_tree_refreshed(), () => d.files().refreshTree()),
 		openGlobalSearch: () => void d.openGlobalSearch(),
 		closeGlobalSearch: () => void d.closeGlobalSearch(),
+		replaceInFolder: (files: string[], spec: ReplaceSpec) => d.replaceInFolder(files, spec),
 		openFileAt: (file: string, line: number, selectText?: string) => d.nav.openFileAtLine(file, line, selectText),
 		openEntry: (entry: TreeEntry) => d.files().openEntry(entry),
 		// the main file is a property of the project, so it goes in .texpile/config.json with the rest

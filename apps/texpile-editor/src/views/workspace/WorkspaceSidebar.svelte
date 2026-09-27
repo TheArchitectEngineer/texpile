@@ -5,6 +5,7 @@
 	import { tip } from '$lib/components/tooltip.svelte';
 	import FileTree from '$lib/filetree/FileTree.svelte';
 	import GlobalSearch from '$lib/search/GlobalSearch.svelte';
+	import type { ReplaceSpec } from '$lib/search/replaceInFiles';
 	import SourceControlPanel from '$lib/workspace/SourceControlPanel.svelte';
 	import TableOfContents from './TableOfContents.svelte';
 	import { workspaceRoot, fileTree, activeFilePath, mainFile } from '$lib/workspace/workspaceStore';
@@ -48,6 +49,7 @@
 		onOpenGlobalSearch: () => void;
 		onCloseGlobalSearch: () => void;
 		onOpenFileAt: (file: string, line: number, selectText?: string) => void;
+		onReplaceInFolder?: (files: string[], spec: ReplaceSpec) => Promise<void>;
 		onOpenEntry: (entry: TreeEntry) => void;
 		onCreate: (parentDir: string, name: string, type: 'file' | 'dir' | 'include') => void;
 		/** the compile target is Typst: the tree's New Include creates a .typ fragment */
@@ -95,6 +97,7 @@
 		onOpenGlobalSearch,
 		onCloseGlobalSearch,
 		onOpenFileAt,
+		onReplaceInFolder,
 		onOpenEntry,
 		onCreate,
 		typstProject = false,
@@ -298,7 +301,13 @@
 		</div>
 	</div>
 	{#if view === 'search'}
-		<GlobalSearch bind:this={globalSearchRef} root={workspaceRoot.current ?? ''} onOpen={onOpenFileAt} onClose={onCloseGlobalSearch} />
+		<GlobalSearch
+			bind:this={globalSearchRef}
+			root={workspaceRoot.current ?? ''}
+			onOpen={onOpenFileAt}
+			onClose={onCloseGlobalSearch}
+			onReplace={onReplaceInFolder}
+		/>
 	{:else if view === 'scm'}
 		<!-- the panel owns its own scrolling: it is two regions with a splitter between them, each
 		     scrolling on its own, and an outer scroller here would fight both -->

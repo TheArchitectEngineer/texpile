@@ -5,6 +5,7 @@
 	import WorkspaceMain from './WorkspaceMain.svelte';
 	import WorkspaceChrome from './WorkspaceChrome.svelte';
 	import GlobalSearch from '$lib/search/GlobalSearch.svelte';
+	import { makeFolderReplace } from './workspaceReplace';
 	import TutorialConfirmModal from '$lib/modals/start/TutorialConfirmModal.svelte';
 	import { tabs, tabKey } from '$lib/workspace/tabs.svelte';
 	import { makeMainActions, makeChromeActions, makePaletteActions, type ActionSurfaceDeps } from './workspaceActionSurfaces';
@@ -262,7 +263,17 @@
 		setShareModalOpen: (open) => (shareModalOpen = open),
 		setTutorialModalOpen: (open) => (tutorialModalOpen = open),
 		openGlobalSearch: () => void openSearchPanel(searchDeps),
-		closeGlobalSearch: () => void closeSearchPanel(searchDeps)
+		closeGlobalSearch: () => void closeSearchPanel(searchDeps),
+		replaceInFolder: makeFolderReplace({
+			provider: () => provider,
+			doc,
+			modes,
+			kind: () => kind,
+			parseVisual: async (text) => (await wsdoc.tryParseVisual(text)).parsed ?? null,
+			saver: () => saver,
+			history: () => (files.treeOps.undoable ? files.treeOps.history : null),
+			reloadOpen: () => external.check()
+		})
 	};
 	const actions = makeMainActions(actionDeps);
 	const chromeActions = makeChromeActions(actionDeps);

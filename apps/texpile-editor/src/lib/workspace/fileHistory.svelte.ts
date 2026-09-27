@@ -7,6 +7,9 @@
 // into the workspace's own trash directory (see fileSystem.trashEntry). The inverse of every
 // recorded operation is therefore a move, which costs nothing to hold and can be repeated in both
 // directions indefinitely - no file contents are kept in memory, however large the deletion was.
+// The one exception is a replace across the folder (views/workspace/workspaceReplace.ts): its
+// inverse is the text itself, so that entry holds each file's text before and after, bounded by
+// the search it came from (text files under 2 MB) and by this stack's depth.
 //
 // The stacks are memory-only and per-window. They do not survive a reload, which is exactly why the
 // trash is purged when a workspace is opened: once the history that could reach those entries is

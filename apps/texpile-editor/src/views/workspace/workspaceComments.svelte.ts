@@ -23,7 +23,7 @@ import { hasVisualMode, type DocumentBuffer, type FileKind } from '$lib/workspac
 import type { ViewModeSwitch } from '$lib/workspace/viewModeSwitch.svelte';
 import type { ParsedLatexFile } from '$lib/workspace/latexRoundtrip';
 import type { SourceEdit } from '$lib/workspace/suggestionsController';
-import { patchVisualFromSource } from '$lib/workspace/visualSourcePatch';
+import { editOpenFile } from '$lib/workspace/openEditorEdit';
 import { onDecisionStep } from '$lib/comments/decisionHistory';
 import { markPmDecision } from '$lib/editor/visual/extensions/pmDecisionStep';
 import { markCmDecision } from '$lib/editor/source/extensions/cmDecisionStep';
@@ -195,14 +195,8 @@ export class WorkspaceComments {
 		const before = this.activeText();
 		if (edit.from < 0 || edit.to > before.length || edit.to < edit.from) return false;
 		const next = before.slice(0, edit.from) + edit.insert + before.slice(edit.to);
-		if (this.d.modes.mode === 'visual' && hasVisualMode(this.d.kind())) {
-			const v = editorViewStore.current;
-			return !!v && patchVisualFromSource(v, this.d.doc, this.d.parseVisual, before, next);
-		}
-		const cm = sourceCmView.current;
-		if (!cm || cm.state.doc.toString() !== before) return false;
-		cm.dispatch({ changes: { from: edit.from, to: edit.to, insert: edit.insert } });
-		return true;
+		const d = { doc: this.d.doc, mode: () => this.d.modes.mode, kind: this.d.kind, parseVisual: this.d.parseVisual };
+		return editOpenFile(d, before, next, edit);
 	}
 
 	private markDecision(seq: number): void {
