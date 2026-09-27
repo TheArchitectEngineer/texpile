@@ -41,6 +41,9 @@ export async function scrollTypstPreview(
 ): Promise<void> {
 	const client = await typstClient(root);
 	if (!client) return;
+	// the position was measured against the editor's text, so the server's copy must be that text:
+	// an edit still waiting on a sync debounce shifts every offset after it
+	client.sync();
 	try {
 		await client.request<{ command: string; arguments: unknown[] }, unknown>('workspace/executeCommand', {
 			command: 'tinymist.scrollPreview',
@@ -80,9 +83,9 @@ export async function killTypstPreview(root: string | null, taskId: string): Pro
  *
  * Started through the LANGUAGE SERVER rather than as its own `tinymist preview` process, and that
  * distinction is the whole feature: a standalone preview watches the filesystem, so it would only
- * ever show saved text. Started this way it renders the server's in-memory document, which our
- * client already keeps current through textDocument/didChange on every keystroke. No save, no
- * debounce, no file watching.
+ * ever show saved text. Started this way it renders the server's in-memory document, which both
+ * editors keep current through textDocument/didChange (the visual one through streamTypstDocument).
+ * No save, no file watching.
  *
  * `--data-plane-host 127.0.0.1:0` asks for an ephemeral port, so a second window cannot collide
  * with the default 23625 (the flag is absent from `tinymist preview --help` in 0.15.2 but is

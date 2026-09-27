@@ -16,6 +16,7 @@ import { settings } from '$lib/settings';
 import { mainFile } from '$lib/workspace/workspaceStore';
 import { applyTextEdits, type LspTextEdit } from './textEdits';
 import { normalizeCompletionJson } from './completionNormalize';
+import { TypstWorkspace } from './typstWorkspace';
 
 // @codemirror/lsp-client caps its SIGNATURE tooltips but not its hover tooltips, and tinymist's
 // hover for a builtin is the function's whole documentation page - unconstrained, that renders
@@ -121,6 +122,18 @@ type Session = {
 };
 
 let session: Session | null = null;
+
+/** the host's open .typ as its editor last had it, whether or not a server is running to take it */
+let streamed: { root: string | null; uri: string; text: string } | null = null;
+
+function workspaceOf(client: LSPClient): TypstWorkspace | null {
+	return client.workspace instanceof TypstWorkspace ? client.workspace : null;
+}
+
+/** the running server's workspace, only if it serves `root`; never starts one */
+function runningWorkspace(root: string | null): TypstWorkspace | null {
+	return session && session.root === root ? workspaceOf(session.client) : null;
+}
 
 /**
  * Bumped when the server process DIES out from under us (never for our own stops - the spawn
@@ -269,6 +282,7 @@ export async function typstClient(root: string | null): Promise<LSPClient | null
 	const client = new LSPClient({
 		rootUri: root ? fileUri(root) : undefined,
 		extensions: typstServerExtensions(),
+		workspace: (c) => new TypstWorkspace(c),
 		notificationHandlers: {
 			// tinymist's click-to-jump: the framed preview reports the span the user clicked over its
 			// own websocket, the server resolves it to a file and range, and it lands here. Same
@@ -282,6 +296,9 @@ export async function typstClient(root: string | null): Promise<LSPClient | null
 		// the 3s default times out completions that would have arrived
 		timeout: 10000
 	});
+	// a fresh server (first start, restart, folder switch) opens the visual editor's document too;
+	// the workspace announces it once the client connects
+	if (streamed && streamed.root === root) workspaceOf(client)?.openText(streamed.uri, 'typst', streamed.text);
 
 	const started = b.startLsp(root).then((res) => {
 		if (!res.ok) return false;
@@ -298,6 +315,35 @@ export async function typstClient(root: string | null): Promise<LSPClient | null
 
 	session = { root, client, started };
 	return (await started) ? client : null;
+}
+
+/**
+ * Hand the server the host's open .typ as the editor has it, or pass a null `path` to let go.
+ *
+ * The source editor's plugin streams its own edits; the visual editor has no plugin, so without
+ * this the server compiled the file on DISK - the preview trailed typing by an autosave plus the
+ * watcher's lag. An edit is recorded, not sent: syncTypstDocuments() sends, so the caller can
+ * debounce typing, and any request that syncs first (a preview scroll, a guest's completion) sees
+ * the newest text regardless. True when an edit is waiting on that sync; opening and closing go
+ * out at once. Never starts the server: a document is no reason to spend its ~90MB, and whichever
+ * server starts next opens it.
+ */
+export function streamTypstDocument(root: string | null, path: string | null, text: string): boolean {
+	const previous = streamed;
+	const uri = path ? fileUri(path) : null;
+	streamed = uri ? { root, uri, text } : null;
+	const same = !!previous && previous.uri === uri && previous.root === root;
+	if (previous && !same) runningWorkspace(previous.root)?.closeText(previous.uri);
+	if (!uri) return false;
+	const workspace = runningWorkspace(root);
+	if (same) return workspace?.updateText(uri, text) ?? false;
+	workspace?.openText(uri, 'typst', text);
+	return false;
+}
+
+/** send the running server whatever its open documents have gained since the last sync */
+export function syncTypstDocuments(): void {
+	session?.client.sync();
 }
 
 /** what `tinymist.doStartPreview` answers with */
@@ -392,6 +438,7 @@ export async function exportTypstPdf(root: string | null, file: string, outDir?:
 	const pattern = dir && dir !== '.' ? `$root/${dir}/$name` : '$root/$dir/$name';
 	serverSettings.outputPath = pattern;
 	pushSettings(client);
+	client.sync(); // the last keystrokes may still be waiting on a sync debounce
 	const res = await client.request<{ command: string; arguments: unknown[] }, { path?: string | null } | null>('workspace/executeCommand', {
 		command: 'tinymist.exportPdf',
 		arguments: [file]

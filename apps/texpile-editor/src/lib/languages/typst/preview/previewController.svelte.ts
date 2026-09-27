@@ -45,7 +45,6 @@ export type TypstPreviewHooks = {
 	getCompileCommand: () => string;
 	/** the visual caret as a zero-based source position, through the view's block map */
 	getVisualCaretSourcePos: () => { line: number; character: number } | null;
-	flushSaves: () => Promise<unknown>;
 	refreshTree: () => Promise<void> | void;
 	/** inverse-sync landing, shared with SyncTeX: visual stays visual, source jumps the line */
 	syncJumpToFileLine: (file: string, line: number, column?: number) => void;
@@ -272,7 +271,7 @@ export class TypstPreviewController {
 	 * server call follow uses - fired once, on demand, so it earns its place exactly when the
 	 * follow toggle is off.
 	 */
-	async syncForward(): Promise<void> {
+	syncForward(): void {
 		if (this.syncUnavailable()) return;
 		const file = this.hooks.getDocPath();
 		if (!file) return;
@@ -283,14 +282,10 @@ export class TypstPreviewController {
 			this.sendScroll(file, docLine.number - 1, head - docLine.from);
 			return;
 		}
-		// Visual mode: the PM caret through the block map, one shot (no follow bookkeeping).
-		//
-		// Flush pending saves first. In source mode the LSP client streams didChange, so the
-		// server's copy IS what the caret was measured against; the visual editor has no such
-		// stream, and the server falls back to the file on disk - so an unsaved edit shifts every
-		// offset after it and the jump lands on the wrong line or nowhere. One save closes that
-		// gap, and it is a deliberate click, so paying for it here is cheap.
-		await this.hooks.flushSaves();
+		// Visual mode: the PM caret through the block map, one shot (no follow bookkeeping). The
+		// map measures against the buffer, and so does the server: the visual editor streams it
+		// (TypstDocumentStream), and the scroll syncs the edits still in the debounce before it
+		// asks. No save needed.
 		const pos = this.hooks.getVisualCaretSourcePos();
 		if (!pos) return;
 		this.sendScroll(file, pos.line, pos.character);

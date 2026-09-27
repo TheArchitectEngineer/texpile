@@ -8,7 +8,7 @@ order: 1
 
 # Live preview
 
-A Typst document renders as you type in a pane beside the editor, through tinymist. It is on by default for a .typ main file, and it needs no save and no rebuild.
+A Typst document renders as you type in a pane beside the editor, through tinymist, in the visual editor and in source mode alike. It is on by default for a .typ main file, and it needs no save and no rebuild.
 
 | Where to find it | Path                                            | Note                                       |
 | ---------------- | ----------------------------------------------- | ------------------------------------------ |

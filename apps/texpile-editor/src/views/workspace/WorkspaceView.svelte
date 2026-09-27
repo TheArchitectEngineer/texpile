@@ -169,7 +169,7 @@
 	let dockView = $state<'terminal' | 'problems' | 'comments'>('terminal');
 	// the compile-side stack (compile-command state, draft controller, typst preview, compile
 	// pipeline, jump router) is built in ./workspacePipelines.svelte.ts
-	const { cc, draftCtl, typstPreview, compiler, nav } = createWorkspacePipelines({
+	const { cc, draftCtl, typstPreview, typstStream, compiler, nav } = createWorkspacePipelines({
 		provider,
 		session: () => session,
 		guest: () => guest,
@@ -205,6 +205,7 @@
 	});
 	onDestroy(() => {
 		typstPreview.dispose(); // leaving the workspace must not leave a preview compiling in the server
+		typstStream.dispose();
 		projectConfig.reset(); // adopted compile state is per folder; the start screen holds defaults
 	});
 	// shared session: guests can ask for a compile; leaving the workspace ends the session
