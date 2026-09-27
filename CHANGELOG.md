@@ -16,6 +16,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: the bibliography editor warns when two entries are the same paper (the same DOI or arXiv number under two keys), and notes the entries no document in the folder cites (by @louisqli)
 - feat: click the word count for the whole document's words, from the main file through every file it includes: body text, headings, captions, footnotes and tables apart, and per file (by @louisqli)
 - feat: LaTeX references are checked as you type, before any compile: a label defined twice, a citation no bibliography entry has, and an image, \input, \include or bibliography file that is not in the project, underlined in the source editor and marked on the visual editor's label and include chips (by @louisqli)
+- fix: icons beside their labels in menus, the command palette and buttons sit level with the words on every row, where some rows' icons sat a pixel or two low (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 

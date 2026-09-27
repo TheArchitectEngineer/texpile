@@ -1171,6 +1171,92 @@ html.pm-drop-refused .pm-drop-cursor {
 	--color-draft-band: var(--draft-band);
 }
 
+/* Lines an even number of pixels tall. The theme scales the type by --text-scaling and Skeleton
+   scales the line-height ratios by it again, so a text-sm line came to 22.77px and a text-xs one
+   to 18.22px. In a line like that every row after starts part-way into a pixel, and the browser
+   snaps an icon and the words beside it to the pixel grid apart: the same menu had icons in line
+   on one row and 1.5px low on the next. Even, not just whole: an icon is centred in the line and
+   is drawn from a whole pixel, so a 16px or 14px icon needs an even line to start on one; and
+   the browser rounds the space above the words down, so they sit centred only when the line
+   less the font's own height is even too, as it is for the usual system fonts at text-sm.
+   Each ratio is the scaled line rounded to an even pixel, over the font size as the browser holds
+   it (in 1/64px steps); a ratio rather than a length, so text that changes size inside keeps
+   lines in proportion. The + 0.001 keeps float error from landing 1/64px short. */
+@theme inline {
+	--text-xs--line-height: calc(
+		(round(16 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(12 * var(--text-scaling), 1 / 64)
+	);
+	--text-sm--line-height: calc(
+		(round(20 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(14 * var(--text-scaling), 1 / 64)
+	);
+	--text-base--line-height: calc(
+		(round(24 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(16 * var(--text-scaling), 1 / 64)
+	);
+	--text-lg--line-height: calc(
+		(round(28 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(18 * var(--text-scaling), 1 / 64)
+	);
+	--text-xl--line-height: calc(
+		(round(28 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(20 * var(--text-scaling), 1 / 64)
+	);
+	--text-2xl--line-height: calc(
+		(round(32 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(24 * var(--text-scaling), 1 / 64)
+	);
+	--text-3xl--line-height: calc(
+		(round(36 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(30 * var(--text-scaling), 1 / 64)
+	);
+	--text-4xl--line-height: calc(
+		(round(40 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(36 * var(--text-scaling), 1 / 64)
+	);
+	--text-5xl--line-height: calc(
+		(round(48 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(48 * var(--text-scaling), 1 / 64)
+	);
+	--text-6xl--line-height: calc(
+		(round(60 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(60 * var(--text-scaling), 1 / 64)
+	);
+	--text-7xl--line-height: calc(
+		(round(72 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(72 * var(--text-scaling), 1 / 64)
+	);
+	--text-8xl--line-height: calc(
+		(round(96 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(96 * var(--text-scaling), 1 / 64)
+	);
+	--text-9xl--line-height: calc(
+		(round(128 * var(--text-scaling) * var(--text-scaling), 2) + 0.001) / round(128 * var(--text-scaling), 1 / 64)
+	);
+}
+
+/* Skeleton's buttons, chips and badges set their line to the font size and the padding above and
+   below to half of it less a pixel: 12.8px and 5.4px for btn-xs, where Save's icon sat 2.7px
+   below its word. The line up to an even pixel as above, an icon without a size of its own to
+   the nearest even pixel, and the padding to whole pixels that keep the height within a pixel of
+   Skeleton's, with a text label or with a 16px icon beside it. */
+@utility btn {
+	--btn-line: round(up, var(--btn-size), 2px);
+	line-height: var(--btn-line);
+	padding-block: round(calc((var(--btn-size) * 2 - --spacing(0.5) - var(--btn-line)) / 2), 1px);
+	& > :where(svg) {
+		width: round(var(--btn-size), 2px);
+		height: round(var(--btn-size), 2px);
+	}
+}
+@utility chip {
+	--chip-line: round(up, var(--chip-size), 2px);
+	line-height: var(--chip-line);
+	padding-block: round(calc((var(--chip-size) * 2 - --spacing(0.5) - var(--chip-line)) / 2), 1px);
+	& > :where(svg) {
+		width: round(var(--chip-size), 2px);
+		height: round(var(--chip-size), 2px);
+	}
+}
+@utility badge {
+	--badge-line: round(up, var(--badge-size), 2px);
+	line-height: var(--badge-line);
+	padding-block: round(calc((var(--badge-size) * 2 - --spacing(0.5) - var(--badge-line)) / 2), 1px);
+	& > :where(svg) {
+		width: round(var(--badge-size), 2px);
+		height: round(var(--badge-size), 2px);
+	}
+}
+
 @utility z-sticky-header {
 	z-index: var(--z-index-sticky-header) !important;
 }
