@@ -47,13 +47,13 @@ Texpile supports adding comments, and you can add them in both the visual and th
 Download the installer for your platform from [texpile.com/download](https://texpile.com/download), then install a compiler for the format you write in:
 
 - [LaTeX](https://texpile.com/docs/installation/latex) — a TeX distribution: TeX Live, MacTeX, or MiKTeX
-- [Typst](https://texpile.com/docs/installation/typst) — one program, tinymist
+- [Typst](https://texpile.com/docs/installation/typst) — one program, tinymist, which Texpile can install for you in one click (Preferences › Toolchain)
 
 Editing works out of the box; the compiler is only needed to produce a PDF. Markdown needs neither.
 
 ## Privacy
 
-Your documents stay on your disk. The app's only background network traffic is the update check, which you can turn off in Preferences. Shared sessions are end to end encrypted, so Texpile can never see your data.
+Your documents stay on your disk. The app's only background network traffic is the update check, which you can turn off in Preferences. Installing tinymist from Texpile downloads it from GitHub when you click Install, and at no other time. Shared sessions are end to end encrypted, so Texpile can never see your data.
 
 ## Community
 
