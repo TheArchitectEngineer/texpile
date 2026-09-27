@@ -32,6 +32,21 @@ A .typ file opens in the same visual and source editors as a LaTeX file, and com
 - F12, or Ctrl+Click, goes to a definition, in another file too, or opens the file a path names, such as an image or an included chapter. Alt+Enter offers tinymist's quick fixes where the caret is, such as creating a missing file or wrapping an image in a figure.
 - A swatch sits beside each color in the source. Click it to pick a new color.
 
+## Symbols
+
+Every named Typst symbol and emoji, found by name, by what it means, or by shorthand.
+
+| Where to find it | Path                           | Note                                 |
+| ---------------- | ------------------------------ | ------------------------------------ |
+| Menu             | Insert › Symbol…               | In the visual and the source editor. |
+| In the editor    | The Ω button on the source bar | Next to the equation buttons.        |
+| Shortcut         | Ctrl+K                         | Then "Insert symbol".                |
+
+- Type a name (`arrow.r.double`), what it means (arrow right double, not equal), a shorthand (`=>`), or paste the character. Or browse the tabs. The symbols you used last come first.
+- The arrow keys move through the grid, Enter inserts, and Esc closes.
+- In an equation it writes the shorthand, or else the bare name: `=>`, `alpha`. In text it writes the character itself, or Typst's shorthand for it (`--` for an en dash, `~` for a no-break space). A character that would not show, such as a thin space, goes in by name: `#sym.space.thin`. In code it writes `sym.arrow.r`.
+- In the visual editor the character goes into the text. A selected equation is kept and the symbol goes after it. Inside an equation, use the math toolbar.
+
 The [Equations](../visual-editing/math.md), [Images](../visual-editing/images.md), [Tables](../visual-editing/tables.md), and [Citations](../visual-editing/citations.md) pages each end with what differs in Typst.
 
 ## Starting a Typst document

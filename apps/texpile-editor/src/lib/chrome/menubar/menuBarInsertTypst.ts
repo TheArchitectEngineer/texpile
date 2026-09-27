@@ -9,6 +9,7 @@ import { relativeTo } from '$lib/workspace/fileSystem';
 import { sanitizeLabel } from '$lib/editor/visual/label';
 import { typStr } from '$lib/languages/typst/visual/typstInline';
 import { activeCm, cmReplace, insertNode } from '$lib/chrome/menuBarCommands';
+import { typstSymbolPicker } from '$lib/languages/typst/symbols/typstSymbolPicker.svelte';
 import { cmOnOwnLine, folderOf, insertChips } from './menuBarInsertDrawn';
 import { m } from '$lib/paraglide/messages';
 
@@ -95,6 +96,11 @@ export function makeTypstInserts(deps: TypstInsertDeps): (value: string) => Prom
 	}
 
 	return async (value) => {
+		// the picker inserts where the caret is, in either mode
+		if (value === 'symbolpicker') {
+			await typstSymbolPicker.show();
+			return true;
+		}
 		if (!(TYPST_INSERT_ITEMS as readonly string[]).includes(value)) return false;
 		if (activeCm()) await inSource(value);
 		else await inVisual(value);

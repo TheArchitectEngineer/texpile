@@ -63,6 +63,9 @@ export type PaletteActions = {
 	/** Cite by DOI or arXiv ID: the same gate without Zotero */
 	canCiteByDoi?(): boolean;
 	citeByDoi?(): void;
+	/** the Typst symbol picker: a .typ file open in the visual or source editor */
+	canInsertTypstSymbol?(): boolean;
+	insertTypstSymbol?(): void;
 };
 
 /** 'files' is the picker: files only, listed before anything is typed */

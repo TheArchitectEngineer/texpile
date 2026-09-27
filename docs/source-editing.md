@@ -21,7 +21,7 @@ A code editor with syntax highlighting, showing the same document as the visual 
 - Multiple cursors: Ctrl+Alt+Up and Ctrl+Alt+Down add one, Ctrl+D selects the next occurrence.
 - Equations preview as you type them, using your own macros. Esc hides the preview, and Preferences › Math preview turns it off.
 - F12, or Ctrl+Click, goes to where a macro, label, or citation is defined, across files.
-- The toolbar has the formatting commands, a table inserter, and a math symbol palette.
+- The toolbar has the formatting commands, a table inserter, and a math symbol palette. In a .typ file its Ω button opens the Typst symbol picker instead, which searches every Typst symbol by name, meaning, or shorthand. See [Typst symbols](typst/README.md#symbols).
 
 ![The source editor's table-insert grid, with caption, rules, and header-row toggles](../landing/src/lib/assets/showcase/app/table-grid-picker.png) ![The source editor's math symbol dropdown, open on the Common tab](../landing/src/lib/assets/showcase/app/math-palette.png)
 

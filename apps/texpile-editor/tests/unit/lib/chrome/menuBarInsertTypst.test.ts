@@ -12,6 +12,7 @@ import { projectIntelStore } from '$lib/stores/projectIntel';
 import { activeFilePath } from '$lib/workspace/workspaceStore';
 import { makeTypstInserts } from '$lib/chrome/menubar/menuBarInsertTypst';
 import { makeInsertHandlers } from '$lib/chrome/menubar/menuBarInsert';
+import { typstSymbolPicker } from '$lib/languages/typst/symbols/typstSymbolPicker.svelte';
 
 const para = (text: string) => typSchema.nodes.paragraph.create(null, typSchema.text(text));
 
@@ -79,6 +80,15 @@ describe('the Typst insert items', () => {
 		const out = serializeToTypst(view.state.doc);
 		expect(out).toBe('Some<sec:intro> words');
 		expect(serializeToTypst(typstToProseMirror(out).doc)).toBe(out);
+	});
+
+	it('opens the symbol picker, which types its pick at the caret', async () => {
+		const view = editorWith('A B', ' B');
+		expect(await insert('symbolpicker')).toBe(true);
+		expect(typstSymbolPicker.open).toBe(true);
+		typstSymbolPicker.search('arrow.r');
+		typstSymbolPicker.choose(typstSymbolPicker.results[0]);
+		expect(view.state.doc.textContent).toBe('A→ B');
 	});
 
 	it('leaves every other item to the menu’s other handlers', async () => {

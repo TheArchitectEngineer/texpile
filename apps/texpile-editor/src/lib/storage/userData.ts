@@ -20,6 +20,8 @@ export type UserData = {
 	recentFolders: string[];
 	/** completion frecency: label -> { s: decayed accept score, t: last accept ms epoch } */
 	completionUsage: Record<string, { s: number; t: number }>;
+	/** the Typst symbol picker's picks by name, most recent first */
+	recentTypstSymbols: string[];
 	onboardingCompleted: boolean;
 	tourCompleted: boolean;
 	advancedWarningDismissed: boolean;
@@ -35,6 +37,7 @@ const DEFAULTS: UserData = {
 	dictionary: [],
 	recentFolders: [],
 	completionUsage: {},
+	recentTypstSymbols: [],
 	onboardingCompleted: false,
 	tourCompleted: false,
 	advancedWarningDismissed: false
@@ -48,6 +51,9 @@ function read(): UserData {
 			const merged = { ...DEFAULTS, ...raw, v: 1 as const };
 			// cap on read as well as write: a hand-edited entry must not render an unbounded list
 			merged.recentFolders = merged.recentFolders.filter((p): p is string => typeof p === 'string').slice(0, MAX_RECENT);
+			merged.recentTypstSymbols = Array.isArray(merged.recentTypstSymbols)
+				? merged.recentTypstSymbols.filter((s): s is string => typeof s === 'string')
+				: [];
 			return merged;
 		}
 	} catch {

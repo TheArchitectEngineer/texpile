@@ -21,6 +21,7 @@ import type { TerminalDockState } from '$lib/workspace/terminalDockState.svelte'
 import type { PaneLayout } from '$lib/workspace/paneLayout.svelte';
 import type { DraftController } from '$lib/draft/draftController.svelte';
 import type { TypstPreviewController } from '$lib/languages/typst/preview/previewController.svelte';
+import { typstSymbolPicker } from '$lib/languages/typst/symbols/typstSymbolPicker.svelte';
 import type { CompilePipeline } from '$lib/workspace/compilePipeline.svelte';
 import type { WorkspaceNav } from './workspaceNav.svelte';
 import type { WorkspaceDoc } from './workspaceDoc.svelte';
@@ -310,6 +311,8 @@ export function makePaletteActions(d: ActionSurfaceDeps) {
 		canZoteroCite: () => d.integrations.canZoteroCite(),
 		insertZoteroCitation: () => d.integrations.insertZoteroCitation(),
 		canCiteByDoi: () => d.integrations.canCiteByDoi(),
-		citeByDoi: () => d.integrations.citeByDoi()
+		citeByDoi: () => d.integrations.citeByDoi(),
+		canInsertTypstSymbol: () => d.wsdoc.doc.kind === 'typ' && !activeCompare.current,
+		insertTypstSymbol: () => void typstSymbolPicker.show()
 	};
 }

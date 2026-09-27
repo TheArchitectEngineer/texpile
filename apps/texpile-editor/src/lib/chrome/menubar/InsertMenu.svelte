@@ -115,6 +115,7 @@
 						{@render item('vspace', m.drawn_chip_space_vertical())}
 						{@render item('hspace', m.drawn_chip_space_horizontal())}
 					</MenuBarSubmenu>
+					{@render item('symbolpicker', m.menubar_insert_symbol_picker())}
 					<MenuBarSubmenu value="document" label={m.menubar_insert_document_parts()} {select}>
 						{@render item('outline', m.drawn_chip_typst_outline_contents())}
 						{@render item('bibliography', m.drawn_chip_bib_title())}

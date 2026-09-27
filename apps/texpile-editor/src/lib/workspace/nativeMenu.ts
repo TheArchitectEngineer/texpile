@@ -133,6 +133,7 @@ function labels(tool: 'latexindent' | 'typstyle'): Record<string, string> {
 		references: m.menubar_insert_references(),
 		breaksSpaces: m.menubar_insert_breaks_spaces(),
 		symbol: m.menubar_insert_symbol(),
+		symbolPicker: m.menubar_insert_symbol_picker(),
 		documentParts: m.menubar_insert_document_parts(),
 		latexSource: m.menubar_insert_latex_source(),
 		comment: m.drawn_chip_comment_title(),

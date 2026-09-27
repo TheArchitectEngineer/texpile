@@ -1,4 +1,4 @@
-import { AlignLeft, BookMarked, BookPlus, Keyboard } from '@lucide/svelte';
+import { AlignLeft, BookMarked, BookPlus, Keyboard, Omega } from '@lucide/svelte';
 import { settings, updateSettings, type AppSettings } from '$lib/settings';
 import type { PaletteActions } from '$lib/workspace/commandPalette.svelte';
 import type { PaletteItem } from './paletteCommands';
@@ -24,6 +24,15 @@ export function editorItems(a: PaletteActions): PaletteItem[] {
 			keywords: 'doi arxiv cite citation bibliography reference bibtex crossref paper',
 			icon: BookPlus,
 			run: () => a.citeByDoi?.()
+		});
+	if (a.insertTypstSymbol && a.canInsertTypstSymbol?.())
+		items.push({
+			id: 'editor.typstSymbol',
+			label: m.typst_symbols_title(),
+			group,
+			keywords: 'typst sym emoji symbol character glyph unicode arrow greek letter shorthand',
+			icon: Omega,
+			run: () => a.insertTypstSymbol?.()
 		});
 	if (a.hasFile() && a.canFormat())
 		items.push({

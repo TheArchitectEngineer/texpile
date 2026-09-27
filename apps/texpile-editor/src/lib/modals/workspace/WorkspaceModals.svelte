@@ -5,6 +5,7 @@
 	import CompileCommandModal from './CompileCommandModal.svelte';
 	import FormatModal from './FormatModal.svelte';
 	import CommandPalette from '$lib/palette/CommandPalette.svelte';
+	import TypstSymbolPicker from '$lib/languages/typst/symbols/TypstSymbolPicker/TypstSymbolPicker.svelte';
 	import { promptAsk } from '$lib/modals/confirm.svelte';
 	import { basename } from '$lib/workspace/fileSystem';
 	import type { RefUpdate } from '$lib/workspace/refUpdate';
@@ -155,3 +156,6 @@
 
 <!-- takes no props: it reads the action registry WorkspaceView fills in, and owns its own Ctrl+K -->
 <CommandPalette />
+
+<!-- takes no props either: the source toolbar, the Insert menu and the palette open it -->
+<TypstSymbolPicker />
