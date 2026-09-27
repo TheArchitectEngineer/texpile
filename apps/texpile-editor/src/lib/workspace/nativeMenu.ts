@@ -66,6 +66,8 @@ export type MenuStateInput = {
 	typstProject: boolean;
 	canInsertImage: boolean;
 	canOpenFolder: boolean;
+	/** File > Save as template: a host in the desktop app */
+	canSaveTemplate: boolean;
 	canTutorial: boolean;
 	recentFolders: string[];
 };
@@ -97,6 +99,7 @@ function labels(tool: 'latexindent' | 'typstyle'): Record<string, string> {
 		openFolderNewWindow: m.menubar_open_folder_new_window(),
 		share: m.menubar_share_session(),
 		save: m.menubar_save(),
+		saveAsTemplate: m.menubar_save_as_template(),
 		closeWorkspace: m.menubar_close_workspace(),
 		preferences: m.menubar_preferences(),
 		palette: m.palette_open(),

@@ -1,4 +1,4 @@
-import { FilePlus2, FolderOpen, Play, RefreshCw, RotateCw, Save, Settings, Users, Wrench } from '@lucide/svelte';
+import { FilePlus2, FolderOpen, LayoutTemplate, Play, RefreshCw, RotateCw, Save, Settings, Users, Wrench } from '@lucide/svelte';
 import { isDirty } from '$lib/workspace/workspaceStore';
 import { nativeBridge } from '$lib/workspace/fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
@@ -69,6 +69,15 @@ export function fileItems(a: PaletteActions): PaletteItem[] {
 			run: () => a.newFile('md')
 		});
 	}
+	if (a.saveAsTemplate)
+		items.push({
+			id: 'file.saveAsTemplate',
+			label: m.menubar_save_as_template(),
+			group,
+			keywords: 'template starter reuse copy project',
+			icon: LayoutTemplate,
+			run: () => a.saveAsTemplate?.()
+		});
 	if (a.isHostWorkspace())
 		items.push({
 			id: 'file.openFolder',

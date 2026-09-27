@@ -402,6 +402,25 @@ contextBridge.exposeInMainWorld('texpileDoi', {
 	lookup: (doi: string) => ipcRenderer.invoke('doi:lookup', { doi })
 });
 
+// templates: the user's own, saved under userData, and the Typst Universe gallery (see templatesIpc.ts)
+contextBridge.exposeInMainWorld('texpileTemplates', {
+	list: () => invokeFs('templates:list'),
+	/** the project's files with their sizes, minus ignored folders; stops at a file limit */
+	survey: (root: string) => invokeFs('templates:survey', root),
+	save: (req: Record<string, unknown>) => invokeFs('templates:save', req),
+	update: (id: string, name: string, description: string) => invokeFs('templates:update', { id, name, description }),
+	remove: (id: string) => invokeFs('templates:delete', id),
+	/** copy a template into root, keeping existing files; resolves to the absolute main file */
+	apply: (id: string, root: string) => invokeFs('templates:apply', { id, root }),
+	/** an empty folder for tinymist to unpack a Typst Universe template into */
+	stage: () => invokeFs('templates:stage'),
+	adopt: (dir: string, root: string) => invokeFs('templates:adopt', { dir, root }),
+	discard: (dir: string) => invokeFs('templates:discard', dir),
+	/** goes online: the gallery calls it when opened, never before */
+	universeIndex: () => ipcRenderer.invoke('templates:universeIndex'),
+	universeThumbnail: (name: string, version: string) => ipcRenderer.invoke('templates:universeThumbnail', { name, version })
+});
+
 // the reader's own command-line agent (Preferences > AI); main picks the command, a run only carries the prompt
 contextBridge.exposeInMainWorld('texpileAgent', {
 	/** which preset agents are on PATH */

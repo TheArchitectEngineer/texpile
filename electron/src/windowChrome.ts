@@ -45,6 +45,8 @@ export type MenuState = {
 	canInsertImage: boolean;
 	/** the workspace may be swapped out. False for a guest: it would abandon the session unleft */
 	canOpenFolder: boolean;
+	/** File > Save as template; optional so a renderer predating it simply shows none */
+	canSaveTemplate?: boolean;
 	canTutorial: boolean;
 	recentFolders: string[];
 	/** the start screen (or another workspace-less screen): the bar offers only what opens a folder */
@@ -192,6 +194,9 @@ function template(win: BrowserWindow, s: MenuState): MenuItemConstructorOptions[
 				{ label: label(s, 'openFolderNewWindow', 'Open folder in new window'), click: () => fire(win, 'file:open-folder-new-window') },
 				{ type: 'separator' },
 				{ label: label(s, 'save', 'Save'), accelerator: 'CmdOrCtrl+S', click: () => fire(win, 'file:save') },
+				...(s.canSaveTemplate
+					? [{ label: label(s, 'saveAsTemplate', 'Save as template…'), click: () => fire(win, 'file:save-as-template') }]
+					: []),
 				...(s.canCloseWorkspace
 					? [{ label: label(s, 'closeWorkspace', 'Close folder'), click: () => fire(win, 'file:close-workspace') }]
 					: [])

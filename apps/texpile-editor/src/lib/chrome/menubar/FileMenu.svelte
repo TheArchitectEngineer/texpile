@@ -17,6 +17,7 @@
 		canNewFile: boolean;
 		typstProject: boolean;
 		canOpenFolder: boolean;
+		canSaveAsTemplate: boolean;
 		canCloseWorkspace: boolean;
 		canShareSession: boolean;
 	};
@@ -29,6 +30,7 @@
 		canNewFile,
 		typstProject,
 		canOpenFolder,
+		canSaveAsTemplate,
 		canCloseWorkspace,
 		canShareSession
 	}: Props = $props();
@@ -111,6 +113,9 @@
 				<Menu.Item value="save" class={itemClass}>
 					<Menu.ItemText>{m.menubar_save()}</Menu.ItemText><span class="opacity-50">{combo('S')}</span>
 				</Menu.Item>
+				{#if canSaveAsTemplate}
+					<Menu.Item value="save-as-template" class={itemClass}><Menu.ItemText>{m.menubar_save_as_template()}</Menu.ItemText></Menu.Item>
+				{/if}
 				{#if canCloseWorkspace}
 					<Menu.Item value="close-workspace" class={itemClass}><Menu.ItemText>{m.menubar_close_workspace()}</Menu.ItemText></Menu.Item>
 				{/if}

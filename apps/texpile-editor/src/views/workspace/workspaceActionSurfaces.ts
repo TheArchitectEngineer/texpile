@@ -6,13 +6,15 @@ import { collabGuest } from '$lib/collab/guestStore.svelte';
 import { normSyncPath } from '$lib/workspace/syncTexNav';
 import { projectConfigSync as projectConfig } from '$lib/workspace/projectConfigSync.svelte';
 import { uiZoomIn, uiZoomOut, uiZoomReset } from '$lib/workspace/shortcuts';
-import { workspaceRoot, isDirty, activeFilePath, activeCompare } from '$lib/workspace/workspaceStore';
+import { workspaceRoot, isDirty, activeFilePath, activeCompare, mainFile } from '$lib/workspace/workspaceStore';
 import { revealInTree } from '$lib/filetree/treeReveal.svelte';
 import { openTabContextMenu } from './tabContextMenu';
 import { refreshGitStatus, refreshGitHistory } from '$lib/workspace/gitStore';
 import { preferencesOpen } from '$lib/stores/dialogStore';
 import { isDesktop, revealItem, type TreeEntry } from '$lib/workspace/fileSystem';
 import { hasUnsavedUnder } from '$lib/workspace/unsavedPaths';
+import { openSaveAsTemplate } from '$lib/workspace/templates/templateDetails.svelte';
+import { userTemplatesAvailable } from '$lib/workspace/templates/templateBridge';
 import type { WorkspaceProvider } from '$lib/workspace/workspaceProvider';
 import type { CommentsController } from '$lib/workspace/commentsController.svelte';
 import type { TerminalDockState } from '$lib/workspace/terminalDockState.svelte';
@@ -27,7 +29,8 @@ import type { WorkspaceFiles } from './workspaceFiles.svelte';
 import type { WorkspaceFormatting } from './workspaceFormatting.svelte';
 import type { WorkspaceIntegrations } from './workspaceIntegrations.svelte';
 import type { WorkspaceCompileState } from './workspaceCompileState.svelte';
-import type { Starter, ImportedFile } from '$lib/workspace/starters';
+import type { ImportedFile } from '$lib/workspace/starters';
+import type { StarterChoice } from '$lib/workspace/templates/starterChoice';
 import type { CommentMessage, CommentThread } from '$lib/comments/log';
 import type { CommentAnchor } from '$lib/comments/anchor';
 import { editorViewStore, sourceCmView } from '$lib/stores/editorStore';
@@ -72,6 +75,13 @@ export type ActionSurfaceDeps = {
 export async function toastAfter(title: string, work: () => unknown): Promise<void> {
 	await work();
 	toaster.success({ title, duration: 1500 });
+}
+
+/** File > Save as template: the main file (or, with none set, the open document) is the one it opens on */
+function saveAsTemplate(d: ActionSurfaceDeps): void {
+	void openSaveAsTemplate(workspaceRoot.current, mainFile.current ?? d.wsdoc.doc.path, d.compiler.expectedPdfPath(), () =>
+		d.editFlow().saver.flushAndWait()
+	);
 }
 
 /** the callback surface WorkspaceMain hands down to the topbar / editor / preview / dock */
@@ -168,7 +178,7 @@ export function makeMainActions(d: ActionSurfaceDeps) {
 		},
 		useSource: () => d.wsdoc.modes.set('source'),
 		openAsText: (path: string) => d.wsdoc.openAsText(path),
-		pickStarter: (s: Starter) => d.files().starters.pick(s),
+		pickStarter: (choice: StarterChoice) => d.files().starters.pick(choice),
 		newTexFile: () => d.files().starters.newTexFile(),
 		importStarter: (imported: ImportedFile[]) => d.files().starters.importFiles(imported),
 		onTexInput: (v: string) => d.wsdoc.doc.onTexInput(v),
@@ -228,6 +238,7 @@ export function makeChromeActions(d: ActionSurfaceDeps) {
 		toggleTerminal: () => d.termDock().toggle(),
 		openFormatModal: () => d.fmt.openFormatModal(),
 		openTutorial: () => d.setTutorialModalOpen(true),
+		saveAsTemplate: () => saveAsTemplate(d),
 		uiZoomIn,
 		uiZoomOut,
 		uiZoomReset,
@@ -290,6 +301,8 @@ export function makePaletteActions(d: ActionSurfaceDeps) {
 		// same condition the app-icon menu uses: desktop only, and never for a guest
 		openShareSession: isDesktop() && !d.guest() ? () => d.setShareModalOpen(true) : undefined,
 		newFile: (ext?: string) => d.files().newFileOfType(ext),
+		// the host's own folder, in the desktop app, where the templates folder is
+		saveAsTemplate: userTemplatesAvailable() && !d.guest() ? () => saveAsTemplate(d) : undefined,
 		openFolder: () => void d.files().folder.open(),
 		refreshTree: () => void d.files().refreshTree(),
 		openTypstPreview: () => d.typstPreview.enable(),

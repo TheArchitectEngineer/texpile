@@ -40,6 +40,7 @@
 	import { workspaceRoot, texFiles, activeCompare, activeFilePath } from '$lib/workspace/workspaceStore';
 	import ZoteroCitationDialog from '$lib/zotero/ZoteroCitationDialog.svelte';
 	import CiteByDoiDialog from '$lib/cite/CiteByDoiDialog.svelte';
+	import TemplateDetailsDialog from '$lib/workspace/templates/TemplateDetailsDialog.svelte';
 	import { settings } from '$lib/settings';
 	import { basename, dirname, isDesktop } from '$lib/workspace/fileSystem';
 	import { diskProvider } from '$lib/workspace/diskProvider';
@@ -393,6 +394,7 @@
 
 	<ZoteroCitationDialog />
 	<CiteByDoiDialog />
+	<TemplateDetailsDialog />
 
 	<WorkspaceModals
 		bind:mainPrompt={files.mainPrompt}

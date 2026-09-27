@@ -11,9 +11,10 @@ section: Formats
 
 A .typ file opens in the same visual and source editors as a LaTeX file, and compiles and previews through tinymist.
 
-| Where to find it | Path               | Note                                              |
-| ---------------- | ------------------ | ------------------------------------------------- |
-| In the editor    | Open any .typ file | Set it as the main file to compile or preview it. |
+| Where to find it | Path                         | Note                                                                            |
+| ---------------- | ---------------------------- | ------------------------------------------------------------------------------- |
+| In the editor    | Open any .typ file           | Set it as the main file to compile or preview it.                               |
+| In the editor    | Open an empty folder › Typst | A paper, a report or thesis, a letter, or slides, and more from Typst Universe. |
 
 ![A Typst document in the visual editor: headings with their labels, formatted text, and lists](../../landing/src/lib/assets/showcase/app/typst-visual.png 'A Typst document in the visual editor: headings with their labels, formatted text, and lists')
 
@@ -32,6 +33,10 @@ A .typ file opens in the same visual and source editors as a LaTeX file, and com
 - A swatch sits beside each color in the source. Click it to pick a new color.
 
 The [Equations](../visual-editing/math.md), [Images](../visual-editing/images.md), [Tables](../visual-editing/tables.md), and [Citations](../visual-editing/citations.md) pages each end with what differs in Typst.
+
+## Starting a Typst document
+
+An empty folder offers Typst templates on its Typst tab: a paper with a title block, abstract, equation, figure, table, and citations; a report or thesis with a title page, a table of contents, and a file per chapter; a letter; and slides that start a new slide at every top-level heading. Each keeps its layout in `template.typ`, so `main.typ` holds only your text, and none of them needs a package or a network connection. Browse Typst templates… goes online to Typst Universe for more. See [Templates](../projects.md#templates).
 
 [Live preview](live-preview.md)
 [Installing tinymist](../installation/typst/README.md)

@@ -49,6 +49,8 @@ export type PaletteActions = {
 	/** undefined when sharing is unavailable (a guest, or the browser build) */
 	openShareSession?: () => void;
 	newFile(ext?: string): void;
+	/** undefined where there is nowhere to keep templates (a guest, or the browser build) */
+	saveAsTemplate?: () => void;
 	openFolder(): void;
 	refreshTree(): void;
 	/** open tinymist's incremental viewer for the current .typ, in its own window */

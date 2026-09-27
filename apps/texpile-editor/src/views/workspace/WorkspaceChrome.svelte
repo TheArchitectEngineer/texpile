@@ -4,6 +4,7 @@
 	// than a long prop list.
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { fileMode } from '$lib/workspace/fileMode.svelte';
+	import { userTemplatesAvailable } from '$lib/workspace/templates/templateBridge';
 	import TitleBar from '$lib/chrome/TitleBar.svelte';
 	import WorkspaceMenuBar from '$lib/chrome/WorkspaceMenuBar.svelte';
 	import SessionPresence from '$lib/chrome/SessionPresence.svelte';
@@ -95,6 +96,7 @@
 			onNewFile={menu.canManageTree ? actions.newFileOfType : undefined}
 			typstProject={menu.typstProject}
 			onOpenFolder={menu.hostMode ? actions.openFolder : undefined}
+			onSaveAsTemplate={menu.hostMode && userTemplatesAvailable() ? actions.saveAsTemplate : undefined}
 			onCloseWorkspace={menu.hostMode ? actions.closeWorkspace : undefined}
 			onSave={actions.save}
 			onShareSession={menu.shareable ? actions.openShare : undefined}

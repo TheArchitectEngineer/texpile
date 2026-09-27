@@ -1,11 +1,12 @@
 <script lang="ts">
 	// the start screen of a folder with no documents
 	import StarterPicker from '$lib/workspace/StarterPicker.svelte';
-	import type { Starter, ImportedFile } from '$lib/workspace/starters';
+	import type { ImportedFile } from '$lib/workspace/starters';
+	import type { StarterChoice } from '$lib/workspace/templates/starterChoice';
 	import { m } from '$lib/paraglide/messages';
 
 	type NewDocumentStartProps = {
-		onPick: (s: Starter) => void;
+		onPick: (choice: StarterChoice) => void;
 		onBlank: () => void;
 		onImport: (files: ImportedFile[]) => void;
 		busy: boolean;

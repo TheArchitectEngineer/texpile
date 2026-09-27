@@ -49,6 +49,8 @@
 		/** the compile target is Typst: New offers .typ instead of .tex/.cls/.sty (md either way) */
 		typstProject?: boolean;
 		onOpenFolder?: (path?: string) => void;
+		/** Save the folder as a template of the user's own (desktop, host only). */
+		onSaveAsTemplate?: () => void;
 		/** Close the current folder and return to the Start screen. */
 		onCloseWorkspace?: () => void;
 		onSave?: () => void;
@@ -78,6 +80,7 @@
 		onNewFile,
 		typstProject = false,
 		onOpenFolder,
+		onSaveAsTemplate,
 		onCloseWorkspace,
 		onSave,
 		onShareSession,
@@ -156,6 +159,7 @@
 		else if (value === 'new-window') openNewWindow();
 		else if (value === 'open-folder-new-window') openFolderInNewWindow();
 		else if (value === 'share-session') onShareSession?.();
+		else if (value === 'save-as-template') onSaveAsTemplate?.();
 		else if (value === 'close-workspace') onCloseWorkspace?.();
 		else if (value === 'preferences') preferencesOpen.current = true;
 	}
@@ -232,6 +236,7 @@
 			typstProject,
 			canInsertImage: !!imageDir,
 			canOpenFolder: !!onOpenFolder,
+			canSaveTemplate: !!onSaveAsTemplate,
 			canTutorial: !!onOpenTutorial,
 			recentFolders: recentFolders.current
 		})
@@ -289,6 +294,7 @@
 			canNewFile={!!onNewFile}
 			{typstProject}
 			canOpenFolder={!!onOpenFolder}
+			canSaveAsTemplate={!!onSaveAsTemplate}
 			canCloseWorkspace={!!onCloseWorkspace}
 			canShareSession={!!onShareSession}
 		/>

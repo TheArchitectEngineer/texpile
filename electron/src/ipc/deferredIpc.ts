@@ -23,8 +23,10 @@ export function registerDeferredIpc(): Promise<void> {
 	return (started ??= load());
 }
 
-// cheapest and most likely to be wanted first; the MCP server last, as nothing in the UI waits on it
+// cheapest and most likely to be wanted first; the MCP server last, as nothing in the UI waits on it.
+// Templates lead: an empty folder opens on the starter picker, which lists the saved ones at once.
 const steps: Array<() => Promise<void>> = [
+	async () => (await import('./templatesIpc.js')).registerTemplatesIpc(),
 	async () => (await import('./gitIpc.js')).registerGitIpc(),
 	async () => (await import('./pdfSaveIpc.js')).registerPdfSaveIpc(),
 	async () => (await import('./typstIpc.js')).registerTypstIpc(),
