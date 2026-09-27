@@ -15,7 +15,9 @@ export const STATUS_COLOR: Record<GitBadge, string> = {
 	A: 'text-git-added',
 	U: 'text-git-added',
 	D: 'text-git-deleted',
-	R: 'text-git-renamed'
+	R: 'text-git-renamed',
+	// both sides changed it and it holds conflict markers: the error colour, since it needs someone
+	C: 'text-error-ink'
 };
 
 export const STATUS_TITLE: Record<GitBadge, string> = {
@@ -23,5 +25,6 @@ export const STATUS_TITLE: Record<GitBadge, string> = {
 	A: m.filetree_badge_added(),
 	D: m.filetree_badge_deleted(),
 	U: m.filetree_badge_untracked(),
-	R: m.filetree_badge_renamed()
+	R: m.filetree_badge_renamed(),
+	C: m.filetree_badge_conflict()
 };

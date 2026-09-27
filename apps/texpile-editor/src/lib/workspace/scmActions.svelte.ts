@@ -1,7 +1,7 @@
 // source control ops: call the git client, refresh status, toast on failure. the panel is
 // presentational; WorkspaceView wires the deps.
 import { workspaceRoot } from './workspaceStore';
-import { refreshGitStatus, refreshGitHistory, isGitRepo, gitChanges, gitBranch } from './gitStore';
+import { refreshGitStatus, refreshGitHistory, isGitRepo, gitChanges, gitBranch, gitOperation, setGitWriting } from './gitStore';
 import {
 	gitInit,
 	gitStage,
@@ -17,6 +17,7 @@ import {
 	gitPublish,
 	gitSync,
 	githubPublish,
+	gitRecheck,
 	type GitStatusEntry,
 	type GitFileChange,
 	type GitRemote,
@@ -54,9 +55,35 @@ export type ScmDeps = {
 };
 
 export class ScmActions {
-	busy = $state(false);
+	#busy = $state(false);
+
+	/** Source Control is writing to the repository. Status refreshes wait for it to finish: one
+	 *  arriving mid-write from the watcher or a window focus raced it for .git/index.lock. */
+	get busy(): boolean {
+		return this.#busy;
+	}
+	set busy(on: boolean) {
+		this.#busy = on;
+		setGitWriting(on);
+	}
 
 	constructor(private deps: ScmDeps) {}
+
+	/** after installing git: forget that it was missing and look again */
+	recheckGit = async (): Promise<void> => {
+		const root = workspaceRoot.current;
+		if (!root) return;
+		await gitRecheck();
+		const { missingGit } = await refreshGitStatus(root);
+		if (missingGit) toaster.warning({ title: m.vcs_git_still_missing() });
+	};
+
+	/** an unfinished merge, rebase or cherry-pick: what else would run now records it half-done */
+	private blockedByOperation(): boolean {
+		if (!gitOperation.current) return false;
+		toaster.warning({ title: m.vcs_toast_finish_first() });
+		return true;
+	}
 
 	init = async () => {
 		const root = workspaceRoot.current;
@@ -95,11 +122,18 @@ export class ScmActions {
 	discard = async (changes: GitStatusEntry[]) => {
 		const root = workspaceRoot.current;
 		if (!root || !changes.length) return;
-		const confirmMsg =
-			changes.length === 1
+		// A file never saved as a version goes to the Trash, not away for good: a new chapter is the one
+		// thing in this panel git cannot give back. The question says which of the two will happen.
+		const allNew = changes.every((c) => c.x === '?');
+		const confirmMsg = allNew
+			? changes.length === 1
+				? m.vcs_confirm_trash_one({ name: basename(changes[0].path) })
+				: m.vcs_confirm_trash_other({ count: changes.length })
+			: changes.length === 1
 				? m.wsview_confirm_discard_one({ name: basename(changes[0].path) })
 				: m.wsview_confirm_discard_other({ count: changes.length });
-		if (!(await confirmAsk(confirmMsg, { confirmLabel: m.vcs_discard_changes(), danger: true }))) return;
+		const confirmLabel = allNew ? m.vcs_move_to_trash() : m.vcs_discard_changes();
+		if (!(await confirmAsk(confirmMsg, { confirmLabel, danger: true }))) return;
 		// if the open file is being discarded, drop its queued autosave first: otherwise a debounced
 		// write scheduled just before the confirm lands after git reverts and re-creates the changes
 		const loadedPath = this.deps.getLoadedPath();
@@ -215,6 +249,7 @@ export class ScmActions {
 	restore = async (entry: { hash: string; subject: string }): Promise<boolean> => {
 		const root = workspaceRoot.current;
 		if (!root) return false;
+		if (this.blockedByOperation()) return false;
 
 		// Work that would be in the way, counted BEFORE asking - the restore refuses on a dirty tree,
 		// and being refused after confirming reads as a bug. Only TRACKED changes count: gitRestore
@@ -393,6 +428,7 @@ export class ScmActions {
 	sync = async (): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || this.busy) return;
+		if (this.blockedByOperation()) return;
 		this.busy = true;
 		try {
 			// joining two histories writes a merge version, which git refuses without a name and email

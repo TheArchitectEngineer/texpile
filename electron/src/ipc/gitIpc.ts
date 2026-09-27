@@ -22,7 +22,8 @@ const OPS: Record<string, string> = {
 	'git:showAt': 'gitShowAt',
 	'git:restore': 'gitRestore',
 	'git:remotes': 'gitRemotes',
-	'git:addRemote': 'gitAddRemote'
+	'git:addRemote': 'gitAddRemote',
+	'git:recheck': 'gitRecheck'
 };
 
 // The calls that reach a remote, and so may have to ask someone to sign in: channel -> [gitService

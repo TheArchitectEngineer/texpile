@@ -14,6 +14,8 @@
 
 	type Props = {
 		root: string;
+		/** files both sides changed, holding conflict markers: shown first, and never ticked */
+		conflicts?: GitStatusEntry[];
 		/** what the author wrote */
 		sources: GitStatusEntry[];
 		/** what the compiler wrote */
@@ -25,13 +27,33 @@
 		/** null while there is nothing to write, or no way to write it */
 		onIgnoreArtifacts: (() => void) | null;
 	};
-	let { root, sources, artifacts, selected, onToggle, onOpenDiff, onDiscard, onIgnoreArtifacts }: Props = $props();
+	let { root, conflicts = [], sources, artifacts, selected, onToggle, onOpenDiff, onDiscard, onIgnoreArtifacts }: Props = $props();
 
+	let conflictsOpen = $state(true);
 	let sourcesOpen = $state(true);
 	let artifactsOpen = $state(false);
 
 	const labels = $derived(pathLabels(root));
 </script>
+
+{#if conflicts.length}
+	<!-- Both sides changed these and git could not combine them: until someone chooses, the file
+	     holds both versions between conflict markers, which no ordinary version should record -->
+	<ChangeGroup
+		label={m.vcs_group_conflicts()}
+		entries={conflicts}
+		{selected}
+		locked
+		open={conflictsOpen}
+		onToggleOpen={() => (conflictsOpen = !conflictsOpen)}
+		relPath={labels.relPath}
+		baseName={labels.baseName}
+		dirName={labels.dirName}
+		{onToggle}
+		{onOpenDiff}
+		{onDiscard}
+	/>
+{/if}
 
 {#if sources.length}
 	<ChangeGroup
@@ -67,7 +89,7 @@
 			{#if onIgnoreArtifacts}
 				<!-- the permanent fix, one click: unticking these every time is a chore nobody should repeat -->
 				<button
-					class="hover:preset-tonal text-primary-ink shrink-0 rounded-base px-1 text-[11px] opacity-0 group-hover:opacity-100"
+					class="hover:preset-tonal text-primary-ink shrink-0 rounded-base px-1 text-[11px] opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100"
 					use:tip={m.vcs_ignore_artifacts_title()}
 					onclick={onIgnoreArtifacts}
 				>

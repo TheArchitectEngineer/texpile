@@ -3,7 +3,7 @@
 // produce and naive splitting mangles - a subject that is not the last field, a rename that prints
 // two paths on one line.
 import { describe, it, expect } from 'vitest';
-import { parseGitLog, parseNameStatus } from '../../../../../../electron/src/gitService';
+import { parseGitLog, parseNameStatus } from '../../../../../../electron/src/gitHistory';
 
 // NUL between records and US between fields, because neither can appear in a subject or a name
 const REC = '\x00';

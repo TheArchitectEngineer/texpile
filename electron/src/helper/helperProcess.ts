@@ -56,7 +56,7 @@ async function ensure(): Promise<UtilityProcess> {
 	return proc;
 }
 
-/** runs one helper op; `git.<gitService or gitRemote export>`, `watch.start`, `watch.stop` */
+/** runs one helper op; `git.<gitService, gitHistory or gitRemote export>`, `watch.start`, `watch.stop` */
 export async function helperCall(op: string, args: unknown[]): Promise<unknown> {
 	const p = await ensure();
 	const id = nextId++;

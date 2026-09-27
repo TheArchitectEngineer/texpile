@@ -87,7 +87,12 @@ export class WorkspaceIntegrations {
 			discardPendingSave: () => d.editFlow().saver.discard(),
 			hasPendingSave: () => !!d.editFlow().saver.pending,
 			flushPendingSave: () => d.editFlow().saver.flushAndWait(),
-			deleteEntry: (p) => d.provider.remove(p),
+			// the Trash where there is one: a file never saved as a version has no other copy anywhere
+			deleteEntry: async (p) => {
+				const root = workspaceRoot.current;
+				if (d.provider.trash && root) await d.provider.trash(p, root);
+				else await d.provider.remove(p);
+			},
 			refreshTree: () => d.files().refreshTree(),
 			loadFile: (path) => d.wsdoc.loadFile(path),
 			captureDiffSnapshot: () => void d.wsdoc.diff.snapshot(),

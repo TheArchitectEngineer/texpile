@@ -265,6 +265,8 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitRestore: (root: string, hash: string, message: string) => invokeFs('git:restore', root, hash, message),
 	/** push this branch to the upstream it already tracks -> { ok, failure?, remote? }. */
 	gitPush: (root: string) => invokeFs('git:push', root),
+	/** forget that git was missing, after the author installs it -> { ok }. */
+	gitRecheck: () => invokeFs('git:recheck'),
 	/** write user.name / user.email to the global git config. */
 	gitSetIdentity: (root: string, name: string, email: string) => invokeFs('git:setIdentity', root, name, email),
 	/** the repository's remotes -> { ok, remotes?: { name, url }[] }. */

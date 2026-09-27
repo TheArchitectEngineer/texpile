@@ -16,6 +16,8 @@
 		gitBehind,
 		gitHasCommits,
 		gitDetached,
+		gitOperation,
+		gitMissing,
 		gitChanges,
 		gitStatusMap,
 		gitHistory,
@@ -78,6 +80,7 @@
 		scmIgnoreArtifacts: () => void;
 		scmPublish: () => void;
 		scmSync: () => void;
+		scmRecheckGit: () => void;
 		scmCompare: (entry: GitLogEntry, path: string) => void;
 		scmChangesSince: (hash: string) => Promise<GitFileChange[]>;
 		scmOpenDiff: (path: string) => void;
@@ -123,6 +126,7 @@
 		scmIgnoreArtifacts,
 		scmPublish,
 		scmSync,
+		scmRecheckGit,
 		scmCompare,
 		scmChangesSince,
 		scmOpenDiff
@@ -311,6 +315,9 @@
 			<SourceControlPanel
 				root={workspaceRoot.current ?? ''}
 				isRepo={isGitRepo.current}
+				gitMissing={gitMissing.current}
+				onRecheckGit={scmRecheckGit}
+				operation={gitOperation.current}
 				branch={gitBranch.current}
 				tracking={gitTracking.current}
 				ahead={gitAhead.current}

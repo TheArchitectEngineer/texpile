@@ -130,7 +130,7 @@
 			<button
 				class="flex h-full min-w-0 flex-1 items-center gap-1.5 text-left"
 				onclick={() => toggle(entry.hash)}
-				use:tip={`${entry.subject}\n${entry.author} - ${exact(entry.date)}${entry.parentCount > 1 ? `\n$${m.vcs_merged_version()}` : ''}`}
+				use:tip={`${entry.subject}\n${entry.author} - ${exact(entry.date)}${entry.parentCount > 1 ? `\n${m.vcs_merged_version()}` : ''}`}
 			>
 				<span class="truncate text-sm {i === 0 ? 'font-semibold' : ''}">{entry.subject}</span>
 				<span class="text-muted truncate text-xs">{entry.author} · {ago(entry.date)}</span>
@@ -153,7 +153,8 @@
 				autoFocus={false}
 			>
 				<Popover.Trigger
-					class="hover:preset-tonal shrink-0 rounded-base p-0.5 opacity-0 group-hover:opacity-100 {openMenu === entry.hash
+					class="hover:preset-tonal shrink-0 rounded-base p-0.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 {openMenu ===
+					entry.hash
 						? 'opacity-100'
 						: ''}"
 					aria-label={m.vcs_row_actions()}

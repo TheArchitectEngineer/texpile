@@ -2,18 +2,36 @@
 	// History panel, purely presentational: WorkspaceView implements the callbacks. No
 	// staged/unstaged split - the tick boxes ARE the staging, so a version's scope is visible.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { GitBranch, RefreshCw, Check, GitCommitHorizontal, ArrowUp, ArrowDown, ArrowDownUp, CloudUpload } from '@lucide/svelte';
+	import {
+		GitBranch,
+		RefreshCw,
+		Check,
+		GitCommitHorizontal,
+		ArrowUp,
+		ArrowDown,
+		ArrowDownUp,
+		CloudUpload,
+		TriangleAlert,
+		PackageX
+	} from '@lucide/svelte';
 	import ChangeList from './history/ChangeList.svelte';
 	import HistoryTimeline from './history/HistoryTimeline.svelte';
 	import { pathLabels } from './history/pathLabels';
 	import { isBuildArtifact } from '$lib/workspace/buildArtifacts';
-	import type { GitStatusEntry, GitLogEntry, GitFileChange } from '$lib/workspace/git';
+	import { isConflicted } from '$lib/workspace/gitStore';
+	import { scmDraftFor } from '$lib/workspace/scmDraft.svelte';
+	import type { GitStatusEntry, GitLogEntry, GitFileChange, GitOperation } from '$lib/workspace/git';
 	import { combo } from '$lib/chrome/shortcutText';
 	import { m } from '$lib/paraglide/messages';
 
 	type Props = {
 		root: string;
 		isRepo: boolean;
+		/** git is not installed at all, which "not a repository" would misdescribe */
+		gitMissing?: boolean;
+		onRecheckGit?: () => void;
+		/** an unfinished merge, rebase, cherry-pick or revert */
+		operation?: GitOperation | null;
 		branch: string | null;
 		/** the upstream this branch tracks; null means there is nowhere to upload to yet */
 		tracking?: string | null;
@@ -54,6 +72,9 @@
 	let {
 		root,
 		isRepo,
+		gitMissing = false,
+		onRecheckGit,
+		operation = null,
 		branch,
 		tracking = null,
 		ahead = 0,
@@ -83,7 +104,8 @@
 		onIgnoreArtifacts
 	}: Props = $props();
 
-	let message = $state('');
+	// what the author has chosen but not saved, kept outside the panel so it survives the panel
+	const draft = $derived(scmDraftFor(root));
 
 	// what Sync would do, naming versions and leaving out the side with nothing on it. `behind` is
 	// only as fresh as the last fetch, and its phrase says so.
@@ -98,38 +120,48 @@
 	// one implementation of how a path is written, shared by the changes and a version's files
 	const labels = $derived(pathLabels(root));
 
+	// files both sides changed, which hold conflict markers until someone chooses: never ticked,
+	// never part of an ordinary version
+	const conflicts = $derived(changes.filter((c) => isConflicted(c.x, c.y)));
 	// what the author wrote vs what the compiler wrote
-	const artifacts = $derived(changes.filter((c) => isBuildArtifact(c.path)));
-	const sources = $derived(changes.filter((c) => !isBuildArtifact(c.path)));
-
-	/** Paths the user has UNticked. Exclusions rather than inclusions, so a file that changes while
-	 *  the panel is open joins the next version by default instead of being silently left out. */
-	let excluded = $state<string[]>([]);
-	// build output starts unticked without being "excluded by the user": it is off by default and
-	// stays off through a refresh, but ticking one is remembered rather than undone on the next scan
-	let artifactsOptedIn = $state<string[]>([]);
+	const artifacts = $derived(changes.filter((c) => !isConflicted(c.x, c.y) && isBuildArtifact(c.path)));
+	const sources = $derived(changes.filter((c) => !isConflicted(c.x, c.y) && !isBuildArtifact(c.path)));
 
 	const selected = $derived([
-		...sources.filter((c) => !excluded.includes(c.path)).map((c) => c.path),
-		...artifacts.filter((c) => artifactsOptedIn.includes(c.path)).map((c) => c.path)
+		...sources.filter((c) => !draft.excluded.includes(c.path)).map((c) => c.path),
+		...artifacts.filter((c) => draft.artifactsOptedIn.includes(c.path)).map((c) => c.path)
 	]);
 
 	function toggle(path: string) {
 		if (artifacts.some((a) => a.path === path)) {
-			artifactsOptedIn = artifactsOptedIn.includes(path) ? artifactsOptedIn.filter((p) => p !== path) : [...artifactsOptedIn, path];
+			const on = draft.artifactsOptedIn;
+			draft.artifactsOptedIn = on.includes(path) ? on.filter((p) => p !== path) : [...on, path];
 			return;
 		}
-		excluded = excluded.includes(path) ? excluded.filter((p) => p !== path) : [...excluded, path];
+		const off = draft.excluded;
+		draft.excluded = off.includes(path) ? off.filter((p) => p !== path) : [...off, path];
 	}
 
+	// a version saved in the middle of a merge would record it half-done
+	const canSave = $derived(!busy && !operation && !!draft.message.trim() && selected.length > 0);
+
 	async function save() {
-		if (!message.trim() || selected.length === 0) return;
-		if (await onCommit(message, selected)) {
-			message = '';
-			excluded = [];
-			artifactsOptedIn = [];
-		}
+		if (!canSave) return;
+		if (await onCommit(draft.message, selected)) draft.clear();
 	}
+
+	// what is unfinished, in words that say where to finish it
+	const operationText = $derived(
+		operation === 'merge'
+			? m.vcs_op_merge()
+			: operation === 'rebase'
+				? m.vcs_op_rebase()
+				: operation === 'cherry-pick'
+					? m.vcs_op_cherry_pick()
+					: operation === 'revert'
+						? m.vcs_op_revert()
+						: ''
+	);
 	function onKeydown(e: KeyboardEvent) {
 		if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
 			e.preventDefault();
@@ -138,7 +170,20 @@
 	}
 </script>
 
-{#if !isRepo}
+{#if gitMissing}
+	<!-- "not under source control" with an Initialize button that then fails is what this used to say -->
+	<div class="flex flex-col items-center gap-3 p-6 text-center">
+		<PackageX class="text-faint size-8" />
+		<p class="text-muted text-sm">{m.vcs_git_missing()}</p>
+		<a class="anchor text-sm" href="https://texpile.com/docs/installation/git" target="_blank" rel="noopener noreferrer"
+			>{m.vcs_git_install()}</a
+		>
+		<button class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal gap-1.5" onclick={onRecheckGit} disabled={busy}>
+			<RefreshCw class="size-3.5" />
+			{m.vcs_check_again()}
+		</button>
+	</div>
+{:else if !isRepo}
 	<div class="flex flex-col items-center gap-3 p-6 text-center">
 		<GitBranch class="text-faint size-8" />
 		<p class="text-muted text-sm">{m.vcs_not_a_repo()}</p>
@@ -165,7 +210,7 @@
 						use:tip={syncTip}
 						aria-label={m.vcs_sync_aria()}
 						onclick={onSync}
-						disabled={busy}
+						disabled={busy || !!operation}
 					>
 						{#if behind > 0}
 							<span class="flex items-center tabular-nums"><ArrowDown class="size-3.5" />{behind}</span>
@@ -203,6 +248,15 @@
 		<div class="flex min-h-0 flex-1 flex-col" bind:this={splitEl}>
 			<div class="flex min-h-0 flex-col" style="flex: {1 - historyFraction} 1 0%">
 				<div class="scroll-inset-r min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] pb-2">
+					{#if operation}
+						<div
+							class="border-warning-500/40 bg-warning-500/10 mx-2 mt-1 mb-2 flex gap-2 rounded-base border px-2.5 py-2 text-xs"
+							role="status"
+						>
+							<TriangleAlert class="text-warning-ink mt-0.5 size-3.5 shrink-0" />
+							<span>{operationText}</span>
+						</div>
+					{/if}
 					{#if changes.length}
 						<!-- The total, then the groups it is made of. Deliberately not a group row itself: no
 						     tick box and no chevron, so a summary cannot be mistaken for what it summarises. -->
@@ -211,7 +265,17 @@
 							<span class="tabular-nums">{changes.length}</span>
 						</div>
 						<div class="px-1.5">
-							<ChangeList {root} {sources} {artifacts} {selected} onToggle={toggle} {onOpenDiff} {onDiscard} {onIgnoreArtifacts} />
+							<ChangeList
+								{root}
+								{conflicts}
+								{sources}
+								{artifacts}
+								{selected}
+								onToggle={toggle}
+								{onOpenDiff}
+								{onDiscard}
+								{onIgnoreArtifacts}
+							/>
 						</div>
 					{:else}
 						<div class="text-muted mt-6 mb-2 flex flex-col items-center gap-1 text-center text-sm">
@@ -229,13 +293,9 @@
 							rows="2"
 							placeholder={m.vcs_save_placeholder()}
 							use:tip={m.vcs_commit_placeholder({ combo: combo('Enter') })}
-							bind:value={message}
+							bind:value={draft.message}
 							onkeydown={onKeydown}></textarea>
-						<button
-							class="btn btn-xs preset-filled-primary-500 w-full gap-1.5"
-							onclick={save}
-							disabled={busy || !message.trim() || selected.length === 0}
-						>
+						<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={save} disabled={!canSave}>
 							<Check class="size-4" />
 							{selected.length === 1 ? m.vcs_save_version_one() : m.vcs_save_version_count({ count: selected.length })}
 						</button>
@@ -260,7 +320,7 @@
 				<div class="scroll-inset-r min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] pb-2">
 					<HistoryTimeline
 						{history}
-						{busy}
+						busy={busy || !!operation}
 						{branch}
 						error={historyError}
 						hasMore={historyHasMore}

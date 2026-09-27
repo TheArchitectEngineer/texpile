@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { gitLog, gitChangesSince } from '../../../../../../electron/src/gitService';
+import { gitLog, gitChangesSince } from '../../../../../../electron/src/gitHistory';
 
 function hasGit(): boolean {
 	try {

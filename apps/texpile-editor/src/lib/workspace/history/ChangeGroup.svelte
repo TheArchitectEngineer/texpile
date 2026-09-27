@@ -23,9 +23,24 @@
 		onDiscard: (changes: GitStatusEntry[]) => void;
 		/** an extra control on the header, revealed on hover (Build output's Ignore) */
 		action?: Snippet;
+		/** the rows cannot be ticked: files that must not go into an ordinary version */
+		locked?: boolean;
 	};
-	let { label, entries, selected, open, onToggleOpen, relPath, baseName, dirName, onToggle, onOpenDiff, onDiscard, action }: Props =
-		$props();
+	let {
+		label,
+		entries,
+		selected,
+		open,
+		onToggleOpen,
+		relPath,
+		baseName,
+		dirName,
+		onToggle,
+		onOpenDiff,
+		onDiscard,
+		action,
+		locked = false
+	}: Props = $props();
 
 	const anyOn = $derived(entries.some((e) => selected.includes(e.path)));
 	const allOn = $derived(entries.length > 0 && entries.every((e) => selected.includes(e.path)));
@@ -50,10 +65,11 @@
 <div class="group text-muted hover:bg-surface-200-800 flex items-center gap-1.5 rounded-base px-2 py-0.5 text-sm">
 	<input
 		type="checkbox"
-		class="checkbox border-surface-400-600 accent-primary-500 size-3.5 shrink-0"
+		class="checkbox border-surface-400-600 accent-primary-500 size-3.5 shrink-0 disabled:opacity-40"
 		checked={allOn}
 		indeterminate={anyOn && !allOn}
 		onchange={toggleGroup}
+		disabled={locked}
 		aria-label={label}
 	/>
 	<button class="flex min-w-0 flex-1 items-center gap-1.5 text-left" onclick={onToggleOpen}>
@@ -68,6 +84,6 @@
 
 {#if open}
 	<div class="ml-3">
-		<ChangeRows changes={entries} {selected} {relPath} {baseName} {dirName} {onToggle} {onOpenDiff} {onDiscard} />
+		<ChangeRows changes={entries} {selected} {locked} {relPath} {baseName} {dirName} {onToggle} {onOpenDiff} {onDiscard} />
 	</div>
 {/if}

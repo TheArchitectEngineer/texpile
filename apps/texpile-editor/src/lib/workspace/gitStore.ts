@@ -1,7 +1,14 @@
 // reactive git state for the open folder. refreshed from WorkspaceView's refreshTree()
 // (every tree-refresh trigger updates it for free) and after each Source Control write.
 import { box } from '$lib/runes/box.svelte';
-import { gitStatus as fetchGitStatus, gitLog as fetchGitLog, type GitBadge, type GitStatusEntry, type GitLogEntry } from './git';
+import {
+	gitStatus as fetchGitStatus,
+	gitLog as fetchGitLog,
+	type GitBadge,
+	type GitStatusEntry,
+	type GitLogEntry,
+	type GitOperation
+} from './git';
 
 export const isGitRepo = box<boolean>(false);
 
@@ -25,6 +32,14 @@ export const gitHasCommits = box<boolean>(false);
 
 /** HEAD is a commit rather than a branch, so there is no branch to publish or sync */
 export const gitDetached = box<boolean>(false);
+
+/** a merge, rebase, cherry-pick or revert that is waiting to be finished or cancelled - started by
+ *  Sync, or in the terminal. While it lasts, Save version would record it half-done. */
+export const gitOperation = box<GitOperation | null>(null);
+
+/** git itself is not installed, as against the folder not being a repository: the panel says
+ *  which, since the one thing it can offer for "not a repository" fails without git */
+export const gitMissing = box<boolean>(false);
 
 /** single-letter badges keyed by gitKey(absolutePath); drives the file tree. */
 export const gitStatusMap = box<Record<string, GitBadge>>({});
@@ -54,8 +69,16 @@ export function gitKey(path: string): string {
 	return path.replace(/\\/g, '/').toLowerCase();
 }
 
+/** git's unmerged codes (UU, AA, DD, AU, UA, DU, UD): both sides changed the file and git could not
+ *  combine them. Folded into 'M' they read as an ordinary edit, ticked for the next version with
+ *  the conflict markers still in them. */
+export function isConflicted(x: string, y: string): boolean {
+	return x === 'U' || y === 'U' || (x === 'A' && y === 'A') || (x === 'D' && y === 'D');
+}
+
 /** collapses git's two-character XY porcelain code to one badge. x=index (staged), y=working dir. */
 export function badgeOf(x: string, y: string): GitBadge {
+	if (isConflicted(x, y)) return 'C'; // both changed
 	if (x === '?' || y === '?') return 'U'; // untracked
 	if (x === 'D' || y === 'D') return 'D'; // deleted
 	if (x === 'R') return 'R'; // renamed
@@ -71,7 +94,28 @@ export function takeNoGitHint(): boolean {
 	return true;
 }
 
+// Status waits while Source Control is writing. A refresh from the watcher or a window focus in the
+// middle of a Save version or Sync used to race it for .git/index.lock; it now runs once the write
+// is over, for the folder it was asked about.
+let writing = false;
+let waitingRoot: string | null | undefined;
+
+/** ScmActions says when it starts and stops writing to the repository */
+export function setGitWriting(on: boolean): void {
+	writing = on;
+	if (on || waitingRoot === undefined) return;
+	const root = waitingRoot;
+	waitingRoot = undefined;
+	void refreshGitStatus(root);
+}
+
+// the commit HEAD was at last time; when it moves (a version saved here or in a terminal, a sync, a
+// checkout), History is out of date
+let lastHead: string | undefined;
+
 function clearGitState(): void {
+	lastHead = undefined;
+	gitOperation.current = null;
 	isGitRepo.current = false;
 	gitBranch.current = null;
 	gitTracking.current = null;
@@ -89,14 +133,26 @@ function clearGitState(): void {
 export async function refreshGitStatus(root: string | null): Promise<{ missingGit: boolean }> {
 	if (!root) {
 		clearGitState();
+		gitMissing.current = false;
+		return { missingGit: false };
+	}
+	if (writing) {
+		waitingRoot = root;
 		return { missingGit: false };
 	}
 	const res = await fetchGitStatus(root);
+	gitMissing.current = !res.ok && res.reason === 'no-git';
 	if (!res.ok) {
 		clearGitState();
-		return { missingGit: res.reason === 'no-git' };
+		return { missingGit: gitMissing.current };
 	}
 	isGitRepo.current = true;
+	gitOperation.current = res.operation ?? null;
+	if (res.head !== undefined && res.head !== lastHead) {
+		const moved = lastHead !== undefined;
+		lastHead = res.head;
+		if (moved) void refreshGitHistory(root);
+	}
 	gitBranch.current = res.branch ?? null;
 	gitTracking.current = res.tracking ?? null;
 	gitAhead.current = res.ahead ?? 0;

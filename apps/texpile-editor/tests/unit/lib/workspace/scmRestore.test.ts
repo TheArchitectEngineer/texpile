@@ -37,7 +37,9 @@ vi.mock('$lib/workspace/gitStore', () => ({
 	refreshGitStatus: vi.fn(),
 	refreshGitHistory: vi.fn(),
 	isGitRepo: { current: true },
-	gitChanges
+	gitChanges,
+	gitOperation: { current: null },
+	setGitWriting: vi.fn()
 }));
 vi.mock('$lib/workspace/workspaceStore', () => ({ workspaceRoot: { current: 'C:/project' }, isDirty: { current: false } }));
 

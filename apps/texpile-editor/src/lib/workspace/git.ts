@@ -2,8 +2,12 @@
 // git binary, or a missing bridge comes back as { ok: false }
 import { nativeBridge } from './fileSystem';
 
-/** single-letter tree badge (VS Code convention). */
-export type GitBadge = 'M' | 'A' | 'D' | 'U' | 'R';
+/** single-letter tree badge (VS Code convention). 'C' is a file both sides changed, which git
+ *  could not combine: it holds conflict markers until someone chooses. */
+export type GitBadge = 'M' | 'A' | 'D' | 'U' | 'R' | 'C';
+
+/** git is part-way through combining histories and waiting for someone to finish or cancel */
+export type GitOperation = 'merge' | 'rebase' | 'cherry-pick' | 'revert';
 
 export type GitStatusEntry = {
 	path: string; // absolute, matching the file-tree's path strings
@@ -27,6 +31,10 @@ export type GitStatusResult = {
 	hasCommits?: boolean;
 	/** HEAD is a commit rather than a branch: nothing to publish or sync */
 	detached?: boolean;
+	/** the commit HEAD points at, '' before the first */
+	head?: string;
+	/** an unfinished merge, rebase, cherry-pick or revert, or null */
+	operation?: GitOperation | null;
 };
 
 export type GitShowResult = {
@@ -341,6 +349,7 @@ export async function githubPublish(
 /** The preload's remote half (electron/src/preload.ts). Optional throughout: an older preload
  *  predates it, and the client degrades to no publishing, sync or sign-in prompts. */
 export type GitRemoteBridge = {
+	gitRecheck?: () => Promise<GitOpResult>;
 	gitSetIdentity?: (root: string, name: string, email: string) => Promise<GitOpResult>;
 	gitRemotes?: (root: string) => Promise<GitRemotesResult>;
 	gitAddRemote?: (root: string, name: string, url: string) => Promise<GitOpResult>;
@@ -360,3 +369,12 @@ export type GitAskpassRequest = {
 	prompt: string;
 	host: string | null;
 };
+
+/** forget that git was missing: "Check again" after installing it */
+export async function gitRecheck(): Promise<void> {
+	try {
+		await nativeBridge()?.gitRecheck?.();
+	} catch {
+		// the status refresh that follows says whether it worked
+	}
+}

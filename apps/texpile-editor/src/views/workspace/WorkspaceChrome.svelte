@@ -189,6 +189,7 @@
 			scmIgnoreArtifacts={scm.ignoreArtifacts}
 			scmPublish={scm.publish}
 			scmSync={scm.sync}
+			scmRecheckGit={scm.recheckGit}
 			scmCompare={scm.compare}
 			scmChangesSince={scm.changesSince}
 			scmOpenDiff={scm.openDiff}

@@ -20,8 +20,10 @@
 		onToggle: (path: string) => void;
 		onOpenDiff: (path: string) => void;
 		onDiscard: (changes: GitStatusEntry[]) => void;
+		/** rows that cannot be ticked (files both sides changed) */
+		locked?: boolean;
 	};
-	let { changes, selected, relPath, baseName, dirName, onToggle, onOpenDiff, onDiscard }: Props = $props();
+	let { changes, selected, relPath, baseName, dirName, onToggle, onOpenDiff, onDiscard, locked = false }: Props = $props();
 
 	let openMenu = $state<string | null>(null);
 
@@ -36,9 +38,10 @@
 	<div class="group hover:bg-surface-200-800 flex items-center gap-2 rounded-base px-2 py-0.5 text-sm">
 		<input
 			type="checkbox"
-			class="checkbox border-surface-400-600 accent-primary-500 size-3.5 shrink-0 opacity-70 transition-opacity group-hover:opacity-100"
+			class="checkbox border-surface-400-600 accent-primary-500 size-3.5 shrink-0 opacity-70 transition-opacity group-hover:opacity-100 disabled:opacity-40"
 			checked={selected.includes(c.path)}
 			onchange={() => onToggle(c.path)}
+			disabled={locked}
 			aria-label={relPath(c.path)}
 		/>
 		<button class="flex min-w-0 flex-1 items-center gap-1.5 text-left" onclick={() => onOpenDiff(c.path)} use:tip={relPath(c.path)}>
@@ -63,7 +66,10 @@
 			autoFocus={false}
 		>
 			<Popover.Trigger
-				class="hover:preset-tonal shrink-0 rounded-base p-0.5 opacity-0 group-hover:opacity-100 {openMenu === c.path ? 'opacity-100' : ''}"
+				class="hover:preset-tonal shrink-0 rounded-base p-0.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 {openMenu ===
+				c.path
+					? 'opacity-100'
+					: ''}"
 				aria-label={m.vcs_row_actions()}
 			>
 				{#snippet element(attrs)}

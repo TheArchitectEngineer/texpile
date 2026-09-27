@@ -12,6 +12,12 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: uploading uses the credential helpers and settings in your global git config
 - fix: saving a version while git's index was briefly locked could record every unticked file as deleted
 - fix: a new repository starts on `main`, as GitHub does, unless git is configured with another default
+- fix: files you untick in Source Control stay unticked when you switch the sidebar away and back
+- fix: an unfinished merge, rebase or cherry-pick is shown, its conflicted files are kept out of the next version, and Save version, Restore and Sync wait for it
+- fix: restoring an old version brings back a file renamed since, instead of losing it
+- fix: without git installed, Source Control says so and can check again instead of offering a button that fails
+- fix: commits, fetches and checkouts made in the terminal show up in Source Control without a refresh
+- fix: discarding a file that was never saved as a version moves it to the Trash
 - fix: `\overline`, `\sqrt`, `\hat` and similar typed in the visual math editor put the caret inside them instead of after an empty box (by @hkarlsen06)
 - feat: shift-enter in a display equation starts a new one of the same kind below it (by @hkarlsen06)
 
