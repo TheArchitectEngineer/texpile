@@ -223,7 +223,7 @@ export type GitSyncResult = {
 	files?: string[];
 };
 
-const OVERWRITE_RE = /would be overwritten by (merge|checkout)/i;
+export const OVERWRITE_RE = /would be overwritten by (merge|checkout)/i;
 
 /** The files git lists under "...would be overwritten by merge:", one per indented line.
  *  Exported for the tests. */
@@ -244,18 +244,18 @@ export function parseBlockingFiles(message: string): string[] {
 }
 
 /** [ahead, behind] against the upstream, from local refs */
-async function aheadBehind(g: SimpleGit): Promise<[number, number]> {
+export async function aheadBehind(g: SimpleGit): Promise<[number, number]> {
 	const [a, b] = (await g.raw(['rev-list', '--left-right', '--count', 'HEAD...@{u}'])).trim().split(/\s+/);
 	return [Number(a) || 0, Number(b) || 0];
 }
 
-async function mergeInProgress(g: SimpleGit): Promise<boolean> {
+export async function mergeInProgress(g: SimpleGit): Promise<boolean> {
 	return (await g.raw(['rev-parse', '-q', '--verify', 'MERGE_HEAD'])).trim() !== '';
 }
 
 /** what a git command printed, whether it worked or not: for a merge, the state it leaves behind is
  *  the answer, and its words only explain it */
-async function outputOf(run: Promise<string>): Promise<string> {
+export async function outputOf(run: Promise<string>): Promise<string> {
 	try {
 		return await run;
 	} catch (e) {

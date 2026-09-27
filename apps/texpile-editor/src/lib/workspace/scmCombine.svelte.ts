@@ -1,0 +1,159 @@
+// Combining two lines of work from the Source Control panel: what Sync offers when both sides
+// changed the same lines, and the Finish and Cancel that end it. The places themselves are chosen
+// in the source editor (lib/editor/source/cmConflicts.ts).
+import { workspaceRoot } from './workspaceStore';
+import { refreshGitStatus, refreshGitHistory, gitChanges, isConflicted } from './gitStore';
+import { gitCombine, gitFinishCombine, gitCancelCombine, type GitCombineResult } from './gitCombine';
+import type { GitSyncResult, GitStatusEntry } from './git';
+import { firstConflictLine } from './conflictMarkers';
+import { basename, samePath } from './fileSystem';
+import { confirmAsk, promptAsk } from '$lib/modals/confirm.svelte';
+import { toaster } from '$lib/modals/toaster-svelte';
+import { m } from '$lib/paraglide/messages';
+import type { ScmDeps } from './scmActions.svelte';
+
+/** what the combining steps borrow from ScmActions: its write lock and its identity check */
+export type CombineHost = {
+	busy: boolean;
+	ensureIdentity(root: string): Promise<boolean>;
+	openDiff(path: string): void;
+};
+
+function names(paths: string[]): string {
+	return paths.map((p) => basename(p)).join(', ');
+}
+
+/** a file the merge wrote: one it left marked, or one it took in and staged. Combine starts from a
+ *  clean tree, so nothing else is staged while it runs. */
+function fromTheMerge(c: GitStatusEntry): boolean {
+	return isConflicted(c.x, c.y) || (c.x !== ' ' && c.x !== '?');
+}
+
+function combineReason(res: GitCombineResult): string | undefined {
+	if (res.failure === 'dirty') return m.vcs_combine_dirty({ files: names(res.files ?? []) });
+	if (res.failure === 'busy') return m.vcs_toast_finish_first();
+	return res.error;
+}
+
+export class ScmCombine {
+	constructor(
+		private host: CombineHost,
+		private deps: ScmDeps
+	) {}
+
+	/** git rewrote files under the editor: the same reload a restore does */
+	private async reload(root: string): Promise<void> {
+		const loadedPath = this.deps.getLoadedPath();
+		await this.deps.refreshTree();
+		if (loadedPath) await this.deps.loadFile(loadedPath);
+		if (this.deps.isDiffMode()) this.deps.captureDiffSnapshot();
+		await refreshGitStatus(root);
+		await refreshGitHistory(root);
+	}
+
+	/**
+	 * Sync stopped because both sides changed the same lines, and put everything back. Offer to
+	 * start that merge for real and leave each such place marked, rather than send the author to
+	 * a terminal. Runs inside Sync's busy window.
+	 */
+	async offer(root: string, res: GitSyncResult): Promise<void> {
+		const files = res.files ?? [];
+		const remote = res.remote ?? '';
+		const choice = await promptAsk({
+			title: m.vcs_combine_title(),
+			message:
+				files.length === 1
+					? m.vcs_combine_message_one({ remote, file: basename(files[0]) })
+					: m.vcs_combine_message_count({ remote, count: files.length }),
+			detail: files.length > 1 ? `${m.vcs_combine_detail()}\n\n${files.join('\n')}` : m.vcs_combine_detail(),
+			buttons: [
+				{ id: 'combine', label: m.vcs_combine_now(), primary: true },
+				{ id: 'later', label: m.vcs_combine_later() }
+			],
+			cancelId: 'later'
+		});
+		if (choice !== 'combine') return;
+
+		const combined = await gitCombine(root);
+		if (!combined.ok) {
+			toaster.error({ title: m.vcs_toast_combine_failed(), description: combineReason(combined) });
+			await refreshGitStatus(root);
+			return;
+		}
+		await this.reload(root);
+		const conflicts = combined.conflicts ?? [];
+		if (!conflicts.length) {
+			// the remote moved on again and git could join the two by itself this time
+			toaster.success({ title: m.vcs_toast_combined(), description: m.vcs_toast_combined_send({ remote }) });
+			return;
+		}
+		toaster.info({ title: m.vcs_toast_combine_started(), description: m.vcs_toast_combine_started_desc() });
+		await this.openConflict(conflicts[0]);
+	}
+
+	/** the file in the source editor at its first marked place. A file one side deleted has none:
+	 *  the comparison with the last version shows what the other side did to it. */
+	openConflict = async (path: string): Promise<void> => {
+		const text = await this.deps.readTextIfPresent(path);
+		if (text === null) return this.host.openDiff(path);
+		this.deps.openAtLine(path, firstConflictLine(text) ?? 1);
+	};
+
+	/** save the merge as a version, once every place is chosen */
+	finish = async (): Promise<void> => {
+		const root = workspaceRoot.current;
+		if (!root || this.host.busy) return;
+		this.host.busy = true;
+		try {
+			if (!(await this.host.ensureIdentity(root))) return;
+			// the last choice may still be waiting to be written, and git reads the file on disk
+			if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
+			const res = await gitFinishCombine(root);
+			await refreshGitStatus(root);
+			if (!res.ok) {
+				if (res.failure === 'markers') {
+					toaster.warning({ title: m.vcs_toast_finish_marked(), description: names(res.files ?? []) });
+					if (res.files?.[0]) await this.openConflict(res.files[0]);
+				} else {
+					toaster.error({ title: m.vcs_toast_finish_combine_failed(), description: res.error });
+				}
+				return;
+			}
+			await refreshGitHistory(root);
+			this.deps.settleConflicts();
+			toaster.success({ title: m.vcs_toast_combined(), description: m.vcs_toast_combined_sync() });
+		} finally {
+			this.host.busy = false;
+		}
+	};
+
+	/** undo the merge: every file as it was before it started, the choices made so far with it */
+	cancel = async (): Promise<void> => {
+		const root = workspaceRoot.current;
+		if (!root || this.host.busy) return;
+		const ok = await confirmAsk(m.vcs_confirm_cancel_combine(), {
+			confirmLabel: m.vcs_cancel_combine(),
+			cancelLabel: m.vcs_keep_combining(),
+			danger: true
+		});
+		if (!ok) return;
+		// A choice typed but not yet written would land after git puts the file back, and undo it.
+		// Any other file's edit is written first: git keeps what the merge did not touch.
+		const loadedPath = this.deps.getLoadedPath();
+		if (loadedPath && gitChanges.current.some((c) => samePath(c.path, loadedPath) && fromTheMerge(c))) this.deps.discardPendingSave();
+		else if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
+		this.host.busy = true;
+		try {
+			const res = await gitCancelCombine(root);
+			if (!res.ok) {
+				toaster.error({ title: m.vcs_toast_cancel_combine_failed(), description: res.error });
+				await refreshGitStatus(root);
+				return;
+			}
+			await this.reload(root);
+			toaster.success({ title: m.vcs_toast_combine_cancelled() });
+		} finally {
+			this.host.busy = false;
+		}
+	};
+}

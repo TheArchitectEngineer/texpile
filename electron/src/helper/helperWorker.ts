@@ -6,6 +6,7 @@
 import * as gitService from '../gitService';
 import * as gitRemote from '../gitRemote';
 import * as gitHistory from '../gitHistory';
+import * as gitCombine from '../gitCombine';
 import { startWorkspaceWatch, stopWorkspaceWatch } from '../fs/fsWatch';
 import { pathKey } from '../shell/toolDirs';
 
@@ -42,7 +43,8 @@ function run(op: string, args: unknown[]): unknown {
 		const fn =
 			(gitService as Record<string, unknown>)[name] ??
 			(gitHistory as Record<string, unknown>)[name] ??
-			(gitRemote as Record<string, unknown>)[name];
+			(gitRemote as Record<string, unknown>)[name] ??
+			(gitCombine as Record<string, unknown>)[name];
 		if (typeof fn === 'function') return (fn as (...a: unknown[]) => unknown)(...args);
 	}
 	throw new Error(`unknown helper op ${op}`);

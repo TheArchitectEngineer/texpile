@@ -28,7 +28,21 @@ A changed file opens in a diff against the last version. In the visual editor th
 
 Once the project has a version, Publish appears beside the branch name. It sends the project somewhere else: a new GitHub repository, private or public, created for it; a remote the repository already has; or any other repository by its address. With exactly one remote already set up, Publish goes straight there.
 
-After that the button becomes Sync. Sync fetches, takes in versions saved elsewhere, and sends yours, and it shows how many versions go each way. When both sides changed the same lines of a file, Sync undoes the attempt and names the file, so the project is never left half combined. When a change that is not saved as a version would be overwritten, Sync stops before it starts and asks you to save a version first.
+After that the button becomes Sync. Sync fetches, takes in versions saved elsewhere, and sends yours, and it shows how many versions go each way. When both sides changed the same lines of a file, Sync undoes the attempt, names the file, and offers to combine them now; nothing changes unless you say yes. When a change that is not saved as a version would be overwritten, Sync stops before it starts and asks you to save a version first.
+
+## Combining two versions
+
+Combine now brings in the other side's versions and leaves each place where both sides changed the same lines marked in its file. The file opens in the source editor at the first one, whichever editor you were using: your version is tinted one colour and theirs another, and above each place are Keep mine, Keep theirs and Keep both. Each choice is one step in the undo history. You can also edit the lines yourself; a place counts as chosen once its `<<<<<<<`, `=======` and `>>>>>>>` lines are gone.
+
+Source Control lists the files under Both changed, and marks each one Ready once every place in it is chosen. Finish combining saves the result as one version, which Sync then sends. Cancel combining puts every file back as it was before you started, and the choices go with it.
+
+| While combining  | What it does                                                        |
+| ---------------- | ------------------------------------------------------------------- |
+| Click a file     | Opens it in the source editor at its first marked place.            |
+| Finish combining | Saves the combined files as one version. Waits until each is Ready. |
+| Cancel combining | Puts everything back as it was before combining started.            |
+
+A merge started in the terminal gets the same Finish and Cancel. A rebase or cherry-pick left unfinished there is shown in the panel, and is finished or cancelled in the terminal.
 
 ## Signing in
 
@@ -37,6 +51,6 @@ Texpile signs in with whatever git already uses: Git Credential Manager, the mac
 The first time you save a version on a computer where git does not know your name and email, Texpile asks for them and saves them for all your projects.
 
 > [!NOTE]
-> This covers the everyday loop, from the first version to GitHub. For branches, combining conflicting changes, and history rewriting, use the built-in terminal. It needs git installed.
+> This covers the everyday loop, from the first version to GitHub. For branches and history rewriting, use the built-in terminal. It needs git installed.
 
 [Installing git](installation/git.md)

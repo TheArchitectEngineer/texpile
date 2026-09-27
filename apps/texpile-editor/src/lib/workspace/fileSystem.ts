@@ -3,6 +3,7 @@
 import type { SourceEncoding, SourceRead } from './sourceEncoding';
 import { browser } from '$lib/runtime';
 import type { GitStatusResult, GitShowResult, GitOpResult, GitLogResult, GitChangesResult, GitPushResult, GitRemoteBridge } from './git';
+import type { GitCombineBridge } from './gitCombine';
 
 export type TexFile = {
 	name: string;
@@ -217,7 +218,8 @@ type TexpileNative = {
 	gitShowAt?: (path: string, ref: string) => Promise<GitShowResult>;
 	gitRestore?: (root: string, hash: string, message: string) => Promise<GitOpResult>;
 	gitPush?: (root: string) => Promise<GitPushResult>;
-} & GitRemoteBridge;
+} & GitRemoteBridge &
+	GitCombineBridge;
 
 export function nativeBridge(): TexpileNative | undefined {
 	if (!browser) return undefined;

@@ -74,8 +74,14 @@ export class WorkspaceEditFlow {
 			getDiskBaseline: () => doc.diskBaseline,
 			setDiskBaseline: (t) => (doc.diskBaseline = t),
 			getBuffer: () => (hasVisualMode(doc.kind) ? doc.texSource : doc.rawContent),
-			setTexSource: (t) => (doc.texSource = t),
-			setRawContent: (t) => (doc.rawContent = t),
+			setTexSource: (t) => {
+				doc.texSource = t;
+				doc.noteConflicts(t);
+			},
+			setRawContent: (t) => {
+				doc.rawContent = t;
+				doc.noteConflicts(t);
+			},
 			setEol: (e) => (doc.eol = e),
 			rebuildVisual: () => d.wsdoc.rebuildVisualFromSource(),
 			discardQueuedSave: () => this.saver.discard(),

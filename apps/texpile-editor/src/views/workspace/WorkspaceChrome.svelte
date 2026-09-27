@@ -16,6 +16,7 @@
 	import type { PaneLayout } from '$lib/workspace/paneLayout.svelte';
 	import type { ViewModeSwitch } from '$lib/workspace/viewModeSwitch.svelte';
 	import type { TerminalDockState } from '$lib/workspace/terminalDockState.svelte';
+	import { canCombine } from '$lib/workspace/gitCombine';
 	import { m } from '$lib/paraglide/messages';
 	import type { Snippet } from 'svelte';
 
@@ -190,6 +191,9 @@
 			scmPublish={scm.publish}
 			scmSync={scm.sync}
 			scmRecheckGit={scm.recheckGit}
+			scmOpenConflict={scm.combine.openConflict}
+			scmFinishCombine={canCombine() ? scm.combine.finish : undefined}
+			scmCancelCombine={canCombine() ? scm.combine.cancel : undefined}
 			scmCompare={scm.compare}
 			scmChangesSince={scm.changesSince}
 			scmOpenDiff={scm.openDiff}

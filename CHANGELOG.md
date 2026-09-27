@@ -9,6 +9,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: Sync takes in versions saved elsewhere and sends yours, and undoes the attempt rather than leave a conflict behind
 - feat: git's sign-in questions (a password or token, an SSH key's passphrase, a server it has not seen) are asked in the window instead of failing
 - feat: the first version saved on a computer asks for the name and email git records, once
+- feat: when Sync finds both sides changed the same lines, Combine now marks each place in the file with Keep mine, Keep theirs and Keep both, and Finish combining saves the result as one version (Cancel puts everything back)
 - fix: uploading uses the credential helpers and settings in your global git config
 - fix: saving a version while git's index was briefly locked could record every unticked file as deleted
 - fix: a new repository starts on `main`, as GitHub does, unless git is configured with another default

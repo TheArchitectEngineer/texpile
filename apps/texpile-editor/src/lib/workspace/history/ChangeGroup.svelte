@@ -25,6 +25,8 @@
 		action?: Snippet;
 		/** the rows cannot be ticked: files that must not go into an ordinary version */
 		locked?: boolean;
+		/** what clicking a row opens, when that is not the comparison */
+		onOpen?: (path: string) => void;
 	};
 	let {
 		label,
@@ -39,7 +41,8 @@
 		onOpenDiff,
 		onDiscard,
 		action,
-		locked = false
+		locked = false,
+		onOpen
 	}: Props = $props();
 
 	const anyOn = $derived(entries.some((e) => selected.includes(e.path)));
@@ -84,6 +87,6 @@
 
 {#if open}
 	<div class="ml-3">
-		<ChangeRows changes={entries} {selected} {locked} {relPath} {baseName} {dirName} {onToggle} {onOpenDiff} {onDiscard} />
+		<ChangeRows changes={entries} {selected} {locked} {relPath} {baseName} {dirName} {onToggle} {onOpenDiff} {onDiscard} {onOpen} />
 	</div>
 {/if}

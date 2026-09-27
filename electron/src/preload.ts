@@ -276,6 +276,12 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitPublish: (root: string, remote: string) => invokeFs('git:publish', root, remote),
 	/** fetch, take in the upstream's versions, send ours -> { ok, failure?, pulled?, pushed?, files? }. */
 	gitSync: (root: string) => invokeFs('git:sync', root),
+	/** merge the upstream Sync just fetched, leaving what both sides changed marked -> { ok, failure?, conflicts? }. */
+	gitCombine: (root: string) => invokeFs('git:combine', root),
+	/** commit the merge once no file holds a marked place -> { ok, failure?, files? }. */
+	gitFinishCombine: (root: string) => invokeFs('git:finishCombine', root),
+	/** merge --abort -> { ok }. */
+	gitCancelCombine: (root: string) => invokeFs('git:cancelCombine', root),
 	/** create a GitHub repository, add it as `remote`, publish the branch there -> { ok, url?, failure? }. */
 	githubPublish: (root: string, opts: { name: string; isPrivate: boolean; remote: string }) => invokeFs('git:githubPublish', root, opts),
 	/** git or ssh asking for a username, password, passphrase or host-key answer; returns an unsubscribe fn */

@@ -1,73 +1,13 @@
-// Publishing a branch and syncing it, against real repos. A bare repo in a temp dir stands in for
-// GitHub: it can be published to, moved ahead from a second clone, and made to conflict, with no
-// network and no credentials. Sign-in itself is covered by the askpass and GitHub tests.
-//
-// Skips itself when git is not on PATH, like the other live git fixtures.
+// Publishing a branch and syncing it, against real repos (gitLiveFixture.ts). Sign-in itself is
+// covered by the askpass and GitHub tests.
 import { describe, it, expect, afterEach } from 'vitest';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { gitStatus, gitIdentity, gitSetIdentity } from '../../../../../../electron/src/gitService';
 import { gitPublish, gitSync, gitPush, gitRemotes, gitAddRemote, gitCredentialFill } from '../../../../../../electron/src/gitRemote';
+import { AVAILABLE, run, out, identify, commit, tempDir, removeTempDirs, makeUnpublished, makePublished } from './gitLiveFixture';
 
-function hasGit(): boolean {
-	try {
-		execFileSync('git', ['--version'], { stdio: 'ignore' });
-		return true;
-	} catch {
-		return false;
-	}
-}
-const AVAILABLE = hasGit();
-
-const run = (root: string, ...args: string[]) => execFileSync('git', args, { cwd: root, stdio: 'ignore' });
-const out = (root: string, ...args: string[]) => execFileSync('git', args, { cwd: root }).toString().trim();
-
-function identify(root: string) {
-	run(root, 'config', 'user.email', 'test@example.com');
-	run(root, 'config', 'user.name', 'Ada Lovelace');
-	run(root, 'config', 'commit.gpgsign', 'false');
-}
-
-function commit(root: string, name: string, body: string, subject: string) {
-	writeFileSync(join(root, name), body);
-	run(root, 'add', '-A');
-	run(root, 'commit', '-q', '-m', subject);
-}
-
-const dirs: string[] = [];
-function tempDir(prefix: string): string {
-	const d = mkdtempSync(join(tmpdir(), prefix));
-	dirs.push(d);
-	return d;
-}
-afterEach(() => {
-	for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
-});
-
-/** a project with one version and no remote, and an empty bare repo beside it to publish to */
-function makeUnpublished(): { root: string; remote: string; dir: string } {
-	const dir = tempDir('texpile-publish-');
-	const remote = join(dir, 'remote.git');
-	const root = join(dir, 'work');
-	execFileSync('git', ['init', '-q', '--bare', remote], { stdio: 'ignore' });
-	execFileSync('git', ['init', '-q', root], { stdio: 'ignore' });
-	identify(root);
-	commit(root, 'main.tex', 'First line.\nSecond line.\n', 'First draft');
-	return { root, remote, dir };
-}
-
-/** a published project and a second clone of it: someone else, or the same author elsewhere */
-async function makePublished(): Promise<{ root: string; other: string; remote: string }> {
-	const { root, remote, dir } = makeUnpublished();
-	expect((await gitAddRemote(root, 'origin', remote)).ok).toBe(true);
-	expect((await gitPublish(root, 'origin')).ok).toBe(true);
-	const other = join(dir, 'other');
-	execFileSync('git', ['clone', '-q', remote, other], { stdio: 'ignore' });
-	identify(other);
-	return { root, other, remote };
-}
+afterEach(removeTempDirs);
 
 describe.skipIf(!AVAILABLE)('publishing a branch', () => {
 	it('is offered only once there is a version to publish', async () => {

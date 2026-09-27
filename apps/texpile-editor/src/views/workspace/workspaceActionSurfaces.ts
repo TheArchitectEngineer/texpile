@@ -166,6 +166,7 @@ export function makeMainActions(d: ActionSurfaceDeps) {
 			});
 		},
 		useSource: () => d.wsdoc.modes.set('source'),
+		leaveConflicts: () => d.wsdoc.modes.set('visual'),
 		openAsText: (path: string) => d.wsdoc.openAsText(path),
 		pickStarter: (s: Starter) => d.files().starters.pick(s),
 		newTexFile: () => d.files().starters.newTexFile(),

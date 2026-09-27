@@ -19,6 +19,7 @@ import { templateFeaturesStore } from '$lib/stores/editorStore';
 import { documentHyphenationLanguage } from '$lib/editor/visual/linebreak/documentHyphenationLanguage';
 import { crossRefNamesFromPreamble } from '$lib/languages/latex/visual/extensions/drawn/crossRefNames';
 import { scanMacroDefinitions } from '$lib/editor/source/extensions/math-preview/userMacros';
+import { findConflicts, hasConflictMarkers } from '$lib/workspace/conflictMarkers';
 import type { Node as PMNode } from 'prosemirror-model';
 
 export type FileKind = 'tex' | 'md' | 'typ' | 'bib' | 'pdf' | 'image' | 'binary' | 'text' | null;
@@ -92,6 +93,13 @@ export class DocumentBuffer {
 	/** the file looks binary and was not read; the pane offers to open it as text anyway */
 	binaryWarning = $state<{ path: string; size: number } | null>(null);
 	encodingIssue = $state<string | null>(null);
+	/** the file came in holding places a merge marked, which the visual editor would show as
+	 *  stray paragraphs of <<<<<<< and =======. The source editor offers a choice at each, so the
+	 *  file stays there until it is opened afresh, even once every place is chosen: flipping to
+	 *  the visual editor under the author's last click would be its own surprise. */
+	conflicted = $state(false);
+	/** marked places still waiting for a choice, counted only in a file that came in with some */
+	conflictsLeft = $derived(this.conflicted ? findConflicts(this.buffer).length : 0);
 
 	/** the whole .tex file, as raw text */
 	texSource = $state('');
@@ -191,6 +199,7 @@ export class DocumentBuffer {
 		this.rawContent = '';
 		this.path = null;
 		this.encodingIssue = null;
+		this.conflicted = false;
 		this.binaryWarning = null;
 	}
 
@@ -207,6 +216,7 @@ export class DocumentBuffer {
 		this.path = path;
 		this.diskBaseline = text;
 		this.encodingIssue = issue;
+		this.conflicted = hasConflictMarkers(text);
 		this.binaryWarning = null;
 	}
 
@@ -224,6 +234,7 @@ export class DocumentBuffer {
 		this.path = path;
 		this.diskBaseline = text;
 		this.encodingIssue = issue;
+		this.conflicted = hasConflictMarkers(text);
 		this.binaryWarning = null;
 	}
 
@@ -331,10 +342,24 @@ export class DocumentBuffer {
 		this.queueSave(v);
 	}
 
+	/** text arriving from outside the editor - a merge in a terminal, Sync's Combine - that holds
+	 *  marked places sends the file to the source editor as opening it would */
+	noteConflicts(text: string): void {
+		if (hasConflictMarkers(text)) this.conflicted = true;
+	}
+
+	/** once every place is chosen, the author may take the file back to the visual editor */
+	leaveConflicts(): boolean {
+		if (this.conflictsLeft) return false;
+		this.conflicted = false;
+		return true;
+	}
+
 	/** replace the whole source (formatter, disk reload, history step) and re-derive the views */
 	replaceSource(text: string, opts: { dirty: boolean }): void {
 		const before = this.texSource;
 		this.texSource = text;
+		this.noteConflicts(text);
 		if (opts.dirty) {
 			isDirty.current = true;
 			this.queueSave(text, before);

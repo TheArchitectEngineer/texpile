@@ -23,11 +23,24 @@
 		selected: string[];
 		onToggle: (path: string) => void;
 		onOpenDiff: (path: string) => void;
+		/** a file both sides changed, in the source editor at its first marked place */
+		onOpenConflict?: (path: string) => void;
 		onDiscard: (changes: GitStatusEntry[]) => void;
 		/** null while there is nothing to write, or no way to write it */
 		onIgnoreArtifacts: (() => void) | null;
 	};
-	let { root, conflicts = [], sources, artifacts, selected, onToggle, onOpenDiff, onDiscard, onIgnoreArtifacts }: Props = $props();
+	let {
+		root,
+		conflicts = [],
+		sources,
+		artifacts,
+		selected,
+		onToggle,
+		onOpenDiff,
+		onOpenConflict,
+		onDiscard,
+		onIgnoreArtifacts
+	}: Props = $props();
 
 	let conflictsOpen = $state(true);
 	let sourcesOpen = $state(true);
@@ -51,6 +64,7 @@
 		dirName={labels.dirName}
 		{onToggle}
 		{onOpenDiff}
+		onOpen={onOpenConflict}
 		{onDiscard}
 	/>
 {/if}

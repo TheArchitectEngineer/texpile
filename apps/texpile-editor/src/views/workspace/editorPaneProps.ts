@@ -33,6 +33,12 @@ export type EditorPaneProps = {
 	/** the working copy is gone from disk; only reachable inside a comparison */
 	fileDeleted?: boolean;
 	encodingIssue?: string | null;
+	/** the file holds places a merge marked: it stays in the source editor, which offers a choice at each */
+	conflicted?: boolean;
+	/** how many marked places are still waiting for a choice */
+	conflictsLeft?: number;
+	/** every place is chosen and the author wants the visual editor back */
+	onLeaveConflicts?: () => void;
 	/** the file looks binary: nothing was read, the pane warns and offers to open it as text */
 	binaryWarning?: { path: string; size: number } | null;
 	onOpenAsText?: (path: string) => void;

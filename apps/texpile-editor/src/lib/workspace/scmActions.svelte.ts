@@ -24,6 +24,7 @@ import {
 	type GitPushResult
 } from './git';
 import { askIdentity, askPublish, type PublishChoice } from './gitDialogs.svelte';
+import { ScmCombine } from './scmCombine.svelte';
 import { uploadReason } from './uploadReason';
 import { basename, samePath, joinPath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
@@ -47,6 +48,10 @@ export type ScmDeps = {
 	isDiffMode(): boolean;
 	/** open (or focus) a tab comparing `path` against one version. */
 	openCompareTab(path: string, compare: { hash: string; subject: string }): void;
+	/** open a file in the source editor at a 1-based line, whatever view the author has chosen */
+	openAtLine(path: string, line: number): void;
+	/** the merge is saved: the open file, if it held marked places, goes back to the author's view */
+	settleConflicts(): void;
 	/** the .gitignore patterns for this project's compile format */
 	ignoreLines(): string[];
 	writeText(path: string, content: string): Promise<void>;
@@ -67,7 +72,12 @@ export class ScmActions {
 		setGitWriting(on);
 	}
 
-	constructor(private deps: ScmDeps) {}
+	/** Sync's Combine now, and the Finish and Cancel that end a merge */
+	readonly combine: ScmCombine;
+
+	constructor(private deps: ScmDeps) {
+		this.combine = new ScmCombine(this, deps);
+	}
 
 	/** after installing git: forget that it was missing and look again */
 	recheckGit = async (): Promise<void> => {
@@ -209,7 +219,7 @@ export class ScmActions {
 	/** git will not commit without a name and an email, and says so in words that send someone to
 	 *  a terminal to type two config commands. Those two commands, asked here instead - once per
 	 *  machine, since they are written globally. */
-	private async ensureIdentity(root: string): Promise<boolean> {
+	async ensureIdentity(root: string): Promise<boolean> {
 		const who = await gitIdentity(root);
 		if (who.name && who.email) return true;
 		const answer = await askIdentity({ name: who.name ?? '', email: who.email ?? '' });
@@ -459,6 +469,8 @@ export class ScmActions {
 						? { title: m.vcs_toast_synced({ remote }), description: moved.join(' · ') }
 						: { title: m.vcs_toast_sync_uptodate({ remote }) }
 				);
+			} else if (res.failure === 'conflict') {
+				await this.combine.offer(root, res);
 			} else if (res.failure !== 'cancelled') {
 				toaster.error({ title: m.vcs_toast_sync_failed(), description: uploadReason(res) });
 			}

@@ -183,6 +183,15 @@ export class WorkspaceNav {
 		if (needsActivate(target)) openFile(target);
 	}
 
+	/** A line in the source editor without choosing the view for the author: the one caller is a
+	 *  file holding places a merge marked, which the pane shows in the source editor regardless
+	 *  (DocumentBuffer.conflicted), and switching the mode would outlast the merge. */
+	showSourceLine(file: string, line: number): void {
+		const target = sessionRelativeTarget(file, this.d.guest());
+		this.sourceGotoLine = { line, token: ++this.gotoToken, path: target };
+		if (needsActivate(target)) openFile(target);
+	}
+
 	/** a jump asked for THIS file survives a file switch; an older one must not, or every later
 	 *  tab switch remounts the source editor and replays it */
 	clearStaleGoto(loadedPath: string | null): void {

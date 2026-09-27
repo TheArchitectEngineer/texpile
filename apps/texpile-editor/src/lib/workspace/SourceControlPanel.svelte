@@ -68,6 +68,11 @@
 		onPublish: () => void;
 		onSync: () => void;
 		onIgnoreArtifacts: (() => void) | null;
+		/** a file both sides changed, opened at its first marked place */
+		onOpenConflict?: (path: string) => void;
+		/** save the merge as a version; absent where the app cannot, and the terminal does it */
+		onFinishCombine?: () => void;
+		onCancelCombine?: () => void;
 	};
 	let {
 		root,
@@ -101,7 +106,10 @@
 		onRefresh,
 		onPublish,
 		onSync,
-		onIgnoreArtifacts
+		onIgnoreArtifacts,
+		onOpenConflict,
+		onFinishCombine,
+		onCancelCombine
 	}: Props = $props();
 
 	// what the author has chosen but not saved, kept outside the panel so it survives the panel
@@ -150,17 +158,28 @@
 		if (await onCommit(draft.message, selected)) draft.clear();
 	}
 
+	/** a merge the panel can finish or cancel itself; the rest go back to the terminal they came from */
+	const combining = $derived(operation === 'merge' && !!onFinishCombine && !!onCancelCombine);
+	/** files still holding a place nobody has chosen for */
+	const marked = $derived(conflicts.filter((c) => c.markers).length);
+
 	// what is unfinished, in words that say where to finish it
 	const operationText = $derived(
-		operation === 'merge'
-			? m.vcs_op_merge()
-			: operation === 'rebase'
-				? m.vcs_op_rebase()
-				: operation === 'cherry-pick'
-					? m.vcs_op_cherry_pick()
-					: operation === 'revert'
-						? m.vcs_op_revert()
-						: ''
+		combining
+			? marked
+				? marked === 1
+					? m.vcs_combining_one()
+					: m.vcs_combining_count({ count: marked })
+				: m.vcs_combining_ready()
+			: operation === 'merge'
+				? m.vcs_op_merge()
+				: operation === 'rebase'
+					? m.vcs_op_rebase()
+					: operation === 'cherry-pick'
+						? m.vcs_op_cherry_pick()
+						: operation === 'revert'
+							? m.vcs_op_revert()
+							: ''
 	);
 	function onKeydown(e: KeyboardEvent) {
 		if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -254,7 +273,24 @@
 							role="status"
 						>
 							<TriangleAlert class="text-warning-ink mt-0.5 size-3.5 shrink-0" />
-							<span>{operationText}</span>
+							<div class="min-w-0 flex-1 space-y-2">
+								<p>{operationText}</p>
+								{#if combining}
+									<div class="flex flex-wrap gap-1.5">
+										<!-- disabled, not refused after the click: a file with <<<<<<< lines in it
+										     must never be saved as though it were the combined text -->
+										<span use:tip={marked ? m.vcs_finish_combine_tip() : undefined}>
+											<button class="btn btn-xs preset-filled-primary-500 gap-1" onclick={onFinishCombine} disabled={busy || marked > 0}>
+												<Check class="size-3.5" />
+												{m.vcs_finish_combine()}
+											</button>
+										</span>
+										<button class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal" onclick={onCancelCombine} disabled={busy}>
+											{m.vcs_cancel_combine()}
+										</button>
+									</div>
+								{/if}
+							</div>
 						</div>
 					{/if}
 					{#if changes.length}
@@ -273,6 +309,7 @@
 								{selected}
 								onToggle={toggle}
 								{onOpenDiff}
+								{onOpenConflict}
 								{onDiscard}
 								{onIgnoreArtifacts}
 							/>
@@ -285,8 +322,9 @@
 					{/if}
 				</div>
 
-				<!-- outside the scroller: what you are about to save must not scroll away from its list -->
-				{#if changes.length}
+				<!-- outside the scroller: what you are about to save must not scroll away from its list. Not
+				     while combining: the merge is saved by Finish combining, as one version -->
+				{#if changes.length && !combining}
 					<div class="border-surface-200-800 shrink-0 space-y-2 border-t px-2 py-2">
 						<textarea
 							class="textarea resize-none text-sm rounded-container"

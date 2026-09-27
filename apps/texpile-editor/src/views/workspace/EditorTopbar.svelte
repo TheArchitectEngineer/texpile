@@ -39,6 +39,8 @@
 		kind: FileKind;
 		viewMode: 'visual' | 'source' | 'diff';
 		encodingIssue?: string | null;
+		/** the file holds places a merge marked, which only the source editor offers a choice at */
+		conflicted?: boolean;
 		guest: boolean;
 		terminalAvailable: boolean;
 		compiling: boolean;
@@ -87,6 +89,7 @@
 		kind,
 		viewMode,
 		encodingIssue = null,
+		conflicted = false,
 		guest,
 		terminalAvailable,
 		compiling,
@@ -251,8 +254,8 @@
 						? 'preset-filled-primary-500'
 						: 'hover:preset-tonal disabled:hover:bg-transparent'}"
 					onclick={() => onSetViewMode('visual')}
-					disabled={!!encodingIssue}
-					use:tip={encodingIssue ?? m.wsview_visual_editor_title()}
+					disabled={!!encodingIssue || conflicted}
+					use:tip={encodingIssue ?? (conflicted ? m.vcs_conflict_visual_off() : m.wsview_visual_editor_title())}
 				>
 					<Eye class="size-3.5" />
 					{m.wsview_visual_label()}

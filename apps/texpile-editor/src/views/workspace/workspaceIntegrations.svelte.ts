@@ -101,6 +101,10 @@ export class WorkspaceIntegrations {
 				const key = tabs.openCompare(path, compare);
 				d.editFlow().activateTab(tabs.find(key) ?? { path, compare });
 			},
+			openAtLine: (path, line) => d.nav().showSourceLine(path, line),
+			settleConflicts: () => {
+				if (d.wsdoc.doc.leaveConflicts() && modes.mode === 'visual') d.wsdoc.rebuildVisualFromSource();
+			},
 			ignoreLines: () => gitignoreLines(effectiveCompileFormat(mainFile.current)),
 			writeText: (p, content) => d.provider.writeText(p, content),
 			readTextIfPresent: async (p) => {

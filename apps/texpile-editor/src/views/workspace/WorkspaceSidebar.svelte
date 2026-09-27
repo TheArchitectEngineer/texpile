@@ -81,6 +81,9 @@
 		scmPublish: () => void;
 		scmSync: () => void;
 		scmRecheckGit: () => void;
+		scmOpenConflict?: (path: string) => void;
+		scmFinishCombine?: () => void;
+		scmCancelCombine?: () => void;
 		scmCompare: (entry: GitLogEntry, path: string) => void;
 		scmChangesSince: (hash: string) => Promise<GitFileChange[]>;
 		scmOpenDiff: (path: string) => void;
@@ -127,6 +130,9 @@
 		scmPublish,
 		scmSync,
 		scmRecheckGit,
+		scmOpenConflict,
+		scmFinishCombine,
+		scmCancelCombine,
 		scmCompare,
 		scmChangesSince,
 		scmOpenDiff
@@ -341,6 +347,9 @@
 				onRefresh={onRefreshGit}
 				onPublish={scmPublish}
 				onSync={scmSync}
+				onOpenConflict={scmOpenConflict}
+				onFinishCombine={scmFinishCombine}
+				onCancelCombine={scmCancelCombine}
 				{historyFraction}
 				bind:splitEl={scmSplitEl}
 				{onStartHistoryResize}

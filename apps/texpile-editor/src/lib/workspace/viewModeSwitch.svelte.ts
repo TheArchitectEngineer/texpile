@@ -41,6 +41,10 @@ export type ViewModeDeps = {
 	/** where every run of the visual doc sits in the source */
 	getSourceMap(): SourceMap;
 	getEncodingIssue(): string | null;
+	/** the file came in holding places a merge marked (DocumentBuffer.conflicted) */
+	getConflicted(): boolean;
+	/** let the visual editor have it back; false while a marked place is left */
+	leaveConflicts(): boolean;
 	rebuildVisual(): void;
 	/** open a comparison of the open file against the last saved version. */
 	startCompare(): void;
@@ -88,6 +92,12 @@ export class ViewModeSwitch {
 
 	set(mode: ViewMode): void {
 		const d = this.deps;
+		if (mode === 'visual' && d.getConflicted()) {
+			// the pane has been showing the source editor under a 'visual' mode: with every place
+			// chosen that becomes true again, and the visual doc has to catch up with the choices
+			if (!d.leaveConflicts()) return;
+			if (this.mode === 'visual') return d.rebuildVisual();
+		}
 		if (mode === this.mode) return;
 		if (mode === 'diff') {
 			// opens a comparison TAB rather than switching this mode: the representation the user

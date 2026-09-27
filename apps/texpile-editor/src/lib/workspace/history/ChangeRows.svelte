@@ -3,7 +3,7 @@
 	// saturated ticks would be the loudest thing in the panel while saying the least. The control
 	// picks up the accent on hover and focus, where it means something.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { Info, MoreHorizontal, Undo2, Trash2, GitCompare } from '@lucide/svelte';
+	import { Info, MoreHorizontal, Undo2, Trash2, GitCompare, Check } from '@lucide/svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { isTexpileManaged } from '$lib/comments/managed';
 	import { STATUS_COLOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
@@ -22,8 +22,10 @@
 		onDiscard: (changes: GitStatusEntry[]) => void;
 		/** rows that cannot be ticked (files both sides changed) */
 		locked?: boolean;
+		/** what clicking the row opens, when that is not the comparison */
+		onOpen?: (path: string) => void;
 	};
-	let { changes, selected, relPath, baseName, dirName, onToggle, onOpenDiff, onDiscard, locked = false }: Props = $props();
+	let { changes, selected, relPath, baseName, dirName, onToggle, onOpenDiff, onDiscard, locked = false, onOpen }: Props = $props();
 
 	let openMenu = $state<string | null>(null);
 
@@ -44,9 +46,19 @@
 			disabled={locked}
 			aria-label={relPath(c.path)}
 		/>
-		<button class="flex min-w-0 flex-1 items-center gap-1.5 text-left" onclick={() => onOpenDiff(c.path)} use:tip={relPath(c.path)}>
+		<button
+			class="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+			onclick={() => (onOpen ?? onOpenDiff)(c.path)}
+			use:tip={relPath(c.path)}
+		>
 			<span class="truncate {STATUS_COLOR[badge]}" use:tip={STATUS_TITLE[badge]}>{baseName(c.path)}</span>
 			{#if dirName(c.path)}<span class="text-muted truncate text-xs">{dirName(c.path)}</span>{/if}
+			<!-- every marked place in it is chosen: nothing more to do here before Finish -->
+			{#if locked && c.markers === false}
+				<span class="text-success-ink flex shrink-0 items-center gap-0.5 text-xs" use:tip={m.vcs_conflict_ready_tip()}>
+					<Check class="size-3" />{m.vcs_conflict_ready()}
+				</span>
+			{/if}
 			<!-- .texpile is hidden from the file tree, so this is the first place anyone meets the
 			     file. Unexplained, it reads as junk to discard rather than review notes to keep. -->
 			{#if isTexpileManaged(relPath(c.path))}
@@ -91,23 +103,26 @@
 								<GitCompare class="size-4 shrink-0" />
 								{m.wsview_diff_heading()}
 							</button>
-							<div class="border-surface-200-800 my-1 border-t"></div>
-							<button
-								type="button"
-								class="hover:preset-tonal text-error-ink flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
-								onclick={() => {
-									openMenu = null;
-									onDiscard([c]);
-								}}
-							>
-								{#if isUntracked(c)}
-									<Trash2 class="size-4 shrink-0" />
-									{m.vcs_delete_untracked()}
-								{:else}
-									<Undo2 class="size-4 shrink-0" />
-									{m.vcs_discard_changes()}
-								{/if}
-							</button>
+							<!-- git cannot put back a file it is still combining: Cancel combining does that for all of them -->
+							{#if !locked}
+								<div class="border-surface-200-800 my-1 border-t"></div>
+								<button
+									type="button"
+									class="hover:preset-tonal text-error-ink flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
+									onclick={() => {
+										openMenu = null;
+										onDiscard([c]);
+									}}
+								>
+									{#if isUntracked(c)}
+										<Trash2 class="size-4 shrink-0" />
+										{m.vcs_delete_untracked()}
+									{:else}
+										<Undo2 class="size-4 shrink-0" />
+										{m.vcs_discard_changes()}
+									{/if}
+								</button>
+							{/if}
 						</div>
 					</Popover.Content>
 				</Popover.Positioner>

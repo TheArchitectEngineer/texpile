@@ -3,6 +3,8 @@
 import { simpleGit, type SimpleGit, type FileStatusResult } from 'simple-git';
 import { dirname, resolve, relative, join, isAbsolute } from 'node:path';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { hasConflictMarkers } from './conflictMarkers';
 
 // once git is confirmed missing (ENOENT), stop retrying
 let gitBinaryMissing = false;
@@ -25,6 +27,9 @@ export type GitStatusEntry = {
 	x: string;
 	/** working-dir (unstaged) status char; ' ' if clean, '?' if untracked. */
 	y: string;
+	/** a file both sides changed that still holds a place marked for someone to choose. Only set
+	 *  on those files: once every place is chosen it is ready to finish the merge with. */
+	markers?: boolean;
 };
 
 export type GitStatusResult = {
@@ -147,7 +152,7 @@ export async function gitDirsOf(repoRoot: string): Promise<{ gitDir: string; com
 
 /** what git leaves behind while an operation waits for someone to finish it. rebase-apply is also
  *  `git am`, which is the same kind of unfinished for this purpose. */
-function operationIn(gitDir: string): GitOperation | null {
+export function operationIn(gitDir: string): GitOperation | null {
 	if (existsSync(join(gitDir, 'rebase-merge')) || existsSync(join(gitDir, 'rebase-apply'))) return 'rebase';
 	if (existsSync(join(gitDir, 'MERGE_HEAD'))) return 'merge';
 	if (existsSync(join(gitDir, 'CHERRY_PICK_HEAD'))) return 'cherry-pick';
@@ -171,6 +176,20 @@ export async function gitRecheck(): Promise<GitOpResult> {
 /** status of every changed file under the workspace + the current branch. Paths are re-derived
  *  against the workspace root to match the file-tree's paths byte-for-byte, which keeps it correct
  *  when the workspace is a subdirectory of a larger repo. */
+/** git's unmerged status codes: a U on either side, or both sides adding or deleting the same path */
+export function isUnmerged(x: string, y: string): boolean {
+	return x === 'U' || y === 'U' || (x === 'A' && y === 'A') || (x === 'D' && y === 'D');
+}
+
+/** a deleted or unreadable file has nothing marked in it */
+export async function stillMarked(abs: string): Promise<boolean> {
+	try {
+		return hasConflictMarkers(await readFile(abs, 'utf8'));
+	} catch {
+		return false;
+	}
+}
+
 export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult> {
 	if (!workspaceRoot) return { ok: false, error: 'Missing path' };
 	const rr = await resolveRepoRoot(workspaceRoot);
@@ -189,7 +208,9 @@ export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult>
 			// '' = the workspace root itself; '..'-prefixed = above it; absolute = a different drive
 			const rel = relative(wsAbs, absFromRepo);
 			if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) continue;
-			entries.push({ path: join(workspaceRoot, rel), x: f.index, y: f.working_dir });
+			const entry: GitStatusEntry = { path: join(workspaceRoot, rel), x: f.index, y: f.working_dir };
+			if (isUnmerged(f.index, f.working_dir)) entry.markers = await stillMarked(absFromRepo);
+			entries.push(entry);
 		}
 		return {
 			ok: true,

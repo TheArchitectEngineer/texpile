@@ -13,6 +13,9 @@ export type GitStatusEntry = {
 	path: string; // absolute, matching the file-tree's path strings
 	x: string; // index (staged) porcelain char, ' ' if none, '?' if untracked
 	y: string; // working-dir (unstaged) porcelain char
+	/** a file both sides changed that still holds a place marked for someone to choose; set only
+	 *  on those files */
+	markers?: boolean;
 };
 
 export type GitStatusResult = {
@@ -51,9 +54,9 @@ export type GitOpResult = {
 	error?: string;
 };
 
-const NO_BRIDGE = 'Git requires the Texpile desktop app.';
+export const NO_BRIDGE = 'Git requires the Texpile desktop app.';
 
-function errMsg(e: unknown) {
+export function errMsg(e: unknown): string {
 	return e instanceof Error ? e.message : String(e);
 }
 
