@@ -54,6 +54,8 @@ export type GitStatusResult = {
 	/** git is part-way through combining histories, started by Sync or in a terminal: until it is
 	 *  finished or cancelled, a Save version would record it half-done */
 	operation?: GitOperation | null;
+	/** where the repository starts: the folder itself, or one above it */
+	repoRoot?: string;
 };
 
 export type GitOperation = 'merge' | 'rebase' | 'cherry-pick' | 'revert';
@@ -222,7 +224,8 @@ export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult>
 			hasCommits: head !== '',
 			detached: status.detached,
 			head,
-			operation
+			operation,
+			repoRoot
 		};
 	} catch (e) {
 		if (isMissingGit(e)) {

@@ -1,0 +1,84 @@
+// What one version changed, and a project inside a larger repository, against real repos
+// (gitLiveFixture.ts).
+import { describe, it, expect, afterEach } from 'vitest';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { gitChangesIn, gitFileAt } from '../../../../../../electron/src/gitHistory';
+import { gitStatus } from '../../../../../../electron/src/gitService';
+import { AVAILABLE, run, out, identify, commit, tempDir, removeTempDirs } from './gitLiveFixture';
+
+afterEach(removeTempDirs);
+
+function makeRepo(): string {
+	const root = tempDir('texpile-version-');
+	run(root, 'init', '-q');
+	identify(root);
+	return root;
+}
+
+describe.skipIf(!AVAILABLE)('what a version changed', () => {
+	it('lists the first version as all additions, with nothing before it', async () => {
+		const root = makeRepo();
+		commit(root, 'main.tex', 'Hello.\n', 'First draft');
+		const res = await gitChangesIn(root, out(root, 'rev-parse', 'HEAD'));
+		expect(res).toEqual({ ok: true, parent: null, entries: [{ path: join(root, 'main.tex'), status: 'A' }] });
+	});
+
+	it('lists what it added, changed, removed and renamed, against the version before it', async () => {
+		const root = makeRepo();
+		writeFileSync(join(root, 'intro.tex'), 'An introduction long enough to be recognised after a rename.\n');
+		writeFileSync(join(root, 'old.tex'), 'Old.\n');
+		commit(root, 'main.tex', 'Hello.\n', 'First draft');
+		const first = out(root, 'rev-parse', 'HEAD');
+		run(root, 'mv', 'intro.tex', 'introduction.tex');
+		run(root, 'rm', '-q', 'old.tex');
+		writeFileSync(join(root, 'new.tex'), 'New.\n');
+		commit(root, 'main.tex', 'Hello again.\n', 'Second draft');
+		const second = out(root, 'rev-parse', 'HEAD');
+
+		const res = await gitChangesIn(root, second);
+		expect(res.parent).toBe(first);
+		const byPath = Object.fromEntries((res.entries ?? []).map((e) => [e.path.slice(root.length + 1), e]));
+		expect(byPath['main.tex'].status).toBe('M');
+		expect(byPath['new.tex'].status).toBe('A');
+		expect(byPath['old.tex'].status).toBe('D');
+		expect(byPath['introduction.tex']).toEqual({ path: join(root, 'introduction.tex'), status: 'R', from: join(root, 'intro.tex') });
+
+		// each side of the rename, read through the project folder
+		expect((await gitFileAt(root, join(root, 'intro.tex'), first)).content).toContain('An introduction');
+		expect((await gitFileAt(root, join(root, 'introduction.tex'), second)).content).toContain('An introduction');
+		// a file that did not exist then is empty, not an error
+		expect(await gitFileAt(root, join(root, 'new.tex'), first)).toEqual({ ok: true, hasHead: false, content: '' });
+	});
+
+	it('reads a file in a folder that has since been deleted', async () => {
+		const root = makeRepo();
+		mkdirSync(join(root, 'chapters'));
+		commit(root, 'chapters/one.tex', 'One.\n', 'Add a chapter');
+		const hash = out(root, 'rev-parse', 'HEAD');
+		rmSync(join(root, 'chapters'), { recursive: true });
+		expect((await gitFileAt(root, join(root, 'chapters', 'one.tex'), hash)).content).toBe('One.\n');
+	});
+
+	it('refuses anything that is not a version hash', async () => {
+		const root = makeRepo();
+		commit(root, 'main.tex', 'x\n', 'First');
+		expect((await gitChangesIn(root, '--output=/tmp/x')).ok).toBe(false);
+		expect((await gitChangesIn(root, 'HEAD')).ok).toBe(false);
+	});
+});
+
+describe.skipIf(!AVAILABLE)('a project inside a larger repository', () => {
+	it('names where the repository starts', async () => {
+		const home = makeRepo();
+		commit(home, '.bashrc', 'alias ll=ls\n', 'Dotfiles');
+		const paper = join(home, 'papers', 'thesis');
+		mkdirSync(paper, { recursive: true });
+		writeFileSync(join(paper, 'main.tex'), 'Hello.\n');
+		const status = await gitStatus(paper);
+		expect(status.repoRoot).toBe(home);
+		// only this folder's files are listed, never the rest of that repository
+		expect(status.entries?.map((e) => e.path)).toEqual([join(paper, 'main.tex')]);
+		expect((await gitStatus(home)).repoRoot).toBe(home);
+	});
+});

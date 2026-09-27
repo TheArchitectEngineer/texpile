@@ -259,6 +259,10 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitLog: (root: string, limit?: number) => invokeFs('git:log', root, limit),
 	/** files that differ between a commit and the working copy now -> { ok, entries? }. */
 	gitChangesSince: (root: string, hash: string) => invokeFs('git:changesSince', root, hash),
+	/** what one version changed against the one before it -> { ok, parent?, entries? }. */
+	gitChangesIn: (root: string, hash: string) => invokeFs('git:changesIn', root, hash),
+	/** a file at a revision, found through the project folder -> { ok, hasHead, content? }. */
+	gitFileAt: (root: string, path: string, ref: string) => invokeFs('git:fileAt', root, path, ref),
 	/** a file's contents at an arbitrary commit, for diffing a version -> { ok, hasHead, content? }. */
 	gitShowAt: (path: string, ref: string) => invokeFs('git:showAt', path, ref),
 	/** roll the workspace back to a commit by writing that version forward as a new one. */
@@ -282,6 +286,18 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	gitFinishCombine: (root: string) => invokeFs('git:finishCombine', root),
 	/** merge --abort -> { ok }. */
 	gitCancelCombine: (root: string) => invokeFs('git:cancelCombine', root),
+	/** git clone into <parent>/<name> -> { ok, path?, failure? }; progress arrives on onGitCloneProgress. */
+	gitClone: (url: string, parent: string, name: string) => invokeFs('git:clone', url, parent, name),
+	/** stop this window's clone; git removes what it had downloaded */
+	gitCancelClone: () => invokeFs('git:cancelClone'),
+	/** a running clone's stage and percentage; returns an unsubscribe fn */
+	onGitCloneProgress: (cb: (p: { stage: string; percent: number }) => void) => {
+		function h(_e: unknown, p: { stage: string; percent: number }) {
+			cb(p);
+		}
+		ipcRenderer.on('git:cloneProgress', h);
+		return () => ipcRenderer.removeListener('git:cloneProgress', h);
+	},
 	/** create a GitHub repository, add it as `remote`, publish the branch there -> { ok, url?, failure? }. */
 	githubPublish: (root: string, opts: { name: string; isPrivate: boolean; remote: string }) => invokeFs('git:githubPublish', root, opts),
 	/** git or ssh asking for a username, password, passphrase or host-key answer; returns an unsubscribe fn */

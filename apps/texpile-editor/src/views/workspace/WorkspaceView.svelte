@@ -1,4 +1,6 @@
 <script lang="ts">
+	import VersionChangesModal from './VersionChangesModal.svelte';
+	import { versionChanges } from '$lib/workspace/versionChanges.svelte';
 	import { fileMode, NO_PROJECT_CAPS } from '$lib/workspace/fileMode.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import WorkspaceModals from '$lib/modals/workspace/WorkspaceModals.svelte';
@@ -387,6 +389,9 @@
 	</WorkspaceChrome>
 
 	<ZoteroCitationDialog />
+	{#if versionChanges.entry && workspaceRoot.current}
+		<VersionChangesModal entry={versionChanges.entry} root={workspaceRoot.current} />
+	{/if}
 
 	<WorkspaceModals
 		bind:mainPrompt={files.mainPrompt}

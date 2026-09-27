@@ -1,6 +1,7 @@
 // the git:* surface, backing the Source Control panel. Every call runs in the helper process
 // (helper/helperWorker.ts); main only relays.
-import { helperCall } from '../helper/helperProcess';
+import type { WebContents } from 'electron';
+import { helperCall, onHelperEvent } from '../helper/helperProcess';
 import { handleFs, handleFsE } from './ipcResult';
 import { timeSpan } from '../startupStats';
 import { withAskpass, registerAskpassIpc } from '../gitAskpass';
@@ -20,6 +21,8 @@ const OPS: Record<string, string> = {
 	'git:log': 'gitLog',
 	'git:changesSince': 'gitChangesSince',
 	'git:showAt': 'gitShowAt',
+	'git:changesIn': 'gitChangesIn',
+	'git:fileAt': 'gitFileAt',
 	'git:restore': 'gitRestore',
 	'git:remotes': 'gitRemotes',
 	'git:addRemote': 'gitAddRemote',
@@ -51,6 +54,31 @@ export function registerGitIpc(): void {
 			);
 		});
 	}
+	// a clone reports its progress as it goes, to the window that asked for it, and only that
+	// window can stop it
+	let clones = 0;
+	const running = new Map<string, WebContents>();
+	handleFsE('git:clone', (e, url: string, parent: string, name: string) => {
+		const key = `clone-${++clones}`;
+		running.set(key, e.sender);
+		const off = onHelperEvent((ev) => {
+			if (ev.event === 'git-progress' && ev.key === key && !e.sender.isDestroyed()) e.sender.send('git:cloneProgress', ev.data);
+		});
+		return timeSpan(
+			'git:clone',
+			withAskpass(
+				e.sender,
+				(env) => helperCall('git.gitClone', [url, parent, name, env, key]) as Promise<{ ok: boolean; failure?: string }>
+			)
+		).finally(() => {
+			off();
+			running.delete(key);
+		});
+	});
+	handleFsE('git:cancelClone', async (e) => {
+		for (const [key, sender] of running) if (sender === e.sender) await helperCall('git.cancelClone', [key]);
+		return true;
+	});
 	handleFsE('git:githubPublish', (e, root: string, opts: { name: string; isPrivate: boolean; remote: string }) =>
 		timeSpan('git:githubPublish', githubPublish(e.sender, root, opts))
 	);

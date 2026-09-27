@@ -25,11 +25,29 @@ export type PublishAsk = {
 	submit: (choice: PublishChoice) => Promise<string | null>;
 };
 
+/** what to clone and where: `<parent>/<name>` becomes the project's folder */
+export type CloneChoice = { url: string; parent: string; name: string };
+
+/** git's stage and how far through it; a copy of gitClone's, which the dialogs may not import */
+export type CloneStep = { stage: string; percent: number };
+
+export type CloneAsk = {
+	/** where the last clone went, or next to the last folder opened; null when there is no guess */
+	parent: string | null;
+	pickParent: () => Promise<string | null>;
+	/** Runs the clone while the dialog stays up, reporting as it goes. Resolves to the error to show,
+	 *  '' when the author stopped it or closed a sign-in prompt, or null once it is done. */
+	submit: (choice: CloneChoice, onStep: (step: CloneStep) => void) => Promise<string | null>;
+	/** stop the clone under way */
+	stop: () => void;
+};
+
 type Pending<T, A> = T & { resolve: (answer: A) => void };
 
 let identity = $state<Pending<Identity, Identity | null> | null>(null);
 let publish = $state<Pending<PublishAsk, boolean> | null>(null);
 let questions = $state<GitAskpassRequest[]>([]);
+let clone = $state<Pending<CloneAsk, CloneChoice | null> | null>(null);
 
 export const gitDialogs = {
 	get identity() {
@@ -37,6 +55,9 @@ export const gitDialogs = {
 	},
 	get publish() {
 		return publish;
+	},
+	get clone() {
+		return clone;
 	},
 	/** the question on screen; any others wait behind it */
 	get question() {
@@ -70,6 +91,20 @@ export function askPublish(ask: PublishAsk): Promise<boolean> {
 export function closePublish(done: boolean): void {
 	const c = publish;
 	publish = null;
+	c?.resolve(done);
+}
+
+/** what was cloned, once it is on disk; null when the author backs out */
+export function askClone(ask: CloneAsk): Promise<CloneChoice | null> {
+	clone?.resolve(null);
+	return new Promise((resolve) => {
+		clone = { ...ask, resolve };
+	});
+}
+
+export function closeClone(done: CloneChoice | null): void {
+	const c = clone;
+	clone = null;
 	c?.resolve(done);
 }
 

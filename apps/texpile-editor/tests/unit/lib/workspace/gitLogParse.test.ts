@@ -76,7 +76,9 @@ describe('parseNameStatus', () => {
 
 	// a rename prints old then new; opening the old path would open nothing
 	it('takes the destination of a rename, not its source', () => {
-		expect(parseNameStatus('R096\tpaper/intro.tex\tpaper/introduction.tex\n')).toEqual([{ path: 'paper/introduction.tex', status: 'R' }]);
+		expect(parseNameStatus('R096\tpaper/intro.tex\tpaper/introduction.tex\n')).toEqual([
+			{ path: 'paper/introduction.tex', status: 'R', from: 'paper/intro.tex' }
+		]);
 	});
 
 	// a copy did not exist before, so it reads as an add; a typechange is a modification

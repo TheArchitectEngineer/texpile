@@ -10,6 +10,8 @@ section: Editor
 
 Texpile keeps versions of your project with git, from the Source Control panel. Changes since the last version are listed by file, you tick the ones to include, write what changed, and Save version. History lists every saved version, and any of them can be restored. If the folder is not a repository yet, the panel offers to initialise one, and Publish sends it to GitHub or any other remote.
 
+If the folder sits inside a larger repository, such as a home folder kept in git or a research repository with the paper in one subfolder, Source Control asks before using it: versions saved there are recorded in that repository with everything else in it. Use that repository, or start one for this folder only. The answer is remembered for the folder.
+
 | Where to find it | Path                    | Note                                     |
 | ---------------- | ----------------------- | ---------------------------------------- |
 | Panel            | Source Control          | The branch icon in the sidebar header.   |
@@ -21,6 +23,8 @@ Texpile keeps versions of your project with git, from the Source Control panel. 
 ## Visual diff
 
 A changed file opens in a diff against the last version. In the visual editor the changes are marked in the formatted text, word by word. In the source editor they are marked line by line.
+
+A version in History opens to what differs between it and your files now. To see what that version itself changed, open its menu and choose Show changes in this version: its files are listed with each one's difference from the version before.
 
 ![The visual editor showing a heading and a sentence changed since the last version](../landing/src/lib/assets/showcase/app/diff-view.png 'The visual editor showing a heading and a sentence changed since the last version')
 
@@ -43,6 +47,10 @@ Source Control lists the files under Both changed, and marks each one Ready once
 | Cancel combining | Puts everything back as it was before combining started.            |
 
 A merge started in the terminal gets the same Finish and Cancel. A rebase or cherry-pick left unfinished there is shown in the panel, and is finished or cancelled in the terminal.
+
+## Clone a repository
+
+To work on a project that is already on GitHub or elsewhere, choose Clone repository on the start screen or in the File menu. Paste its address: the repository's page, a page inside it, its clone address, or a `git clone` command from a README all work, and an Overleaf project page is turned into its git address. Choose the folder name and where it goes; the clone shows its progress, asks you to sign in if the repository is private, and opens the folder when it is done.
 
 ## Signing in
 

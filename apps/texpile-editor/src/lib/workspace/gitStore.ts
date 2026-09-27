@@ -40,6 +40,8 @@ export const gitOperation = box<GitOperation | null>(null);
 /** git itself is not installed, as against the folder not being a repository: the panel says
  *  which, since the one thing it can offer for "not a repository" fails without git */
 export const gitMissing = box<boolean>(false);
+/** where the repository starts, which is above the open folder when it sits inside a larger one */
+export const gitRepoRoot = box<string | null>(null);
 
 /** single-letter badges keyed by gitKey(absolutePath); drives the file tree. */
 export const gitStatusMap = box<Record<string, GitBadge>>({});
@@ -116,6 +118,7 @@ let lastHead: string | undefined;
 function clearGitState(): void {
 	lastHead = undefined;
 	gitOperation.current = null;
+	gitRepoRoot.current = null;
 	isGitRepo.current = false;
 	gitBranch.current = null;
 	gitTracking.current = null;
@@ -148,6 +151,7 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 	}
 	isGitRepo.current = true;
 	gitOperation.current = res.operation ?? null;
+	gitRepoRoot.current = res.repoRoot ?? null;
 	if (res.head !== undefined && res.head !== lastHead) {
 		const moved = lastHead !== undefined;
 		lastHead = res.head;

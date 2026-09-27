@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { navigate } from '$lib/router.svelte';
-	import { AppWindow, Folder, FolderOpen, Loader2, Settings, Users } from '@lucide/svelte';
+	import { AppWindow, Folder, FolderGit2, FolderOpen, Loader2, Settings, Users } from '@lucide/svelte';
 	import { combo } from '$lib/chrome/shortcutText';
 	import { whatsNewOpen, hasUnseenWhatsNew } from '$lib/whatsNew';
 	import AppFrame from '$lib/chrome/AppFrame.svelte';
@@ -21,6 +21,9 @@
 	import WelcomeSetup from '$lib/setup/WelcomeSetup.svelte';
 	import { setupOwed } from '$lib/setup/setupGate';
 	import { takePendingWorkspace } from '$lib/setup/pendingWorkspace';
+	import GitDialogsHost from '$lib/modals/workspace/GitDialogsHost.svelte';
+	import { startClone } from '$lib/workspace/cloneFlow';
+	import { canClone } from '$lib/workspace/gitClone';
 
 	// the flag is taken even when the welcome is owed anyway: left set, the workspace opens the welcome a second time
 	let welcome = $state(takeSetupReopen() || setupOwed());
@@ -96,6 +99,20 @@
 		}
 	}
 
+	// the clone dialog stays up until the folder exists, then this opens it like any other
+	function cloneRepository() {
+		preloadWorkspace();
+		error = null;
+		void startClone(async (path) => {
+			busy = true;
+			try {
+				if ((await openFolderInWindow(path)) === 'missing') error = m.start_error_open_folder();
+			} finally {
+				busy = false;
+			}
+		});
+	}
+
 	function afterSetup() {
 		welcome = false;
 		const held = takePendingWorkspace();
@@ -137,6 +154,12 @@
 				{#if busy}<Loader2 class="text-muted size-4 shrink-0 animate-spin" />{:else}<FolderOpen class="text-muted size-4 shrink-0" />{/if}
 				<span>{m.start_open_folder()}</span>
 			</button>
+			{#if canClone()}
+				<button class={rowClass} onclick={cloneRepository} disabled={busy}>
+					<FolderGit2 class="text-muted size-4 shrink-0" />
+					<span>{m.start_clone_repository()}</span>
+				</button>
+			{/if}
 			<button class={rowClass} onclick={() => navigate('/session')}>
 				<Users class="text-muted size-4 shrink-0" />
 				<span>{m.start_join_session()}</span>
@@ -204,6 +227,9 @@
 		</div>
 	</div>
 </AppFrame>
+
+<!-- the clone dialog, and git's sign-in questions while it runs -->
+<GitDialogsHost />
 
 <RecentFoldersModal bind:open={recentModalOpen} folders={recentFolders.current} onPick={(folder) => openFolder(folder)} />
 

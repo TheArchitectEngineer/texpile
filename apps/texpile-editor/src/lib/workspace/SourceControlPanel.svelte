@@ -12,7 +12,8 @@
 		ArrowDownUp,
 		CloudUpload,
 		TriangleAlert,
-		PackageX
+		PackageX,
+		FolderTree
 	} from '@lucide/svelte';
 	import ChangeList from './history/ChangeList.svelte';
 	import HistoryTimeline from './history/HistoryTimeline.svelte';
@@ -32,6 +33,9 @@
 		onRecheckGit?: () => void;
 		/** an unfinished merge, rebase, cherry-pick or revert */
 		operation?: GitOperation | null;
+		/** the repository starts above this folder and the author has not said to use it */
+		parentRepo?: string | null;
+		onUseParentRepo?: () => void;
 		branch: string | null;
 		/** the upstream this branch tracks; null means there is nowhere to upload to yet */
 		tracking?: string | null;
@@ -80,6 +84,8 @@
 		gitMissing = false,
 		onRecheckGit,
 		operation = null,
+		parentRepo = null,
+		onUseParentRepo,
 		branch,
 		tracking = null,
 		ahead = 0,
@@ -111,6 +117,13 @@
 		onFinishCombine,
 		onCancelCombine
 	}: Props = $props();
+
+	/** the end of a long path, which is the part that names the folder: the start is the same few
+	 *  folders for every project on the machine */
+	function tailOf(path: string): string {
+		const parts = path.split(/[\\/]/).filter(Boolean);
+		return path.length > 32 && parts.length > 2 ? `…/${parts.slice(-2).join('/')}` : path;
+	}
 
 	// what the author has chosen but not saved, kept outside the panel so it survives the panel
 	const draft = $derived(scmDraftFor(root));
@@ -210,6 +223,34 @@
 			<GitBranch class="size-4" />
 			{m.vcs_init_repo()}
 		</button>
+	</div>
+{:else if parentRepo}
+	<!-- found by looking upward, the way git does: used only once the author says so, since saving a
+	     version here would record it in that repository with everything else in it -->
+	<div class="flex flex-col items-center gap-3 p-6 text-center">
+		<FolderTree class="text-faint size-8" />
+		<p class="text-sm">{m.vcs_parent_repo()}</p>
+		<p class="bg-surface-200-800 max-w-full truncate rounded-base px-2 py-0.5 font-mono text-xs" use:tip={parentRepo}>
+			{tailOf(parentRepo)}
+		</p>
+		<p class="text-muted text-xs">{m.vcs_parent_repo_detail()}</p>
+		<div class="flex w-full flex-col gap-1.5">
+			<button
+				class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal h-auto py-1 whitespace-normal"
+				onclick={onUseParentRepo}
+				disabled={busy}
+			>
+				{m.vcs_parent_repo_use()}
+			</button>
+			<button
+				class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal h-auto gap-1.5 py-1 whitespace-normal"
+				onclick={onInit}
+				disabled={busy}
+			>
+				<GitBranch class="size-3.5" />
+				{m.vcs_parent_repo_init()}
+			</button>
+		</div>
 	</div>
 {:else}
 	<div class="flex h-full min-h-0 flex-col">

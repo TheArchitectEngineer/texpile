@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-// The panel during a merge: Finish combining stays disabled while any file still holds a marked
-// place, the file row opens that file rather than a comparison, and the ordinary Save version box
-// is not offered, since the merge is saved by Finish as one version.
+// The panel's guarded states. During a merge: Finish combining stays disabled while any file still
+// holds a marked place, the file row opens that file rather than a comparison, and the ordinary
+// Save version box is not offered, since the merge is saved by Finish as one version. Inside a
+// larger repository: nothing of it is used until the author says so.
 import { it, expect, vi, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import SourceControlPanel from '../../../../src/lib/workspace/SourceControlPanel.svelte';
@@ -82,4 +83,24 @@ it('leaves a rebase to the terminal it was started in', () => {
 	render([{ path: '/p/main.tex', x: 'U', y: 'U', markers: true }], { operation: 'rebase' });
 	expect(button('Finish combining')).toBeUndefined();
 	expect(document.body.textContent).toContain('git rebase --continue');
+});
+
+it('asks before using a repository that starts above the folder', () => {
+	const onUse = vi.fn();
+	const onInit = vi.fn();
+	render([{ path: '/p/main.tex', x: 'M', y: ' ' }], {
+		operation: null,
+		root: '/home/ada/papers/thesis',
+		parentRepo: '/home/ada',
+		onUseParentRepo: onUse,
+		onInit
+	});
+	// neither its changes nor anything that would save or send them
+	expect(document.body.textContent).not.toContain('main.tex');
+	expect(document.querySelector('textarea')).toBeNull();
+	expect(document.body.textContent).toContain('/home/ada');
+	button('Use that repository')!.click();
+	expect(onUse).toHaveBeenCalledOnce();
+	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Start a repository for this folder'))!.click();
+	expect(onInit).toHaveBeenCalledOnce();
 });

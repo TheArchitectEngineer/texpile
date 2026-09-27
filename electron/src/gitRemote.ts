@@ -50,7 +50,7 @@ export type GitAuthEnv = Record<string, string>;
 // one every other git here inherits by passing none - plus the askpass variables set above, and
 // the arguments that go with it are fixed here, with the only free text (a remote's name and
 // address) checked by isRemoteName / isRemoteUrl before it gets near them.
-const OWN_ENVIRONMENT: SimpleGitOptions['unsafe'] = {
+export const OWN_ENVIRONMENT: SimpleGitOptions['unsafe'] = {
 	allowUnsafeAlias: true,
 	allowUnsafeAskPass: true,
 	allowUnsafeConfigPaths: true,
@@ -76,7 +76,7 @@ const OWN_ENVIRONMENT: SimpleGitOptions['unsafe'] = {
  *
  *  GIT_TERMINAL_PROMPT=0 because there is no terminal to prompt on: with no credential helper and
  *  no askpass, git would otherwise wait for ever on a question nobody can see. */
-function netEnv(auth: GitAuthEnv): Record<string, string> {
+export function netEnv(auth: GitAuthEnv): Record<string, string> {
 	const env: Record<string, string> = {};
 	for (const [k, v] of Object.entries(process.env)) if (v !== undefined) env[k] = v;
 	return { ...env, GIT_TERMINAL_PROMPT: '0', ...auth };

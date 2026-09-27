@@ -1,4 +1,4 @@
-import { FilePlus2, FolderOpen, Play, RefreshCw, RotateCw, Save, Settings, Users, Wrench } from '@lucide/svelte';
+import { FilePlus2, FolderGit2, FolderOpen, Play, RefreshCw, RotateCw, Save, Settings, Users, Wrench } from '@lucide/svelte';
 import { isDirty } from '$lib/workspace/workspaceStore';
 import { nativeBridge } from '$lib/workspace/fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
@@ -77,6 +77,16 @@ export function fileItems(a: PaletteActions): PaletteItem[] {
 			keywords: 'project workspace directory',
 			icon: FolderOpen,
 			run: () => a.openFolder()
+		});
+	const clone = a.cloneRepository;
+	if (a.isHostWorkspace() && clone)
+		items.push({
+			id: 'file.clone',
+			label: m.palette_clone_repository(),
+			group,
+			keywords: 'git github download repository remote',
+			icon: FolderGit2,
+			run: () => clone()
 		});
 	items.push({
 		id: 'file.refreshTree',

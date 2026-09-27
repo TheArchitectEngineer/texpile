@@ -17,6 +17,7 @@
 	import type { ViewModeSwitch } from '$lib/workspace/viewModeSwitch.svelte';
 	import type { TerminalDockState } from '$lib/workspace/terminalDockState.svelte';
 	import { canCombine } from '$lib/workspace/gitCombine';
+	import { canClone } from '$lib/workspace/gitClone';
 	import { m } from '$lib/paraglide/messages';
 	import type { Snippet } from 'svelte';
 
@@ -96,6 +97,7 @@
 			onNewFile={menu.canManageTree ? actions.newFileOfType : undefined}
 			typstProject={menu.typstProject}
 			onOpenFolder={menu.hostMode ? actions.openFolder : undefined}
+			onCloneRepository={menu.hostMode && canClone() ? actions.cloneRepository : undefined}
 			onCloseWorkspace={menu.hostMode ? actions.closeWorkspace : undefined}
 			onSave={actions.save}
 			onShareSession={menu.shareable ? actions.openShare : undefined}

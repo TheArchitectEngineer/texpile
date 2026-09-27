@@ -45,6 +45,7 @@ export type MenuState = {
 	canInsertImage: boolean;
 	/** the workspace may be swapped out. False for a guest: it would abandon the session unleft */
 	canOpenFolder: boolean;
+	canClone?: boolean;
 	canTutorial: boolean;
 	recentFolders: string[];
 	/** the start screen (or another workspace-less screen): the bar offers only what opens a folder */
@@ -187,6 +188,7 @@ function template(win: BrowserWindow, s: MenuState): MenuItemConstructorOptions[
 				...(s.canOpenFolder
 					? [{ label: label(s, 'openFolder', 'Open folder…'), click: () => fire(win, 'openfolder:newfolder') }, ...recentItems(win, s)]
 					: []),
+				...(s.canClone ? [{ label: label(s, 'clone', 'Clone repository…'), click: () => fire(win, 'file:clone') }] : []),
 				{ type: 'separator' },
 				{ label: label(s, 'newWindow', 'New window'), accelerator: 'Shift+CmdOrCtrl+N', click: () => fire(win, 'file:new-window') },
 				{ label: label(s, 'openFolderNewWindow', 'Open folder in new window'), click: () => fire(win, 'file:open-folder-new-window') },

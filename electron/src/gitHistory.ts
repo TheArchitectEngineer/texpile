@@ -6,8 +6,9 @@ import { git, isMissingGit, errMsg, resolveRepoRoot, toRepoRel, markGitMissing, 
 
 // ── history ────────────────────────────────────────────────────────────────────
 
-/** by absolute path; status narrowed to the letters a badge exists for */
-export type GitFileChange = { path: string; status: 'A' | 'M' | 'D' | 'R' };
+/** by absolute path; status narrowed to the letters a badge exists for. A rename carries the
+ *  name it had before in `from`. */
+export type GitFileChange = { path: string; status: 'A' | 'M' | 'D' | 'R'; from?: string };
 
 export type GitLogEntry = {
 	hash: string;
@@ -74,7 +75,7 @@ export function parseNameStatus(raw: string): GitFileChange[] {
 		const path = paths[paths.length - 1].trim();
 		if (!path) continue;
 		if (letter === 'D') out.push({ path, status: 'D' });
-		else if (letter === 'R') out.push({ path, status: 'R' });
+		else if (letter === 'R') out.push({ path, status: 'R', from: paths[0].trim() });
 		else if (letter === 'A' || letter === 'C') out.push({ path, status: 'A' });
 		else out.push({ path, status: 'M' });
 	}
@@ -129,14 +130,7 @@ export async function gitChangesSince(workspaceRoot: string, hash: string): Prom
 		// A is a file that did not exist then, D one that has gone since
 		const raw = await git(rr.root).raw(['diff', '--name-status', hash, ...(rel ? ['--', rel] : [])]);
 		// git prints from the REPO root; the renderer deals only in absolute paths inside the folder
-		const wsAbs = resolve(workspaceRoot);
-		const entries = parseNameStatus(raw)
-			.map((f) => ({ ...f, path: resolve(rr.root as string, f.path) }))
-			.filter((f) => {
-				const inside = relative(wsAbs, f.path);
-				return inside !== '' && !inside.startsWith('..') && !isAbsolute(inside);
-			});
-		return { ok: true, entries };
+		return { ok: true, entries: insideFolder(rr.root, workspaceRoot, parseNameStatus(raw)) };
 	} catch (e) {
 		if (isMissingGit(e)) {
 			markGitMissing();
@@ -163,6 +157,72 @@ export async function gitShowAt(absPath: string, ref: string): Promise<GitShowRe
 		}
 		const msg = errMsg(e);
 		// the file simply did not exist at that revision: an empty baseline, not an error
+		if (/exists on disk, but not in|does not exist in|unknown revision|bad revision|invalid object name|ambiguous argument/i.test(msg)) {
+			return { ok: true, hasHead: false, content: '' };
+		}
+		return { ok: false, hasHead: false, error: msg };
+	}
+}
+
+/** the repo-relative paths git printed, as absolute paths, keeping only those inside the folder */
+function insideFolder(repoRoot: string, workspaceRoot: string, changes: GitFileChange[]): GitFileChange[] {
+	const wsAbs = resolve(workspaceRoot);
+	return changes
+		.map((f) => ({ ...f, path: resolve(repoRoot, f.path), ...(f.from ? { from: resolve(repoRoot, f.from) } : {}) }))
+		.filter((f) => {
+			const inside = relative(wsAbs, f.path);
+			return inside !== '' && !inside.startsWith('..') && !isAbsolute(inside);
+		});
+}
+
+export type GitVersionChangesResult = GitChangesResult & {
+	/** what the version is compared with: its first parent, or null for a project's first version */
+	parent?: string | null;
+};
+
+/**
+ * What one version itself changed, against the version before it: the commit view VS Code and
+ * GitHub show, next to the "what differs from now" a version opens to in the panel. A merge is
+ * read against its first parent, so it lists what the merge brought in.
+ */
+export async function gitChangesIn(workspaceRoot: string, hash: string): Promise<GitVersionChangesResult> {
+	if (!/^[0-9a-f]{4,64}$/i.test(hash)) return { ok: false, error: 'Invalid revision' };
+	const rr = await resolveRepoRoot(workspaceRoot);
+	if (!rr.root) return { ok: false, reason: rr.reason };
+	try {
+		const g = git(rr.root);
+		const [rel] = toRepoRel(rr.root, [workspaceRoot]);
+		const scope = rel ? ['--', rel] : [];
+		// with -q a missing parent prints nothing and exits 1, which simple-git resolves as ''
+		const parent = (await g.raw(['rev-parse', '--verify', '-q', `${hash}^1`])).trim() || null;
+		const raw = parent
+			? await g.raw(['diff', '--name-status', '-M', parent, hash, ...scope])
+			: await g.raw(['diff-tree', '--root', '-r', '-M', '--no-commit-id', '--name-status', hash, ...scope]);
+		return { ok: true, parent, entries: insideFolder(rr.root, workspaceRoot, parseNameStatus(raw)) };
+	} catch (e) {
+		if (isMissingGit(e)) {
+			markGitMissing();
+			return { ok: false, reason: 'no-git' };
+		}
+		return { ok: false, error: errMsg(e) };
+	}
+}
+
+/** A file as it was at `ref`, found through the project folder rather than the file's own: a file
+ *  in a folder deleted since has no directory left to find its repository from. */
+export async function gitFileAt(workspaceRoot: string, absPath: string, ref: string): Promise<GitShowResult> {
+	if (!absPath || !ref) return { ok: false, hasHead: false, error: 'Missing path or revision' };
+	const rr = await resolveRepoRoot(workspaceRoot);
+	if (!rr.root) return { ok: false, hasHead: false, reason: rr.reason };
+	try {
+		const [rel] = toRepoRel(rr.root, [absPath]);
+		return { ok: true, hasHead: true, content: await git(rr.root).show([`${ref}:${rel}`]) };
+	} catch (e) {
+		if (isMissingGit(e)) {
+			markGitMissing();
+			return { ok: false, hasHead: false, reason: 'no-git' };
+		}
+		const msg = errMsg(e);
 		if (/exists on disk, but not in|does not exist in|unknown revision|bad revision|invalid object name|ambiguous argument/i.test(msg)) {
 			return { ok: true, hasHead: false, content: '' };
 		}

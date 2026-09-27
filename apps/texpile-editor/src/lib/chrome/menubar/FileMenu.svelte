@@ -17,6 +17,7 @@
 		canNewFile: boolean;
 		typstProject: boolean;
 		canOpenFolder: boolean;
+		canClone?: boolean;
 		canCloseWorkspace: boolean;
 		canShareSession: boolean;
 	};
@@ -29,6 +30,7 @@
 		canNewFile,
 		typstProject,
 		canOpenFolder,
+		canClone = false,
 		canCloseWorkspace,
 		canShareSession
 	}: Props = $props();
@@ -97,6 +99,9 @@
 							</Menu.Positioner>
 						</Portal>
 					</Menu>
+				{/if}
+				{#if canClone}
+					<Menu.Item value="clone" class={itemClass}><Menu.ItemText>{m.menubar_clone_repository()}</Menu.ItemText></Menu.Item>
 				{/if}
 				{#if isDesktop()}
 					<Menu.Separator class={separatorClass} />

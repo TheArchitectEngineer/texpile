@@ -4,7 +4,9 @@
 	// is the one standing next to Restore. Shaped after VS Code's Source Control Graph.
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { onDestroy } from 'svelte';
-	import { GitCommitHorizontal, GitBranch, TriangleAlert, MoreHorizontal, History } from '@lucide/svelte';
+	import { GitCommitHorizontal, GitBranch, TriangleAlert, MoreHorizontal, History, FileDiff } from '@lucide/svelte';
+	import { showVersionChanges } from '$lib/workspace/versionChanges.svelte';
+	import { canShowVersion } from '$lib/workspace/gitVersion';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import GraphRail from './GraphRail.svelte';
 	import FileIcon from '$lib/filetree/FileIcon.svelte';
@@ -167,6 +169,21 @@
 					<Popover.Positioner class="z-floating-ui">
 						<Popover.Content class="card bg-surface-50-950 border-surface-300-700 min-w-[190px] border shadow-lg">
 							<div class="py-1">
+								<!-- what the version itself changed, which the row does not show: it opens to what
+								     differs from it now -->
+								{#if canShowVersion()}
+									<button
+										type="button"
+										class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
+										onclick={() => {
+											openMenu = null;
+											showVersionChanges(entry);
+										}}
+									>
+										<FileDiff class="size-4 shrink-0" />
+										{m.vcs_version_changes_open()}
+									</button>
+								{/if}
 								<button
 									type="button"
 									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"

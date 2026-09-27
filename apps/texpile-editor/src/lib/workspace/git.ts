@@ -38,6 +38,8 @@ export type GitStatusResult = {
 	head?: string;
 	/** an unfinished merge, rebase, cherry-pick or revert, or null */
 	operation?: GitOperation | null;
+	/** where the repository starts: the folder itself, or one above it */
+	repoRoot?: string;
 };
 
 export type GitShowResult = {
@@ -136,7 +138,8 @@ export async function gitCommit(root: string, message: string): Promise<GitOpRes
 
 /** one file that differs between two states, by absolute path. `status` maps onto the tree's
  *  badge colours, so a file reads the same here as it does in the explorer. */
-export type GitFileChange = { path: string; status: GitBadge };
+/** a rename carries the path it had before in `from` */
+export type GitFileChange = { path: string; status: GitBadge; from?: string };
 
 export type GitLogEntry = {
 	hash: string;

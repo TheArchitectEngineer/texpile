@@ -50,6 +50,8 @@ export type PaletteActions = {
 	openShareSession?: () => void;
 	newFile(ext?: string): void;
 	openFolder(): void;
+	/** absent where git cannot be run: the web build, an older desktop preload */
+	cloneRepository?: () => void;
 	refreshTree(): void;
 	/** open tinymist's incremental viewer for the current .typ, in its own window */
 	openTypstPreview(): void;

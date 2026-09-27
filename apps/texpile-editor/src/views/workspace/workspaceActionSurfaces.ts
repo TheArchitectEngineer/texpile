@@ -1,5 +1,7 @@
 // The workspace's three callback surfaces: the editor-column actions WorkspaceMain hands
 // down, the chrome actions the menu bar and sidebar get, and the Ctrl+K palette commands.
+import { startClone } from '$lib/workspace/cloneFlow';
+import { canClone } from '$lib/workspace/gitClone';
 import { fileMode } from '$lib/workspace/fileMode.svelte';
 import { tabs, tabKey, type Tab } from '$lib/workspace/tabs.svelte';
 import { collabGuest } from '$lib/collab/guestStore.svelte';
@@ -220,6 +222,8 @@ export function makeChromeActions(d: ActionSurfaceDeps) {
 		},
 		newFileOfType: (ext?: string) => d.files().newFileOfType(ext),
 		openFolder: (path?: string) => void d.files().folder.open(path),
+		// the clone opens here the way Open Folder does, unsaved-work checks and all
+		cloneRepository: () => void startClone((path) => d.files().folder.open(path)),
 		closeWorkspace: () => void d.files().folder.close(),
 		save: () => d.wsdoc.save(),
 		openShare: () => d.setShareModalOpen(true),
@@ -291,6 +295,7 @@ export function makePaletteActions(d: ActionSurfaceDeps) {
 		openShareSession: isDesktop() && !d.guest() ? () => d.setShareModalOpen(true) : undefined,
 		newFile: (ext?: string) => d.files().newFileOfType(ext),
 		openFolder: () => void d.files().folder.open(),
+		cloneRepository: canClone() ? () => void startClone((path) => d.files().folder.open(path)) : undefined,
 		refreshTree: () => void d.files().refreshTree(),
 		openTypstPreview: () => d.typstPreview.enable(),
 		isTypstProject: () => d.cc.typstProject,

@@ -7,6 +7,8 @@ import * as gitService from '../gitService';
 import * as gitRemote from '../gitRemote';
 import * as gitHistory from '../gitHistory';
 import * as gitCombine from '../gitCombine';
+import { gitClone } from '../gitClone';
+import type { GitAuthEnv } from '../gitRemote';
 import { startWorkspaceWatch, stopWorkspaceWatch } from '../fs/fsWatch';
 import { pathKey } from '../shell/toolDirs';
 
@@ -24,6 +26,9 @@ Object.assign(process.env, { LANGUAGE: 'en', LC_ALL: 'en_US.UTF-8', LANG: 'en_US
 
 const port = process.parentPort;
 
+/** clones under way, by the key main gave each */
+const clones = new Map<string, AbortController>();
+
 function run(op: string, args: unknown[]): unknown {
 	if (op === 'watch.start') {
 		const [key, root] = args as [string, string];
@@ -36,6 +41,20 @@ function run(op: string, args: unknown[]): unknown {
 	}
 	if (op === 'env.path') {
 		process.env[pathKey()] = args[0] as string;
+		return true;
+	}
+	if (op === 'git.gitClone') {
+		// the one git call that reports as it goes, and the one that can be stopped: both by the key
+		// in its last argument
+		const [url, parent, name, auth, key] = args as [string, string, string, GitAuthEnv, string];
+		const stop = new AbortController();
+		clones.set(key, stop);
+		return gitClone(url, parent, name, auth, (data) => port.postMessage({ event: 'git-progress', key, data }), stop.signal).finally(() =>
+			clones.delete(key)
+		);
+	}
+	if (op === 'git.cancelClone') {
+		clones.get(args[0] as string)?.abort();
 		return true;
 	}
 	if (op.startsWith('git.')) {
