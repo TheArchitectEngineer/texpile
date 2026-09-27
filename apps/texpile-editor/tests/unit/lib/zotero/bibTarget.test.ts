@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appendBibEntries, bibPathFromSource, citationTextFor, translatorForSource } from '$lib/zotero/bibTarget';
+import { appendBibEntries, bibPathFromSource, citationTextFor, translatorForSource, typstBibliographyPaths } from '$lib/zotero/bibTarget';
 
 describe('bibPathFromSource', () => {
 	it('takes addbibresource as written, options and all', () => {
@@ -25,9 +25,32 @@ describe('bibPathFromSource', () => {
 		expect(bibPathFromSource('#bibliography(("a.bib", "b.bib"), style: "apa")', 'typ')).toBe('a.bib');
 	});
 
+	it('never picks a Hayagriva file in a typst list, where BibTeX would break it', () => {
+		expect(bibPathFromSource('#bibliography(("refs.yml", "extra.bib"))', 'typ')).toBe('extra.bib');
+		expect(bibPathFromSource('#bibliography("refs.yml")', 'typ')).toBeNull();
+		expect(bibPathFromSource('#bibliography("refs.yaml")', 'typ')).toBeNull();
+	});
+
 	it('returns null when nothing is declared', () => {
 		expect(bibPathFromSource('\\documentclass{article}', 'tex')).toBeNull();
 		expect(bibPathFromSource('= Heading', 'typ')).toBeNull();
+	});
+});
+
+describe('typstBibliographyPaths', () => {
+	it('lists every file of the call, one or an array', () => {
+		expect(typstBibliographyPaths('#bibliography("refs.yml")')).toEqual(['refs.yml']);
+		expect(typstBibliographyPaths('#bibliography(("a.yml", "b.bib"), title: none)')).toEqual(['a.yml', 'b.bib']);
+		expect(typstBibliographyPaths('#bibliography(\n  (\n    "a.bib",\n    "b.yml",\n  ),\n)')).toEqual(['a.bib', 'b.yml']);
+	});
+
+	it('skips set rules and commented-out calls for the real one', () => {
+		const src = '#set bibliography(style: "apa")\n// #bibliography("old.bib")\n#bibliography("new.yml")';
+		expect(typstBibliographyPaths(src)).toEqual(['new.yml']);
+	});
+
+	it('is empty when nothing is declared', () => {
+		expect(typstBibliographyPaths('= Title\nThe word bibliography, in prose.')).toEqual([]);
 	});
 });
 

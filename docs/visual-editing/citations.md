@@ -35,6 +35,8 @@ The @ picker reads whichever .bib files are in your project. Open the .bib file 
 
 The @ picker works the same way. A citation key shows as the author and year, and any other reference shows its label, since the number comes from the compiler. A `#bibliography` call shows as a card, and a .bib file it points at opens in the same form. The citation editor, with its page numbers, prefix, and style, is for LaTeX only.
 
+Keys from a Hayagriva .yml bibliography, Typst's own format, are in the picker too. References added from Zotero or by DOI are BibTeX, so they always go into a .bib file: when `#bibliography` lists only .yml files, Texpile adds them to a .bib and asks you to list it as well.
+
 ## In Markdown
 
 Markdown has no bibliography, so the picker is not offered.

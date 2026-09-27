@@ -1371,6 +1371,8 @@
 	"zotero_none_new_title": "Already in the bibliography",
 	"zotero_bib_created_title": "Created {name}",
 	"zotero_bib_created_desc": "Your main file does not reference it yet. Add a bibliography command to use it.",
+	"zotero_bib_beside_yml_title": "Add {name} to your bibliography",
+	"zotero_bib_beside_yml_desc": "{yml} is a Hayagriva file and new references are BibTeX, so they went to {name}. List both files in #bibliography to use them.",
 	"zotero_dialog_placeholder": "Search your Zotero library",
 	"zotero_dialog_type_hint": "Type to search your Zotero library.",
 	"zotero_dialog_empty": "No matches in your Zotero library.",

@@ -1371,6 +1371,8 @@
 	"zotero_none_new_title": "文献已存在",
 	"zotero_bib_created_title": "已创建 {name}",
 	"zotero_bib_created_desc": "主文件尚未引用该文件,请添加参考文献命令后使用。",
+	"zotero_bib_beside_yml_title": "将 {name} 加入参考文献",
+	"zotero_bib_beside_yml_desc": "{yml} 是 Hayagriva 文件,而新参考文献是 BibTeX 格式,因此已写入 {name}。请在 #bibliography 中同时列出这两个文件后使用。",
 	"zotero_dialog_placeholder": "搜索 Zotero 文献库",
 	"zotero_dialog_type_hint": "输入以搜索 Zotero 文献库。",
 	"zotero_dialog_empty": "Zotero 文献库中没有匹配项。",

@@ -1371,6 +1371,8 @@
 	"zotero_none_new_title": "文獻已存在",
 	"zotero_bib_created_title": "已建立 {name}",
 	"zotero_bib_created_desc": "主文件尚未引用該檔案,請加入參考文獻命令後使用。",
+	"zotero_bib_beside_yml_title": "將 {name} 加入參考文獻",
+	"zotero_bib_beside_yml_desc": "{yml} 是 Hayagriva 檔案,而新參考文獻是 BibTeX 格式,因此已寫入 {name}。請在 #bibliography 中同時列出這兩個檔案後使用。",
 	"zotero_dialog_placeholder": "搜尋 Zotero 文獻庫",
 	"zotero_dialog_type_hint": "輸入以搜尋 Zotero 文獻庫。",
 	"zotero_dialog_empty": "Zotero 文獻庫中沒有相符項目。",

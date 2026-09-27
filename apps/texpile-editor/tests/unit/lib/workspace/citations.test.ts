@@ -130,3 +130,25 @@ describe('loadReferences (.bib beats .bbl on key clashes)', () => {
 		expect(refs[1].fromBibitem).toBe(true);
 	});
 });
+
+describe('loadReferences (Hayagriva .yml files)', () => {
+	const hayagriva = 'doan2020:\n  type: article\n  title: Kinetics\n  author: Doan, T. D.\n  date: 2020-10-14\n';
+	const workflow = 'name: CI\non:\n  push:\njobs:\n  build:\n    runs-on: ubuntu-latest\n';
+
+	it("reads a Typst project's Hayagriva bibliography and ignores its other YAML", async () => {
+		const files = [
+			{ name: 'main.bib', path: '/p/main.bib', relPath: 'main.bib' },
+			{ name: 'refs.yml', path: '/p/refs.yml', relPath: 'refs.yml' },
+			{ name: 'ci.yaml', path: '/p/ci.yaml', relPath: 'ci.yaml' }
+		];
+		let scanned: string[] = [];
+		await loadReferences('/p', {
+			scan: async (_root, exts) => ((scanned = exts), files),
+			read: async (p) => (p.endsWith('.bib') ? bibA : p.endsWith('refs.yml') ? hayagriva : workflow)
+		});
+		expect(scanned).toEqual(expect.arrayContaining(['yml', 'yaml']));
+		const refs = references.current;
+		expect(refs.map((r) => r.key)).toEqual(['smith2020', 'doan2020']);
+		expect(refs[1]).toMatchObject({ title: 'Kinetics', author: 'Doan, T. D.', year: '2020', fromHayagriva: true });
+	});
+});

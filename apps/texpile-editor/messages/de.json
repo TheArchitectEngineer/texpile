@@ -1371,6 +1371,8 @@
 	"zotero_none_new_title": "Bereits in der Bibliografie",
 	"zotero_bib_created_title": "{name} erstellt",
 	"zotero_bib_created_desc": "Die Hauptdatei verweist noch nicht darauf. Bibliografie-Befehl ergänzen, um sie zu nutzen.",
+	"zotero_bib_beside_yml_title": "{name} zur Bibliografie hinzufügen",
+	"zotero_bib_beside_yml_desc": "{yml} ist eine Hayagriva-Datei, neue Quellen sind aber BibTeX und stehen daher in {name}. Beide Dateien in #bibliography aufführen, um sie zu nutzen.",
 	"zotero_dialog_placeholder": "Zotero-Bibliothek durchsuchen",
 	"zotero_dialog_type_hint": "Tippen, um die Zotero-Bibliothek zu durchsuchen.",
 	"zotero_dialog_empty": "Keine Treffer in der Zotero-Bibliothek.",

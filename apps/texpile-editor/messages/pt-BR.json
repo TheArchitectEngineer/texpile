@@ -1210,6 +1210,8 @@
 	"zotero_none_new_title": "Já na bibliografia",
 	"zotero_bib_created_title": "Criado {name}",
 	"zotero_bib_created_desc": "Seu arquivo principal ainda não o referencia. Adicione um comando de bibliografia para usá-lo.",
+	"zotero_bib_beside_yml_title": "Adicione {name} à sua bibliografia",
+	"zotero_bib_beside_yml_desc": "{yml} é um arquivo Hayagriva e as novas referências são BibTeX, por isso foram para {name}. Liste os dois arquivos em #bibliography para usá-las.",
 	"zotero_dialog_placeholder": "Pesquisar em sua biblioteca do Zotero",
 	"zotero_dialog_type_hint": "Digite para pesquisar sua biblioteca do Zotero.",
 	"zotero_dialog_empty": "Nenhum resultado na biblioteca do Zotero.",

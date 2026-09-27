@@ -9,6 +9,8 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: shift-enter in a display equation starts a new one of the same kind below it (by @hkarlsen06)
 - fix: opening a recent folder that was moved or deleted says so and offers to remove it from the list, instead of doing nothing or showing an empty workspace (by @louisqli)
 - feat: cite a paper by its DOI or arXiv ID: paste it, check the work it names, and Texpile adds a clean BibTeX entry to your bibliography and cites it (right-click menu or Ctrl+K) (by @louisqli)
+- fix: Zotero and Cite by DOI no longer write BibTeX into a Typst project's Hayagriva .yml bibliography; the entries go to a .bib, and Texpile asks you to list it in `#bibliography` (by @louisqli)
+- feat: keys from a Hayagriva .yml bibliography are in the @ picker and show as author and year (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 
