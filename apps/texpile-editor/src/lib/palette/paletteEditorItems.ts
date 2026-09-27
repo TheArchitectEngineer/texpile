@@ -1,6 +1,7 @@
 import { AlignLeft, BookMarked, Keyboard, ArrowDownToLine, ArrowUpToLine } from '@lucide/svelte';
 import { sourceCmView } from '$lib/stores/editorStore';
 import { changedLines, nextChange, previousChange } from '$lib/editor/source/cmChangeMarkers';
+import { conflictBlocks, nextConflict, previousConflict } from '$lib/editor/source/cmConflicts';
 import { isMac } from '$lib/platform';
 import { settings, updateSettings, type AppSettings } from '$lib/settings';
 import type { PaletteActions } from '$lib/workspace/commandPalette.svelte';
@@ -41,6 +42,24 @@ export function editorItems(a: PaletteActions): PaletteItem[] {
 				group,
 				keywords: 'diff git change version modified line',
 				hint: isMac ? `${shift ? '⇧' : ''}⌥F5` : `${shift ? 'Shift+' : ''}Alt+F5`,
+				icon,
+				run: () => {
+					step(view);
+					view.focus();
+				}
+			});
+	}
+	// the places a merge marked, where there are any
+	if (view && (view.state.field(conflictBlocks, false) ?? []).length) {
+		for (const [id, label, step, icon] of [
+			['editor.nextConflict', m.palette_next_conflict(), nextConflict, ArrowDownToLine],
+			['editor.previousConflict', m.palette_previous_conflict(), previousConflict, ArrowUpToLine]
+		] as const)
+			items.push({
+				id,
+				label,
+				group,
+				keywords: 'merge conflict combine both versions marked place',
 				icon,
 				run: () => {
 					step(view);

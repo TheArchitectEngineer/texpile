@@ -9,6 +9,7 @@
 	import GlobalSearch from '$lib/search/GlobalSearch.svelte';
 	import SourceControlPanel from '$lib/workspace/SourceControlPanel.svelte';
 	import TableOfContents from './TableOfContents.svelte';
+	import SidebarIconButton from './SidebarIconButton.svelte';
 	import { workspaceRoot, fileTree, activeFilePath, mainFile } from '$lib/workspace/workspaceStore';
 	import {
 		isGitRepo,
@@ -170,7 +171,16 @@
 
 	// One list, rendered either as a header icon or as a menu row, so the two can never drift apart.
 	// `active` is the view-toggle state the icon shows as a tint.
-	type SidebarAction = { key: string; icon: typeof FilePlus; label: string; title?: string; active?: boolean; run: () => void };
+	// count: drawn on the icon, as VS Code badges Source Control's with its changed files
+	type SidebarAction = {
+		key: string;
+		icon: typeof FilePlus;
+		label: string;
+		title?: string;
+		active?: boolean;
+		count?: number;
+		run: () => void;
+	};
 
 	/**
 	 * The plain actions, in the order they give way to the "..." menu (last one goes first).
@@ -201,6 +211,7 @@
 						icon: GitBranch,
 						label: m.wsview_source_control(),
 						active: view === 'scm',
+						count: gitChanges.current.length,
 						run: () => (view = view === 'scm' ? 'explorer' : 'scm')
 					},
 					{
@@ -314,15 +325,14 @@
 
 			<!-- after the menu, so the toggles keep the same two slots at the right edge whatever collapses -->
 			{#each pinned as action (action.key)}
-				{@const Icon = action.icon}
-				<button
-					class="btn-icon btn-icon-xs {action.active ? 'text-primary-ink' : 'hover:preset-tonal'}"
-					use:tip={action.title ?? action.label}
-					aria-label={action.label}
+				<SidebarIconButton
+					icon={action.icon}
+					label={action.label}
+					title={action.title}
+					active={action.active}
+					count={action.count}
 					onclick={action.run}
-				>
-					<Icon class="size-4" />
-				</button>
+				/>
 			{/each}
 		</div>
 	</div>

@@ -9,6 +9,9 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: Sync takes in versions saved elsewhere and sends yours, and undoes the attempt rather than leave a conflict behind
 - feat: git's sign-in questions (a password or token, an SSH key's passphrase, a server it has not seen) are asked in the window instead of failing
 - feat: the first version saved on a computer asks for the name and email git records, once
+- feat: switching branches over changes that would be overwritten offers to save them as a version first, then switch
+- feat: the Source Control icon counts changed files, and with nothing to save the panel offers Sync or Publish as its main button
+- feat: combining highlights the words that differ between the two versions, goes from one marked place to the next, keeps one side everywhere at once, and marks the file's tab
 - feat: without a credential helper, sign-ins that worked are kept in the system keychain instead of being asked for on every upload; Forget saved Git sign-ins removes them
 - feat: an upload GitHub refuses because the repository is someone else's offers to fork it and upload there
 - feat: Publish to a new GitHub repository can upload over SSH

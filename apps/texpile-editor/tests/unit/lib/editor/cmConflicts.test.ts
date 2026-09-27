@@ -3,7 +3,14 @@ import { it, expect, afterEach } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { history, undo } from '@codemirror/commands';
-import { cmConflicts, conflictBlocks, chooseConflict } from '$lib/editor/source/cmConflicts';
+import {
+	cmConflicts,
+	conflictBlocks,
+	chooseConflict,
+	chooseAllConflicts,
+	nextConflict,
+	previousConflict
+} from '$lib/editor/source/cmConflicts';
 
 const DOC = ['Intro.', '<<<<<<< HEAD', 'My line.', '=======', 'Their line.', '>>>>>>> origin/main', 'Outro.', ''].join('\n');
 
@@ -61,4 +68,38 @@ it('draws nothing in a file with no marked places', () => {
 	const view = mount('Just text.\n=======\n');
 	expect(view.state.field(conflictBlocks)).toEqual([]);
 	expect(view.dom.querySelector('.cm-conflict-bar')).toBeNull();
+});
+
+const TWO = `${DOC}Middle.\n<<<<<<< HEAD\nA\n=======\nB\n>>>>>>> origin/main\nEnd.\n`;
+
+it('settles every place the same way at once, as one undo step', () => {
+	const view = mount(TWO);
+	view.dispatch(chooseAllConflicts(view.state, 'theirs')!);
+	expect(view.state.doc.toString()).toBe('Intro.\nTheir line.\nOutro.\nMiddle.\nB\nEnd.\n');
+	undo(view);
+	expect(view.state.doc.toString()).toBe(TWO);
+	expect(chooseAllConflicts(mount('No places.\n').state, 'mine')).toBeNull();
+});
+
+it('goes from one place to the next and back, wrapping round', () => {
+	const view = mount(TWO);
+	const [first, second] = view.state.field(conflictBlocks);
+	nextConflict(view);
+	expect(view.state.selection.main.head).toBe(first.from);
+	nextConflict(view);
+	expect(view.state.selection.main.head).toBe(second.from);
+	nextConflict(view);
+	expect(view.state.selection.main.head).toBe(first.from);
+	previousConflict(view);
+	expect(view.state.selection.main.head).toBe(second.from);
+});
+
+it('marks the words that differ between the two sides, and not the ones they share', () => {
+	const view = mount('<<<<<<< HEAD\nThe engine weaves flowers and leaves.\n=======\nThe engine weaves flowers and lattices.\n>>>>>>> b\n');
+	const mine = [...view.dom.querySelectorAll('.cm-conflict-differs-mine')].map((e) => e.textContent).join('');
+	const theirs = [...view.dom.querySelectorAll('.cm-conflict-differs-theirs')].map((e) => e.textContent).join('');
+	expect(mine).toContain('leaves');
+	expect(theirs).toContain('lattices');
+	expect(mine).not.toContain('engine');
+	expect(theirs).not.toContain('flowers');
 });

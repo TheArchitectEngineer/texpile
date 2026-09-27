@@ -2,21 +2,11 @@
 	// History panel, purely presentational: WorkspaceView implements the callbacks. No
 	// staged/unstaged split - the tick boxes ARE the staging, so a version's scope is visible.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import {
-		GitBranch,
-		RefreshCw,
-		Check,
-		GitCommitHorizontal,
-		ArrowUp,
-		ArrowDown,
-		ArrowDownUp,
-		CloudUpload,
-		TriangleAlert,
-		PackageX,
-		FolderTree
-	} from '@lucide/svelte';
+	import { GitBranch, RefreshCw, Check, GitCommitHorizontal, ArrowUp, ArrowDown, ArrowDownUp, CloudUpload, PackageX } from '@lucide/svelte';
 	import ChangeList from './history/ChangeList.svelte';
 	import BranchPicker from './history/BranchPicker.svelte';
+	import OperationBanner from './history/OperationBanner.svelte';
+	import ParentRepoGate from './history/ParentRepoGate.svelte';
 	import type { GitBranchesResult } from '$lib/workspace/gitBranches';
 	import HistoryTimeline from './history/HistoryTimeline.svelte';
 	import { pathLabels } from './history/pathLabels';
@@ -135,13 +125,6 @@
 		onCancelCombine
 	}: Props = $props();
 
-	/** the end of a long path, which is the part that names the folder: the start is the same few
-	 *  folders for every project on the machine */
-	function tailOf(path: string): string {
-		const parts = path.split(/[\\/]/).filter(Boolean);
-		return path.length > 32 && parts.length > 2 ? `…/${parts.slice(-2).join('/')}` : path;
-	}
-
 	// what the author has chosen but not saved, kept outside the panel so it survives the panel
 	const draft = $derived(scmDraftFor(root));
 
@@ -193,24 +176,6 @@
 	/** files still holding a place nobody has chosen for */
 	const marked = $derived(conflicts.filter((c) => c.markers).length);
 
-	// what is unfinished, in words that say where to finish it
-	const operationText = $derived(
-		combining
-			? marked
-				? marked === 1
-					? m.vcs_combining_one()
-					: m.vcs_combining_count({ count: marked })
-				: m.vcs_combining_ready()
-			: operation === 'merge'
-				? m.vcs_op_merge()
-				: operation === 'rebase'
-					? m.vcs_op_rebase()
-					: operation === 'cherry-pick'
-						? m.vcs_op_cherry_pick()
-						: operation === 'revert'
-							? m.vcs_op_revert()
-							: ''
-	);
 	function onKeydown(e: KeyboardEvent) {
 		if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
 			e.preventDefault();
@@ -242,33 +207,7 @@
 		</button>
 	</div>
 {:else if parentRepo}
-	<!-- found by looking upward, the way git does: used only once the author says so, since saving a
-	     version here would record it in that repository with everything else in it -->
-	<div class="flex flex-col items-center gap-3 p-6 text-center">
-		<FolderTree class="text-faint size-8" />
-		<p class="text-sm">{m.vcs_parent_repo()}</p>
-		<p class="bg-surface-200-800 max-w-full truncate rounded-base px-2 py-0.5 font-mono text-xs" use:tip={parentRepo}>
-			{tailOf(parentRepo)}
-		</p>
-		<p class="text-muted text-xs">{m.vcs_parent_repo_detail()}</p>
-		<div class="flex w-full flex-col gap-1.5">
-			<button
-				class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal h-auto py-1 whitespace-normal"
-				onclick={onUseParentRepo}
-				disabled={busy}
-			>
-				{m.vcs_parent_repo_use()}
-			</button>
-			<button
-				class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal h-auto gap-1.5 py-1 whitespace-normal"
-				onclick={onInit}
-				disabled={busy}
-			>
-				<GitBranch class="size-3.5" />
-				{m.vcs_parent_repo_init()}
-			</button>
-		</div>
-	</div>
+	<ParentRepoGate repo={parentRepo} {busy} onUse={onUseParentRepo} {onInit} />
 {:else}
 	<div class="flex h-full min-h-0 flex-col">
 		<!-- refresh belongs beside the branch: both are the state of the repository, and parked above
@@ -331,30 +270,7 @@
 			<div class="flex min-h-0 flex-col" style="flex: {1 - historyFraction} 1 0%">
 				<div class="scroll-inset-r min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] pb-2">
 					{#if operation}
-						<div
-							class="border-warning-500/40 bg-warning-500/10 mx-2 mt-1 mb-2 flex gap-2 rounded-base border px-2.5 py-2 text-xs"
-							role="status"
-						>
-							<TriangleAlert class="text-warning-ink mt-0.5 size-3.5 shrink-0" />
-							<div class="min-w-0 flex-1 space-y-2">
-								<p>{operationText}</p>
-								{#if combining}
-									<div class="flex flex-wrap gap-1.5">
-										<!-- disabled, not refused after the click: a file with <<<<<<< lines in it
-										     must never be saved as though it were the combined text -->
-										<span use:tip={marked ? m.vcs_finish_combine_tip() : undefined}>
-											<button class="btn btn-xs preset-filled-primary-500 gap-1" onclick={onFinishCombine} disabled={busy || marked > 0}>
-												<Check class="size-3.5" />
-												{m.vcs_finish_combine()}
-											</button>
-										</span>
-										<button class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal" onclick={onCancelCombine} disabled={busy}>
-											{m.vcs_cancel_combine()}
-										</button>
-									</div>
-								{/if}
-							</div>
-						</div>
+						<OperationBanner {operation} {marked} {busy} {onFinishCombine} {onCancelCombine} />
 					{/if}
 					{#if changes.length}
 						<!-- The total, then the groups it is made of. Deliberately not a group row itself: no
@@ -382,6 +298,25 @@
 							<GitCommitHorizontal class="size-6 opacity-60" />
 							{m.vcs_no_changes()}
 						</div>
+						<!-- VS Code's action button: with nothing to save, what is left to do is send and receive
+						     versions, or give the branch somewhere to go -->
+						{#if !operation && tracking && (ahead > 0 || behind > 0)}
+							<div class="px-2">
+								<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={onSync} disabled={busy} use:tip={syncTip}>
+									<ArrowDownUp class="size-3.5" />
+									{m.vcs_action_sync()}
+									{#if behind > 0}<span class="flex items-center tabular-nums"><ArrowDown class="size-3" />{behind}</span>{/if}
+									{#if ahead > 0}<span class="flex items-center tabular-nums"><ArrowUp class="size-3" />{ahead}</span>{/if}
+								</button>
+							</div>
+						{:else if !operation && !tracking && hasCommits && !detached && branch}
+							<div class="px-2">
+								<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={onPublish} disabled={busy}>
+									<CloudUpload class="size-3.5" />
+									{m.vcs_action_publish({ branch })}
+								</button>
+							</div>
+						{/if}
 					{/if}
 				</div>
 

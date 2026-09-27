@@ -104,3 +104,20 @@ it('asks before using a repository that starts above the folder', () => {
 	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Start a repository for this folder'))!.click();
 	expect(onInit).toHaveBeenCalledOnce();
 });
+
+it('offers Sync as the next step when there is nothing to save but versions to exchange', () => {
+	const calls = { sync: vi.fn(), publish: vi.fn() };
+	render([], { operation: null, tracking: 'origin/main', ahead: 2, behind: 1, onSync: calls.sync, onPublish: calls.publish });
+	const sync = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Sync changes'))!;
+	expect(sync.textContent).toContain('1');
+	expect(sync.textContent).toContain('2');
+	sync.click();
+	expect(calls.sync).toHaveBeenCalledOnce();
+});
+
+it('offers Publish as the next step for a branch with nowhere to go yet', () => {
+	const publish = vi.fn();
+	render([], { operation: null, tracking: null, hasCommits: true, onPublish: publish });
+	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Publish main'))!.click();
+	expect(publish).toHaveBeenCalledOnce();
+});
