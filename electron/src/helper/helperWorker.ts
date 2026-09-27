@@ -10,6 +10,11 @@ import { pathKey } from '../shell/toolDirs';
 
 type Call = { id: number; op: string; args: unknown[] };
 
+// Every git here inherits this process's environment, and several answers are read from git's
+// English words: why a push failed, which files block a merge, that a file has no committed
+// version. A translated git slips past all of them. VS Code pins the same three.
+Object.assign(process.env, { LANGUAGE: 'en', LC_ALL: 'en_US.UTF-8', LANG: 'en_US.UTF-8' });
+
 const port = process.parentPort;
 
 function run(op: string, args: unknown[]): unknown {

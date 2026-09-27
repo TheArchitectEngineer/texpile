@@ -144,6 +144,9 @@ export class ScmActions {
 			this.busy = false;
 			return false;
 		}
+		// an edit still waiting for autosave is what the author means by this version; written out
+		// first, as Restore and Sync already do, or the version quietly leaves it behind
+		if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
 		const clear = await gitUnstage(root, []);
 		if (!clear.ok) {
 			this.busy = false;
@@ -219,6 +222,8 @@ export class ScmActions {
 		// version below, having never been chosen for the repo. The typed-but-unwritten edit counts
 		// too, and git cannot see it - that is exactly the work the old discard threw away in silence.
 		if (!(await this.saveBeforeRestore(root, entry))) return false;
+		// restoring writes a version, and on a clean tree it does so without passing through commit()
+		if (!(await this.ensureIdentity(root))) return false;
 
 		this.busy = true;
 		const res = await gitRestore(root, entry.hash, m.vcs_restore_message({ name: entry.subject }));
@@ -369,6 +374,7 @@ export class ScmActions {
 
 	/** after a push -u: '' when the author cancelled signing in, the reason it failed, or null */
 	private async published(root: string, res: GitPushResult): Promise<string | null> {
+		if (!res.ok && res.failure === 'rejected') return m.vcs_publish_rejected({ remote: res.remote ?? '' });
 		if (!res.ok) return res.failure === 'cancelled' ? '' : uploadReason(res);
 		await refreshGitStatus(root); // the branch tracks something now, and the panel shows Sync
 		toaster.success({ title: m.vcs_toast_published({ remote: res.remote ?? '' }) });
@@ -389,6 +395,8 @@ export class ScmActions {
 		if (!root || this.busy) return;
 		this.busy = true;
 		try {
+			// joining two histories writes a merge version, which git refuses without a name and email
+			if (!(await this.ensureIdentity(root))) return;
 			if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
 			const res = await gitSync(root);
 			if (res.ok && res.pulled) {

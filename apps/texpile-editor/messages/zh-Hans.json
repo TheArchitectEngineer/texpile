@@ -738,6 +738,7 @@
 	"vcs_publish_exists": "你的 GitHub 账户中已有 {name}。请换一个名称。",
 	"vcs_publish_scope": "这个 GitHub 令牌无法创建仓库。请为它授予 repo 权限范围（细粒度令牌则为 Administration 权限），然后重试。",
 	"vcs_publish_github_auth": "GitHub 没有接受这次登录。请检查令牌后重试。",
+	"vcs_publish_rejected": "{remote} 已有这个项目没有的版本，例如创建仓库时生成的 README。请先用 git 把它们合并进来（git pull {remote} --allow-unrelated-histories），再重新发布，或者发布到一个空仓库。",
 	"vcs_publish_created_not_uploaded": "仓库 {name} 已创建，但上传失败：{reason}",
 	"vcs_toast_published": "已发布到 {remote}",
 	"vcs_toast_published_github": "已发布到 GitHub：{name}",

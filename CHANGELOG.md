@@ -10,6 +10,8 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: git's sign-in questions (a password or token, an SSH key's passphrase, a server it has not seen) are asked in the window instead of failing
 - feat: the first version saved on a computer asks for the name and email git records, once
 - fix: uploading uses the credential helpers and settings in your global git config
+- fix: saving a version while git's index was briefly locked could record every unticked file as deleted
+- fix: a new repository starts on `main`, as GitHub does, unless git is configured with another default
 - fix: `\overline`, `\sqrt`, `\hat` and similar typed in the visual math editor put the caret inside them instead of after an empty box (by @hkarlsen06)
 - feat: shift-enter in a display equation starts a new one of the same kind below it (by @hkarlsen06)
 

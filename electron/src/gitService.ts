@@ -190,7 +190,12 @@ export async function gitInit(dir: string): Promise<GitOpResult> {
 	if (!dir) return { ok: false, error: 'Missing path' };
 	if (gitBinaryMissing) return { ok: false, reason: 'no-git' };
 	try {
-		await git(dir).init();
+		const g = git(dir);
+		// a branch named `main`, which is what GitHub and VS Code start with, unless the author has
+		// chosen a default of their own; git before 2.28 has no -b and names it itself
+		const chosen = (await g.raw(['config', '--get', 'init.defaultBranch']).catch(() => '')).trim();
+		if (chosen) await g.init();
+		else await g.raw(['init', '-b', 'main']).catch(() => g.init());
 		repoRootCache.clear();
 		return { ok: true };
 	} catch (e) {
@@ -228,7 +233,13 @@ export async function gitUnstage(workspaceRoot: string, paths: string[]): Promis
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
-		// no commits yet: reset can't resolve HEAD, remove from the index instead
+		// Only with no commits yet, where reset has no HEAD to go back to. Any other failure is
+		// reported as it is: a reset that lost a race for .git/index.lock against a status refresh
+		// used to land here too, and `rm --cached -r .` over a whole repository with history makes
+		// the next version delete every file that was not ticked.
+		if ((await g.raw(['rev-parse', '--verify', '-q', 'HEAD']).catch(() => 'unknown')).trim() !== '') {
+			return { ok: false, error: errMsg(e) };
+		}
 		try {
 			await g.raw(['rm', '-q', '--cached', '-r', '--', ...(rel.length ? rel : ['.'])]);
 			return { ok: true };

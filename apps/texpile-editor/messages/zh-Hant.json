@@ -738,6 +738,7 @@
 	"vcs_publish_exists": "你的 GitHub 帳戶中已有 {name}。請換一個名稱。",
 	"vcs_publish_scope": "這個 GitHub 權杖無法建立儲存庫。請為它授予 repo 權限範圍（細粒度權杖則為 Administration 權限），然後重試。",
 	"vcs_publish_github_auth": "GitHub 沒有接受這次登入。請檢查權杖後重試。",
+	"vcs_publish_rejected": "{remote} 已有這個專案沒有的版本，例如建立儲存庫時產生的 README。請先用 git 把它們合併進來（git pull {remote} --allow-unrelated-histories），再重新發佈，或者發佈到一個空的儲存庫。",
 	"vcs_publish_created_not_uploaded": "儲存庫 {name} 已建立，但上傳失敗：{reason}",
 	"vcs_toast_published": "已發佈到 {remote}",
 	"vcs_toast_published_github": "已發佈到 GitHub：{name}",

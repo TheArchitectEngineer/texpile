@@ -738,6 +738,7 @@
 	"vcs_publish_exists": "{name} already exists on your GitHub account. Choose another name.",
 	"vcs_publish_scope": "That GitHub token cannot create repositories. Give it the repo scope, or for a fine-grained token the Administration permission, and try again.",
 	"vcs_publish_github_auth": "GitHub did not accept that sign-in. Check the token and try again.",
+	"vcs_publish_rejected": "{remote} already has versions this project does not, such as a README made when the repository was created. Bring them in with git (git pull {remote} --allow-unrelated-histories), then publish again, or publish to an empty repository.",
 	"vcs_publish_created_not_uploaded": "The repository {name} was created, but the upload to it failed: {reason}",
 	"vcs_toast_published": "Published to {remote}",
 	"vcs_toast_published_github": "Published to GitHub as {name}",
