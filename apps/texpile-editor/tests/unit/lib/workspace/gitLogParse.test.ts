@@ -76,8 +76,9 @@ describe('parseGitLog', () => {
 });
 
 describe('parseNameStatus', () => {
-	it('reads a letter and a path per line', () => {
-		expect(parseNameStatus('M\tpaper/main.tex\nA\tpaper/refs.bib\nD\tpaper/old.tex\n')).toEqual([
+	// `--name-status -z`: every field ends with NUL, and names are never quoted
+	it('reads a letter and a path each', () => {
+		expect(parseNameStatus('M\0paper/main.tex\0A\0paper/refs.bib\0D\0paper/old.tex\0')).toEqual([
 			{ path: 'paper/main.tex', status: 'M' },
 			{ path: 'paper/refs.bib', status: 'A' },
 			{ path: 'paper/old.tex', status: 'D' }
@@ -86,21 +87,25 @@ describe('parseNameStatus', () => {
 
 	// a rename prints old then new; opening the old path would open nothing
 	it('takes the destination of a rename, not its source', () => {
-		expect(parseNameStatus('R096\tpaper/intro.tex\tpaper/introduction.tex\n')).toEqual([
+		expect(parseNameStatus('R096\0paper/intro.tex\0paper/introduction.tex\0')).toEqual([
 			{ path: 'paper/introduction.tex', status: 'R', from: 'paper/intro.tex' }
 		]);
 	});
 
 	// a copy did not exist before, so it reads as an add; a typechange is a modification
 	it('folds git’s rarer letters onto the four the panel can colour', () => {
-		expect(parseNameStatus('C100\ta.tex\tb.tex\nT\tlink.tex\n')).toEqual([
+		expect(parseNameStatus('C100\0a.tex\0b.tex\0T\0link.tex\0')).toEqual([
 			{ path: 'b.tex', status: 'A' },
 			{ path: 'link.tex', status: 'M' }
 		]);
 	});
 
-	it('ignores blank and tabless lines rather than inventing files from them', () => {
-		expect(parseNameStatus('\nnot a file line\n\nM\treal.tex\n')).toEqual([{ path: 'real.tex', status: 'M' }]);
+	// without -z git printed this one as "Notes on \"Hamlet\".tex", quotes and all, naming no file
+	it('keeps a name with quotes, a backslash or a tab in it exactly as it is', () => {
+		expect(parseNameStatus('M\0Notes on "Hamlet".tex\0A\0a\\b\tc.tex\0')).toEqual([
+			{ path: 'Notes on "Hamlet".tex', status: 'M' },
+			{ path: 'a\\b\tc.tex', status: 'A' }
+		]);
 	});
 
 	it('survives empty output', () => {

@@ -52,7 +52,7 @@ const watchers = new Map<string, Entry>();
  * people for everything the panel does not do - left the change list, the branch, the counts and
  * History stale until something else happened to refresh them.
  *
- * Status itself runs with GIT_OPTIONAL_LOCKS=0 (helperWorker.ts), so the refresh this triggers
+ * Status itself runs with GIT_OPTIONAL_LOCKS=0 (gitProcessEnv.ts), so the refresh this triggers
  * does not rewrite the index and trigger itself again.
  */
 function gitStatePaths(gitDir: string, commonDir: string): string[] {

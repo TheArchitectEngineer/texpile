@@ -1,6 +1,8 @@
 // reactive git state for the open folder. refreshed from WorkspaceView's refreshTree()
 // (every tree-refresh trigger updates it for free) and after each Source Control write.
 import { parentRepoToConfirm, useParentRepo } from './parentRepo.svelte';
+import { workspaceRoot } from './workspaceStore';
+import { samePath } from './fileSystem';
 import { box } from '$lib/runes/box.svelte';
 import {
 	gitStatus as fetchGitStatus,
@@ -149,9 +151,18 @@ export function setGitWriting(on: boolean): void {
 	writing = on;
 	gitWriting.current = on;
 	if (on || waitingRoot === undefined) return;
-	const root = waitingRoot;
+	// the folder open now: another may have been opened while a Sync waited on the network, and the
+	// refresh that Sync queued for its own folder would put that folder's state on this one's panel
+	const root = workspaceRoot.current ?? waitingRoot;
 	waitingRoot = undefined;
 	void refreshGitStatus(root);
+}
+
+/** a read that finished after another folder was opened describes the wrong folder, and is dropped.
+ *  With no folder open there is nothing to compare with. */
+function stillOpen(root: string): boolean {
+	const open = workspaceRoot.current;
+	return !open || samePath(open, root);
 }
 
 // the commit HEAD was at last time; when it moves (a version saved here or in a terminal, a sync, a
@@ -192,6 +203,7 @@ export async function refreshGitStatus(root: string | null): Promise<{ missingGi
 		return { missingGit: false };
 	}
 	const res = await fetchGitStatus(root);
+	if (!stillOpen(root)) return { missingGit: false };
 	gitMissing.current = !res.ok && res.reason === 'no-git';
 	gitUnsafe.current = !res.ok && res.reason === 'unsafe' ? (res.unsafe ?? root) : null;
 	if (!res.ok) {
@@ -254,6 +266,7 @@ export async function refreshGitHistory(root: string | null): Promise<void> {
 		return;
 	}
 	const res = await fetchGitLog(root, historyLimit);
+	if (!stillOpen(root)) return;
 	gitHistory.current = res.ok ? (res.entries ?? []) : [];
 	gitHistoryHasMore.current = res.ok && !!res.hasMore;
 	// 'not-a-repo' is not a failure to report: the panel already says the folder is not tracked

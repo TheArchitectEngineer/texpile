@@ -52,7 +52,8 @@ export function forgetSignIns(): void {
 }
 
 const sessions = new Map<string, Session>();
-const waiting = new Map<number, { session: Session; subject: string; resolve: (answer: string | null) => void }>();
+/** `github`: a github.com username or password question, the only kind the GitHub sign-in may answer */
+const waiting = new Map<number, { session: Session; subject: string; github: boolean; resolve: (answer: string | null) => void }>();
 let nextId = 1;
 let bridge: Promise<{ dir: string; handle: string } | null> | null = null;
 
@@ -148,7 +149,7 @@ async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; 
 	}
 	const id = nextId++;
 	const reply = await new Promise<string | null>((resolve) => {
-		waiting.set(id, { session, subject: request.subject, resolve });
+		waiting.set(id, { session, subject: request.subject, github: forGithub, resolve });
 		// `kept`: the prompt says the answer is remembered once it works, since it will be
 		// `github`: the question can be answered by signing in to GitHub in the browser instead
 		session.sender.send('git:askpass', {
@@ -239,9 +240,9 @@ export function registerAskpassIpc(): void {
 	// the question answered by the GitHub sign-in the window just completed: the token is read here
 	ipcMain.handle('git:askpassUseGithub', (e, id: unknown) => {
 		const w = typeof id === 'number' ? waiting.get(id) : undefined;
-		if (!w || w.session.sender !== e.sender) return false;
-		const subject = typeof w.subject === 'string' ? w.subject : '';
-		const answer = githubAnswer(subject);
+		// the token goes only to github.com: never to another host's question, whatever the window asks
+		if (!w || w.session.sender !== e.sender || !w.github) return false;
+		const answer = githubAnswer(w.subject);
 		if (answer === null) return false;
 		waiting.delete(id as number);
 		w.session.usedGithub = true;

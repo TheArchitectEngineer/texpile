@@ -213,15 +213,17 @@ export function makeMainActions(d: ActionSurfaceDeps) {
 	};
 }
 
-/** the callback surface WorkspaceChrome hands to the menu bar and sidebar */
-/** VS Code's Ctrl+Shift+G: the Source Control panel, with the keyboard in its message box */
+/** VS Code's Ctrl+Shift+G: the Source Control panel, with the keyboard in its message box. Not for
+ *  a session guest, or a workspace without git, which the sidebar shows no Source Control for */
 function openSourceControl(d: ActionSurfaceDeps): void {
+	if (d.guest() || !d.provider.caps.git) return;
 	d.layout().setSidebarOpen(true);
 	// eslint-disable-next-line no-param-reassign -- the deps hand over the live controllers this surface drives
 	d.layout().sidebarView = 'scm';
 	focusScmMessage();
 }
 
+/** the callback surface WorkspaceChrome hands to the menu bar and sidebar */
 export function makeChromeActions(d: ActionSurfaceDeps) {
 	return {
 		openSourceControl: () => openSourceControl(d),

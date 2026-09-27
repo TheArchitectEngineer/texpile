@@ -1822,5 +1822,9 @@
 	"vcs_branch_delete_current": "Der Zweig, auf dem Sie sind, kann nicht gelöscht werden. Wechseln Sie zuerst zu einem anderen Zweig.",
 	"vcs_toast_branch_deleted": "Zweig {name} gelöscht",
 	"vcs_toast_remote_branch_deleted": "{name} von {remote} gelöscht",
-	"vcs_signin_kept_session": "Sobald es funktioniert, merkt sich Texpile es bis zum Beenden, damit Sie nicht bei jeder Synchronisierung erneut gefragt werden. Dieser Computer hat keinen Schlüsselbund, um es länger aufzubewahren."
+	"vcs_signin_kept_session": "Sobald es funktioniert, merkt sich Texpile es bis zum Beenden, damit Sie nicht bei jeder Synchronisierung erneut gefragt werden. Dieser Computer hat keinen Schlüsselbund, um es länger aufzubewahren.",
+	"vcs_ssh_key_refused": "Der Server hat Ihren SSH-Schlüssel nicht angenommen. Prüfen Sie, ob der Schlüssel dort Ihrem Konto hinzugefügt ist, oder verwenden Sie stattdessen die https-Adresse mit Passwort oder Token.",
+	"vcs_ssh_host_changed": "Der SSH-Schlüssel des Servers hat sich seit Ihrer letzten Verbindung geändert, daher hat Texpile keine Verbindung hergestellt. Das passiert, wenn ein Server ersetzt wird, kann aber auch bedeuten, dass die Verbindung abgefangen wird: Fragen Sie zuerst beim Betreiber des Servers nach. Bestätigt er die Änderung, entfernen Sie den alten Schlüssel aus der Datei known_hosts dieses Computers.",
+	"vcs_restore_untracked": "Diese Version enthält Dateien mit denselben Namen wie neue Dateien, die Sie noch in keiner Version gespeichert haben ({files}), und das Wiederherstellen würde sie ersetzen. Speichern Sie sie zuerst in einer Version oder benennen Sie sie um.",
+	"vcs_clone_checkout": "Das Projekt wurde heruntergeladen, aber seine Dateien konnten nicht in den Ordner geschrieben werden, daher wurde nichts behalten. Git meldete: {reason}. Üblich sind ein Dateiname, den dieser Computer nicht erlaubt, oder eine große Datei (Git LFS), deren Download fehlgeschlagen ist."
 }

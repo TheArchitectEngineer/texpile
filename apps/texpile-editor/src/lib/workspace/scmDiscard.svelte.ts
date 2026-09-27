@@ -7,7 +7,7 @@ import { refreshGitStatus, isNewFile } from './gitStore';
 import { gitDiscard, gitUnstage, type GitStatusEntry } from './git';
 import { toastGitFailure } from './gitFailureToast';
 import { localGitReason } from './gitLocalReason';
-import { basename, samePath } from './fileSystem';
+import { basename, relativeInside, samePath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { m } from '$lib/paraglide/messages';
 import type { ScmDeps } from './scmActions.svelte';
@@ -48,7 +48,9 @@ export class ScmDiscard {
 		const loadedPath = this.deps.getLoadedPath();
 		// samePath: git and the file tree hand back separators and case that do not always match, and
 		// a miss here leaves the editor showing content that is no longer on disk
-		const openAffected = !!loadedPath && changes.some((c) => samePath(c.path, loadedPath));
+		// A folder row (a big new folder, shown as one) takes the open file with it when it is inside
+		const openAffected =
+			!!loadedPath && changes.some((c) => samePath(c.path, loadedPath) || (!!c.files && !!relativeInside(c.path, loadedPath)));
 		if (openAffected) this.deps.discardPendingSave();
 		this.host.busy = true;
 		let err: string | undefined;

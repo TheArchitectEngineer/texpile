@@ -216,7 +216,7 @@ type TexpileNative = {
 	gitLog?: (root: string, limit?: number) => Promise<GitLogResult>;
 	gitChangesSince?: (root: string, hash: string) => Promise<GitChangesResult>;
 	gitShowAt?: (path: string, ref: string) => Promise<GitShowResult>;
-	gitRestore?: (root: string, hash: string, message: string) => Promise<GitOpResult>;
+	gitRestore?: (root: string, hash: string, message: string) => Promise<GitOpResult & { untracked?: string[] }>;
 	gitPush?: (root: string) => Promise<GitPushResult>;
 } & GitBridges;
 

@@ -33,7 +33,9 @@ export class ScmPublishNew {
 		await this.scm.ignore.artifacts(true);
 		await refreshGitStatus(root);
 		if (asking && !(await this.#leaveOut(root))) return;
-		const paths = gitChanges.current.filter((c) => !c.files && !isBuildArtifact(c.path)).map((c) => c.path);
+		// a folder of many new files is one row (c.files): it was on the list just asked about, or not
+		// ignored, so it goes in whole, as everything does in VS Code's first commit (git add -A)
+		const paths = gitChanges.current.filter((c) => !isBuildArtifact(c.path)).map((c) => c.path);
 		// an empty folder has nothing to save; Publish then says so, before any repository is made
 		if (paths.length && !(await this.scm.commit(m.vcs_first_version_message(), paths))) return;
 		await this.scm.publish();

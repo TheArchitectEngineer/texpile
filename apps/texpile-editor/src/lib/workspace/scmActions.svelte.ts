@@ -282,7 +282,9 @@ export class ScmActions {
 		const res = await gitRestore(root, entry.hash, m.vcs_restore_message({ name: entry.subject }));
 		this.busy = false;
 		if (!res.ok) {
-			toastGitFailure(m.vcs_toast_restore_failed(), localGitReason(res.error), res);
+			// new files in the way are named, so they can be saved in a version (or renamed) first
+			const names = (res.untracked ?? []).map((p) => basename(p)).join(', ');
+			toastGitFailure(m.vcs_toast_restore_failed(), names ? m.vcs_restore_untracked({ files: names }) : localGitReason(res.error), res);
 			return false;
 		}
 		const loadedPath = this.deps.getLoadedPath();
@@ -476,7 +478,8 @@ export class ScmActions {
 						title: m.vcs_sync_dirty_title(),
 						message: uploadReason(res),
 						confirm: m.vcs_sync_save_and_sync(),
-						version: m.vcs_sync_autosave_message()
+						version: m.vcs_sync_autosave_message(),
+						blocking: res.files
 					}
 				);
 			} else if (res.failure !== 'cancelled') {

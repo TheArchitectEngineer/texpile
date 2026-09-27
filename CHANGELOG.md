@@ -5,6 +5,17 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- fix: your GitHub sign-in answers only github.com's questions; a question from any other server can never be answered with it
+- fix: a file with [ ] in its name is only ever that file: discarding, saving or restoring it no longer touches a file whose name it resembles
+- fix: Restore will not replace a new file that is in no version, and names it; files with quotes or a backslash in their names are restored and compared correctly
+- fix: a milestone never takes a branch's name, which stopped every upload, and one removed on the remote is not brought back by a co-author's Sync; each is uploaded once, from the copy it was marked in
+- fix: a branch deleted on the remote is seen as gone instead of being published again by the next Sync
+- fix: a clone whose files could not be written (a failed Git LFS download, a name the system refuses) says so instead of opening a project where every file reads as deleted
+- fix: an SSH key the server refused, or a server whose key changed, is said as such instead of advice about passwords and tokens
+- fix: in a project that is one folder of a larger repository, Save version no longer unstages what was staged outside it; a failing hook is reported in its own words instead of "Git is not installed"
+- fix: Combine now opens the text with places to choose rather than a figure; Keep mine or theirs, and deleting a folder, drop the open file's unsaved edit so it cannot land on the result
+- fix: Publish to GitHub from a plain folder includes big folders you kept; Save a version and sync includes new build output git says is in the way; opening another folder during a Sync no longer shows the old folder's changes
+- fix: Compare with Previous on a Timeline version compares with the version it was made from, as VS Code does; Local History never gives a new copy an older one's name, which overwrote it on macOS and Windows
 - feat: on Linux without a keyring, a sign-in that worked is remembered until you quit Texpile (never written to disk) instead of being asked for on every Sync
 - feat: delete branches from the branch list, as VS Code does: a branch whose versions are elsewhere goes at once, one with versions nowhere else asks first, and a branch on the remote is deleted there after asking
 - feat: Publish to GitHub from a folder with no .gitignore asks which files and folders to include, as VS Code does; unticked ones are added to .gitignore

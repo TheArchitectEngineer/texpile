@@ -12,7 +12,7 @@ import {
 	LOCAL_REF,
 	type LocalHistoryEntry
 } from './localHistory.svelte';
-import { basename, detectEol, fromLf, toLf } from './fileSystem';
+import { basename, detectEol, fromLf, samePath, toLf } from './fileSystem';
 import { openFile } from './workspaceStore';
 import { promptAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
@@ -69,8 +69,12 @@ export class LocalHistoryActions {
 			return;
 		}
 		let current: string | null;
+		// samePath: after a rename in the app the editor holds the path with / and Local History hands
+		// it back with \ on Windows, and a miss left the queued save to land on the restored text
+		const loaded = this.deps.getLoadedPath();
+		const open = !!loaded && samePath(loaded, path);
 		try {
-			if (this.deps.getLoadedPath() === path) this.deps.discardPendingSave();
+			if (open) this.deps.discardPendingSave();
 			// the file's own line endings, whatever the copy was kept with
 			current = await this.deps.readTextIfPresent(path);
 			await this.deps.writeText(path, current === null ? content : fromLf(toLf(content), detectEol(current)));
@@ -80,7 +84,7 @@ export class LocalHistoryActions {
 		}
 		// a deleted file comes back (its folder too, if that went), and is opened
 		if (current === null) openFile(path);
-		else if (this.deps.getLoadedPath() === path) await this.deps.loadFile(path);
+		else if (open && loaded) await this.deps.loadFile(loaded);
 		await addLocalHistory(path, toLf(content), 'restored');
 	}
 

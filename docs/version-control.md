@@ -44,7 +44,7 @@ A version in History opens to what differs between it and your files now. To see
 
 ## Milestones
 
-A version that matters, such as the draft sent to your committee or the camera-ready copy, can carry a name. Open the version's menu in History and choose Mark as milestone; the name shows on that row from then on. Milestones are git tags, so other tools see them too. Sync sends them to the remote, and removing one removes it there as well, after asking, since everyone who syncs loses it too.
+A version that matters, such as the draft sent to your committee or the camera-ready copy, can carry a name. Open the version's menu in History and choose Mark as milestone; the name shows on that row from then on. Milestones are git tags, so other tools see them too. The next Sync sends a milestone you marked to the remote, once; milestones marked by co-authors are theirs to send. Removing one removes it there as well, after asking, since everyone who syncs loses it too, and a co-author's copy does not bring it back. A milestone never takes the name of a branch.
 
 ## Timeline and local history
 

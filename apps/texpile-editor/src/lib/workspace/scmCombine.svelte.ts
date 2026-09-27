@@ -81,7 +81,12 @@ export class ScmCombine {
 			await refreshGitStatus(root);
 			return;
 		}
+		// the status read waits while Source Control is writing, and this runs inside Sync's busy
+		// window: without letting it through, which file to open was decided from the status before
+		// the merge, where no file is a figure or a deleted one yet
+		this.host.busy = false;
 		await this.reload(root);
+		this.host.busy = true;
 		const conflicts = combined.conflicts ?? [];
 		if (!conflicts.length) {
 			// the remote moved on again and git could join the two by itself this time
@@ -135,12 +140,16 @@ export class ScmCombine {
 		}
 	};
 
-	/** undo the merge: every file as it was before it started, the choices made so far with it */
 	/** Keep all mine or theirs for a whole file, from its row: for a figure or a PDF there are no
 	 *  places to click, and when one side deleted the file there is no text to choose in */
 	keepSide = async (path: string, side: 'mine' | 'theirs'): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return;
+		// as in cancel(): the file's half-chosen text, still waiting to be written, would land on top
+		// of the side just kept. Any other file's edit is written first
+		const loadedPath = this.deps.getLoadedPath();
+		if (loadedPath && samePath(loadedPath, path)) this.deps.discardPendingSave();
+		else if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
 		this.host.busy = true;
 		const res = await gitKeepSide(root, path, side);
 		this.host.busy = false;
@@ -158,6 +167,7 @@ export class ScmCombine {
 		if (side) await this.keepSide(path, side);
 	};
 
+	/** undo the merge: every file as it was before it started, the choices made so far with it */
 	cancel = async (): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return;

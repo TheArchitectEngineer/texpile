@@ -103,3 +103,32 @@ describe("GitHub's own refusals", () => {
 		expect(classifyPushError(msg)).toBe('protected');
 	});
 });
+
+describe('a sign-in that failed over SSH', () => {
+	const REFUSED = 'root@127.0.0.1: Permission denied (publickey).\nfatal: Could not read from remote repository.';
+	const CHANGED = [
+		'@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@',
+		'@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @',
+		'@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@',
+		'Host key verification failed.',
+		'fatal: Could not read from remote repository.'
+	].join('\n');
+
+	it('is still a sign-in failure', () => {
+		expect(classifyPushError(REFUSED)).toBe('auth');
+		expect(classifyPushError(CHANGED)).toBe('auth');
+	});
+
+	it('talks about the key, not a password or token', () => {
+		const refused = uploadReason({ failure: 'auth', error: REFUSED, remote: 'origin' });
+		expect(refused).toContain('SSH key');
+		expect(refused).not.toContain('credentials');
+		expect(uploadReason({ failure: 'auth', error: CHANGED, remote: 'origin' })).toContain('has changed');
+	});
+
+	it('leaves a refused password to the usual advice', () => {
+		const typed = "remote: Invalid username or password.\nfatal: Authentication failed for 'https://github.com/a/b.git/'";
+		expect(uploadReason({ failure: 'auth', error: typed, remote: 'origin' })).toContain('origin');
+		expect(uploadReason({ failure: 'auth', error: typed, remote: 'origin' })).not.toContain('has changed');
+	});
+});

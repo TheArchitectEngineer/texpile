@@ -4,6 +4,8 @@
 import { gitChanges, refreshGitStatus } from './gitStore';
 import { workspaceRoot } from './workspaceStore';
 import { isBuildArtifact } from './buildArtifacts';
+import { relativeInside, samePath } from './fileSystem';
+import type { GitStatusEntry } from './git';
 import { promptAsk } from '$lib/modals/confirm.svelte';
 import { m } from '$lib/paraglide/messages';
 
@@ -13,7 +15,7 @@ type Host = { commit(message: string, paths: string[]): Promise<boolean>; setBus
 /** true once everything changed is saved as a version; false when the author said no, or saving failed */
 export async function saveChangesFirst(
 	host: Host,
-	ask: { title: string; message: string; detail?: string; confirm: string; version: string }
+	ask: { title: string; message: string; detail?: string; confirm: string; version: string; blocking?: string[] }
 ): Promise<boolean> {
 	const choice = await promptAsk({
 		title: ask.title,
@@ -33,8 +35,15 @@ export async function saveChangesFirst(
 		// caller wrote the waiting edit to disk, and that edit is often the very file in the way.
 		const root = workspaceRoot.current;
 		if (root) await refreshGitStatus(root);
-		// not new build output, and not a whole folder of new files: both start unticked in the panel too
-		const paths = gitChanges.current.filter((c) => !c.files && !(c.x === '?' && isBuildArtifact(c.path))).map((c) => c.path);
+		// not new build output, and not a whole folder of new files: both start unticked in the panel
+		// too. Unless git named one as in the way (a main.bbl a co-author saved, and a build made here
+		// as well): leaving that out would save nothing that helps, and the button would do nothing
+		function inTheWay(c: GitStatusEntry): boolean {
+			return (ask.blocking ?? []).some((f) => samePath(f, c.path) || (!!c.files && !!relativeInside(c.path, f)));
+		}
+		const paths = gitChanges.current
+			.filter((c) => inTheWay(c) || (!c.files && !(c.x === '?' && isBuildArtifact(c.path))))
+			.map((c) => c.path);
 		return paths.length > 0 && (await host.commit(ask.version, paths));
 	} finally {
 		host.setBusy(true);

@@ -3,7 +3,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { gitMarkMilestone, gitRemoveMilestone, parseTags, tagNameFor } from '../../../../../../electron/src/gitTags';
 import { gitLog } from '../../../../../../electron/src/gitHistory';
-import { gitSync, milestonesMissingOn } from '../../../../../../electron/src/gitRemote';
+import { gitSync, milestonesToSend } from '../../../../../../electron/src/gitRemote';
+import { gitCreateBranch } from '../../../../../../electron/src/gitBranches';
 import { simpleGit } from 'simple-git';
 import { writeFileSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
@@ -54,6 +55,32 @@ describe.skipIf(!AVAILABLE)('milestones', () => {
 		expect(out(remote, 'tag', '-l')).toBe('final');
 	});
 
+	it("sends one only once, and a co-author's Sync does not bring back one that was removed", async () => {
+		const { root, other, remote } = await makePublished();
+		await gitMarkMilestone(root, out(root, 'rev-parse', 'HEAD'), 'Draft one');
+		await gitSync(root);
+		expect(await milestonesToSend(simpleGit(root))).toEqual([]);
+		// the co-author takes it in, then it is removed where it was made
+		await gitSync(other);
+		expect(out(other, 'tag', '-l')).toBe('draft-one');
+		expect((await gitRemoveMilestone(root, 'draft-one')).ok).toBe(true);
+		commit(other, 'notes.tex', 'Notes.\n', 'Notes');
+		expect(await gitSync(other)).toMatchObject({ ok: true, pushed: 1 });
+		expect(out(remote, 'tag', '-l')).toBe('');
+	});
+
+	it("never takes a branch's name, and a branch never takes a milestone's", async () => {
+		const { root, remote } = await makePublished();
+		const branch = out(root, 'symbolic-ref', '--short', 'HEAD');
+		const marked = await gitMarkMilestone(root, out(root, 'rev-parse', 'HEAD'), branch);
+		expect(marked).toEqual({ ok: true, name: `${branch}-2` });
+		commit(root, 'main.tex', 'More.\n', 'More');
+		// an upload naming "main" would be ambiguous to git if the milestone had taken that name
+		expect(await gitSync(root)).toMatchObject({ ok: true, pushed: 1 });
+		expect(out(remote, 'tag', '-l')).toBe(`${branch}-2`);
+		expect(await gitCreateBranch(root, `${branch}-2`)).toMatchObject({ ok: false, failure: 'invalid' });
+	});
+
 	it('removes a milestone the remote never had, and refuses one that is not there', async () => {
 		const { root } = await makePublished();
 		run(root, 'tag', '-a', 'local-only', '-m', 'Local only');
@@ -83,11 +110,11 @@ describe.skipIf(!AVAILABLE || process.platform === 'win32')('milestones where th
 		run(root, 'switch', '-q', '-c', 'aside');
 		commit(root, 'aside.tex', 'Aside.\n', 'Aside');
 		await gitMarkMilestone(root, out(root, 'rev-parse', 'HEAD'), 'On aside');
-		// --follow-tags would not send it from here, so pushing for it would only meet the remote's
+		// an upload of this branch would not carry it, so pushing for it would only meet the remote's
 		// refusal: on GitHub, a push with nothing to send still needs write access
-		expect(await milestonesMissingOn(simpleGit(root), 'origin')).toBe(true);
+		expect(await milestonesToSend(simpleGit(root))).toEqual(['on-aside']);
 		run(root, 'switch', '-q', '-');
-		expect(await milestonesMissingOn(simpleGit(root), 'origin')).toBe(false);
+		expect(await milestonesToSend(simpleGit(root))).toEqual([]);
 	});
 });
 

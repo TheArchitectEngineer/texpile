@@ -1822,5 +1822,9 @@
 	"vcs_branch_delete_current": "The branch you are on can't be deleted. Switch to another branch first.",
 	"vcs_toast_branch_deleted": "Deleted branch {name}",
 	"vcs_toast_remote_branch_deleted": "Deleted {name} from {remote}",
-	"vcs_signin_kept_session": "Once it works, Texpile remembers it until you quit, so you are not asked again on every Sync. This computer has no keychain to keep it in for longer."
+	"vcs_signin_kept_session": "Once it works, Texpile remembers it until you quit, so you are not asked again on every Sync. This computer has no keychain to keep it in for longer.",
+	"vcs_ssh_key_refused": "The server did not accept your SSH key. Check that the key is added to your account there, or use the https address with a password or token instead.",
+	"vcs_ssh_host_changed": "The server's SSH key has changed since you last connected, so Texpile did not connect. That happens when a server is replaced, but it can also mean the connection is being intercepted: check with whoever runs the server first. If they confirm the change, remove the old key from this computer's known_hosts file.",
+	"vcs_restore_untracked": "That version has files named like new ones you have not saved in any version yet ({files}), and restoring would replace them. Save a version with them first, or rename them.",
+	"vcs_clone_checkout": "The project downloaded, but its files could not be written to the folder, so nothing was kept. Git said: {reason}. A file name this computer does not allow, or a large file (Git LFS) that failed to download, are the usual causes."
 }

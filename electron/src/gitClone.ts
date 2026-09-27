@@ -2,14 +2,14 @@
 // rather than a zip. VS Code's Git: Clone, minus the command line: the address and where to put
 // it, a progress line while it downloads, and sign-in through the askpass bridge like any fetch.
 import { simpleGit } from 'simple-git';
-import { readdir, stat } from 'node:fs/promises';
+import { readdir, rm, stat } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import { errMsg, isMissingGit } from './gitService';
 import { OWN_ENVIRONMENT, classifyPushError, isRemoteUrl, netEnv, type GitAuthEnv } from './gitRemote';
 
 /** 'exists': the folder is already there and has something in it. 'not-found': nothing answers at
  *  that address, or not for this account. 'invalid': the address, folder or name cannot be used. */
-export type CloneFailure = 'exists' | 'not-found' | 'invalid' | 'auth' | 'network' | 'cancelled' | 'other';
+export type CloneFailure = 'exists' | 'not-found' | 'invalid' | 'auth' | 'network' | 'cancelled' | 'checkout' | 'other';
 
 export type GitCloneResult = {
 	ok: boolean;
@@ -52,6 +52,8 @@ async function occupied(dir: string): Promise<boolean> {
 		return false; // not there yet, which is what a clone wants
 	}
 }
+
+const CHECKOUT_FAILED_RE = /clone succeeded, but checkout failed/i;
 
 /** a clone whose own files are there: git exits non-zero for a submodule it could not fetch, but
  *  leaves the project checked out */
@@ -104,6 +106,13 @@ export async function gitClone(
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
 		if (signal?.aborted) return { ok: false, failure: 'cancelled' };
 		const msg = errMsg(e);
+		// the history arrived but its files could not be written (a Git LFS download that failed, a
+		// name this system refuses): opened, every file would read as deleted, and saving a version
+		// would record that. The folder goes, so trying again starts clean
+		if (CHECKOUT_FAILED_RE.test(msg)) {
+			await rm(target, { recursive: true, force: true }).catch(() => {});
+			return { ok: false, failure: 'checkout', error: msg };
+		}
 		if (await checkedOut(target)) return { ok: true, path: target, submodules: msg };
 		return { ok: false, failure: classifyCloneError(msg), error: msg };
 	}

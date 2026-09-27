@@ -134,10 +134,12 @@
 			return prev ? () => readLocalHistory(p, prev.id) : null;
 		}
 		if (!root) return null;
-		// the file's own version before this one, under the name it had then; past the loaded page,
-		// the version before this one in the project
+		// the version this one was made from (its first parent), as VS Code compares: the next row down
+		// is only the next by date, which after combining two branches is often the other branch's.
+		// The older row still gives the name the file had then, for a rename
 		const prev = versions[versions.indexOf(item.entry) + 1];
-		const [where, ref] = prev ? [prev.path ?? p, prev.hash] : [item.entry.path ?? p, `${item.entry.hash}^`];
+		const where = prev?.path ?? item.entry.path ?? p;
+		const ref = `${item.entry.hash}^`;
 		return async () => {
 			const res = await gitFileAt(root, where, ref);
 			return res.ok ? (res.content ?? '') : null;

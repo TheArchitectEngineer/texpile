@@ -129,7 +129,8 @@ export class ScmBranches {
 			message: m.vcs_branch_dirty_message({ files: blocking.map((f) => basename(f)).join(', '), branch: name }),
 			detail: m.vcs_branch_dirty_detail({ branch: gitBranch.current ?? '' }),
 			confirm: m.vcs_branch_save_and_switch(),
-			version: m.vcs_branch_autosave_message({ branch: name })
+			version: m.vcs_branch_autosave_message({ branch: name }),
+			blocking
 		});
 	}
 

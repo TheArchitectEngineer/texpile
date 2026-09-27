@@ -104,11 +104,19 @@ export function git(baseDir: string): SimpleGit {
 }
 
 // another git holds the lock: a terminal, another editor's own status poll. Texpile's own status
-// takes no lock (GIT_OPTIONAL_LOCKS in helper/helperWorker.ts), but it cannot speak for them.
+// takes no lock (GIT_OPTIONAL_LOCKS in gitProcessEnv.ts), but it cannot speak for them.
 const LOCKED_RE = /index\.lock|unable to create '[^']*\.lock'|cannot lock ref/i;
+// "cannot lock ref 'refs/heads/draft/v2': 'refs/heads/draft' exists": a name clash, which no wait fixes
+const NAME_CLASH_RE = /exists; cannot create|cannot lock ref '[^']*': '[^']*' exists/i;
 
 export function isLocked(e: unknown): boolean {
-	return LOCKED_RE.test(errMsg(e));
+	const msg = errMsg(e);
+	return LOCKED_RE.test(msg) && !isNameClash(msg);
+}
+
+/** a branch or milestone name that another one's name is in the way of ("draft" and "draft/v2") */
+export function isNameClash(msg: string): boolean {
+	return NAME_CLASH_RE.test(msg);
 }
 
 /**
@@ -127,10 +135,12 @@ export async function retryLocked<T>(run: () => Promise<T>): Promise<T> {
 	}
 }
 
+/** git itself could not be started. Only the spawn failing says so: a hook or a filter that runs a
+ *  missing tool prints "command not found" too, and that is the hook's problem to report, not git's */
 export function isMissingGit(e: unknown): boolean {
 	if ((e as { code?: string })?.code === 'ENOENT') return true;
 	const msg = e instanceof Error ? e.message : String(e);
-	return /ENOENT|not recognized as|command not found|is not recognized/i.test(msg);
+	return /\bspawn\s+\S*git(?:\.exe)?\s+ENOENT\b/i.test(msg);
 }
 
 export function errMsg(e: unknown): string {
@@ -399,6 +409,14 @@ export async function gitInit(dir: string): Promise<GitOpResult> {
 	}
 }
 
+/** Everything under the workspace, as a pathspec: the workspace may be one folder of a larger
+ *  repository (a thesis/ beside code/), and "." from the repository root would reach the rest,
+ *  unstaging what someone staged there by hand. */
+function workspaceScope(root: string, workspaceRoot: string): string {
+	const [scope] = toRepoRel(root, [workspaceRoot]);
+	return scope && !scope.startsWith('..') ? scope : '.';
+}
+
 /** stage files (git add). Empty `paths` stages everything under the workspace. */
 export async function gitStage(workspaceRoot: string, paths: string[]): Promise<GitOpResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);
@@ -406,7 +424,7 @@ export async function gitStage(workspaceRoot: string, paths: string[]): Promise<
 	const root = rr.root;
 	try {
 		const rel = toRepoRel(rr.root, paths);
-		await retryLocked(() => git(root).add(rel.length ? rel : ['.']));
+		await retryLocked(() => git(root).add(rel.length ? rel : [workspaceScope(root, workspaceRoot)]));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -415,14 +433,15 @@ export async function gitStage(workspaceRoot: string, paths: string[]): Promise<
 }
 
 /** unstage files (git reset HEAD). Falls back to `git rm --cached` before the first commit,
- *  since an unborn HEAD can't be reset against. Empty `paths` unstages everything. */
+ *  since an unborn HEAD can't be reset against. Empty `paths` unstages everything under the workspace. */
 export async function gitUnstage(workspaceRoot: string, paths: string[]): Promise<GitOpResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const g = git(rr.root);
 	const rel = toRepoRel(rr.root, paths);
+	const all = rel.length ? rel : [workspaceScope(rr.root, workspaceRoot)];
 	try {
-		await retryLocked(() => g.raw(['reset', '-q', 'HEAD', '--', ...(rel.length ? rel : ['.'])]));
+		await retryLocked(() => g.raw(['reset', '-q', 'HEAD', '--', ...all]));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -434,7 +453,7 @@ export async function gitUnstage(workspaceRoot: string, paths: string[]): Promis
 			return { ok: false, error: errMsg(e) };
 		}
 		try {
-			await retryLocked(() => g.raw(['rm', '-q', '--cached', '-r', '--', ...(rel.length ? rel : ['.'])]));
+			await retryLocked(() => g.raw(['rm', '-q', '--cached', '-r', '--', ...all]));
 			return { ok: true };
 		} catch (e2) {
 			return { ok: false, error: errMsg(e2) };

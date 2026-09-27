@@ -57,14 +57,16 @@ describe.skipIf(!AVAILABLE)('syncing with the remote', () => {
 		const branch = out(root, 'branch', '--show-current');
 		run(root, 'checkout', '-q', '-b', 'feature');
 		run(root, 'push', '-q', '-u', 'origin', 'feature');
-		// a merged pull request's branch, deleted on GitHub; this clone prunes on fetch
+		// a merged pull request's branch, deleted on GitHub. No fetch.prune set here: Texpile prunes
+		// by itself, or the branch would look alive and the next Sync would publish it again
 		run(other, 'push', '-q', 'origin', '--delete', 'feature');
-		run(root, 'config', 'fetch.prune', 'true');
+		commit(root, 'feature.tex', 'Feature.\n', 'Feature work');
 		expect((await gitStatus(root)).tracking).toBe('origin/feature');
 
 		expect(await gitSync(root)).toMatchObject({ ok: false, failure: 'no-upstream' });
 		expect((await gitStatus(root)).tracking).toBeNull();
 		expect(await gitFetch(root)).toMatchObject({ ok: false, failure: 'no-upstream' });
+		expect(out(other, 'ls-remote', '--heads', 'origin', 'feature')).toBe('');
 		// the branch it came from still syncs
 		run(root, 'checkout', '-q', branch);
 		expect((await gitStatus(root)).tracking).toBe(`origin/${branch}`);
@@ -123,7 +125,7 @@ describe.skipIf(!AVAILABLE)('syncing with the remote', () => {
 		writeFileSync(join(root, 'main.tex'), 'Typed, not saved as a version.\n');
 
 		const res = await gitSync(root);
-		expect(res).toMatchObject({ ok: false, failure: 'dirty', files: ['main.tex'] });
+		expect(res).toMatchObject({ ok: false, failure: 'dirty', files: [join(root, 'main.tex')] });
 		expect(readFileSync(join(root, 'main.tex'), 'utf8')).toBe('Typed, not saved as a version.\n');
 	});
 
@@ -136,7 +138,7 @@ describe.skipIf(!AVAILABLE)('syncing with the remote', () => {
 		const head = out(root, 'rev-parse', 'HEAD');
 
 		const res = await gitSync(root);
-		expect(res).toMatchObject({ ok: false, failure: 'dirty', files: ['main.tex'] });
+		expect(res).toMatchObject({ ok: false, failure: 'dirty', files: [join(root, 'main.tex')] });
 		expect(out(root, 'rev-parse', 'HEAD')).toBe(head);
 		expect(readFileSync(join(root, 'main.tex'), 'utf8')).toBe('Half-written.\n');
 	});

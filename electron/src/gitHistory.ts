@@ -87,20 +87,23 @@ export function parseGitLog(raw: string): GitLogEntry[] {
 	return entries;
 }
 
-/** a letter, a tab, a path - or two paths when it is a rename. Repo-relative, as git printed them. */
+/** `--name-status -z`: a letter, then a path - or two paths, old then new, for a rename or a copy -
+ *  each ended by NUL. Repo-relative, as git printed them. -z because without it git wraps a name
+ *  holding a quote, a backslash or a tab in quotes and escapes, which then matches no file. */
 export function parseNameStatus(raw: string): GitFileChange[] {
 	const out: GitFileChange[] = [];
-	for (const line of raw.split('\n')) {
-		if (!line.trim()) continue;
-		const [code, ...paths] = line.split('\t');
-		if (!code || !paths.length) continue;
-		// R and C carry a similarity score (R100)
+	const parts = raw.split('\0');
+	for (let i = 0; i < parts.length;) {
+		const code = parts[i++].trim();
+		if (!code) continue;
+		// R and C carry a similarity score (R100), and name two paths
 		const letter = code[0].toUpperCase();
-		// old then new; the new one is what exists to open
-		const path = paths[paths.length - 1].trim();
+		const two = letter === 'R' || letter === 'C';
+		const from = two ? parts[i++] : undefined;
+		const path = parts[i++];
 		if (!path) continue;
 		if (letter === 'D') out.push({ path, status: 'D' });
-		else if (letter === 'R') out.push({ path, status: 'R', from: paths[0].trim() });
+		else if (letter === 'R') out.push({ path, status: 'R', from });
 		else if (letter === 'A' || letter === 'C') out.push({ path, status: 'A' });
 		else out.push({ path, status: 'M' });
 	}
@@ -206,14 +209,14 @@ export type GitChangesResult = {
 /** What differs from a version NOW, not what it changed: every row then opens a diff with
  *  something in it. Untracked files are absent by design - they postdate every version. */
 export async function gitChangesSince(workspaceRoot: string, hash: string): Promise<GitChangesResult> {
-	if (!hash) return { ok: false, error: 'Missing revision' };
+	if (!isShowableRef(hash)) return { ok: false, error: 'Invalid revision' };
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	try {
 		const [rel] = toRepoRel(rr.root, [workspaceRoot]);
 		// `diff <commit>` is commit -> working tree, so the letters read as "since that version":
 		// A is a file that did not exist then, D one that has gone since
-		const raw = await git(rr.root).raw(['diff', '--name-status', hash, ...(rel ? ['--', rel] : [])]);
+		const raw = await git(rr.root).raw(['diff', '--name-status', '-z', hash, ...(rel ? ['--', rel] : [])]);
 		// git prints from the REPO root; the renderer deals only in absolute paths inside the folder
 		return { ok: true, entries: insideFolder(rr.root, workspaceRoot, parseNameStatus(raw)) };
 	} catch (e) {
@@ -292,8 +295,8 @@ export async function gitChangesIn(workspaceRoot: string, hash: string): Promise
 		// with -q a missing parent prints nothing and exits 1, which simple-git resolves as ''
 		const parent = (await g.raw(['rev-parse', '--verify', '-q', `${hash}^1`])).trim() || null;
 		const raw = parent
-			? await g.raw(['diff', '--name-status', '-M', parent, hash, ...scope])
-			: await g.raw(['diff-tree', '--root', '-r', '-M', '--no-commit-id', '--name-status', hash, ...scope]);
+			? await g.raw(['diff', '--name-status', '-z', '-M', parent, hash, ...scope])
+			: await g.raw(['diff-tree', '--root', '-r', '-M', '-z', '--no-commit-id', '--name-status', hash, ...scope]);
 		return { ok: true, parent, entries: insideFolder(rr.root, workspaceRoot, parseNameStatus(raw)) };
 	} catch (e) {
 		if (isMissingGit(e)) {
@@ -322,8 +325,14 @@ export async function gitFileAt(workspaceRoot: string, absPath: string, ref: str
  * Refuses while the tree is dirty: overwriting uncommitted work is the one way this could lose
  * something git could not give back, so the caller saves a version first.
  */
-export async function gitRestore(workspaceRoot: string, hash: string, message: string): Promise<GitOpResult> {
-	if (!hash) return { ok: false, error: 'Missing revision' };
+export type GitRestoreResult = GitOpResult & {
+	/** new files, never in a version, that the restore would have replaced with that version's
+	 *  copies: absolute paths. Refused rather than overwritten, since git could not give them back */
+	untracked?: string[];
+};
+
+export async function gitRestore(workspaceRoot: string, hash: string, message: string): Promise<GitRestoreResult> {
+	if (!isShowableRef(hash)) return { ok: false, error: 'Invalid revision' };
 	if (!message || !message.trim()) return { ok: false, error: 'A message is required' };
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
@@ -341,11 +350,23 @@ export async function gitRestore(workspaceRoot: string, hash: string, message: s
 		// version that never existed.
 		// --no-renames: a rename is otherwise listed by its new name only, so the restore removed the
 		// new file and never brought back the old one, and the file was simply gone
-		const changed = (await g.raw(['diff', '--name-only', '--no-renames', hash, 'HEAD', ...(scope ? ['--', scope] : [])]))
-			.split('\n')
-			.map((l) => l.trim())
-			.filter(Boolean);
+		// -z: a name with a quote or a backslash in it is otherwise printed quoted, matches nothing,
+		// and the restore "succeeds" leaving that file as it is now
+		const where = scope ? ['--', scope] : [];
+		const changed = (await g.raw(['diff', '--name-only', '--no-renames', '-z', hash, 'HEAD', ...where])).split('\0').filter(Boolean);
 		if (!changed.length) return { ok: false, error: 'That version matches the current one.' };
+
+		// a new file the author has not saved in any version, at a name that version has: checkout
+		// would replace it without a word. The dirty check above leaves new files out on purpose.
+		const untracked = new Set((await g.raw(['ls-files', '--others', '--exclude-standard', '-z', ...where])).split('\0'));
+		const inTheWay = changed.filter((rel) => untracked.has(rel));
+		if (inTheWay.length) {
+			return {
+				ok: false,
+				untracked: inTheWay.map((rel) => resolve(repoRoot, rel)),
+				error: `Restoring would replace new files that are in no version: ${inTheWay.join(', ')}`
+			};
+		}
 
 		for (const rel of changed) {
 			try {

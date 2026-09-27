@@ -15,18 +15,13 @@ import { gitClone } from '../gitClone';
 import type { GitAuthEnv } from '../gitRemote';
 import { startWorkspaceWatch, stopWorkspaceWatch } from '../fs/fsWatch';
 import { pathKey } from '../shell/toolDirs';
+import { GIT_PROCESS_ENV } from '../gitProcessEnv';
 
 type Call = { id: number; op: string; args: unknown[] };
 
-// Every git here inherits this process's environment, and several answers are read from git's
-// English words: why a push failed, which files block a merge, that a file has no committed
-// version. A translated git slips past all of them. VS Code pins the same three.
-//
-// GIT_OPTIONAL_LOCKS=0 keeps `git status` from taking .git/index.lock to refresh the index as a
-// side effect. Status runs on every watcher event and window focus, and holding that lock made a
-// Save version or Sync running at the same moment fail; it would also make the watcher's own
-// refresh rewrite the index it watches.
-Object.assign(process.env, { LANGUAGE: 'en', LC_ALL: 'en_US.UTF-8', LANG: 'en_US.UTF-8', GIT_OPTIONAL_LOCKS: '0' });
+// Every git here inherits this process's environment: English, no optional locks, literal file
+// names (gitProcessEnv.ts says why each).
+Object.assign(process.env, GIT_PROCESS_ENV);
 
 const port = process.parentPort;
 

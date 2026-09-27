@@ -2,7 +2,7 @@
 import { nativeBridge } from './fileSystem';
 import { NO_BRIDGE, errMsg } from './git';
 
-export type CloneFailure = 'exists' | 'not-found' | 'invalid' | 'auth' | 'network' | 'cancelled' | 'other';
+export type CloneFailure = 'exists' | 'not-found' | 'invalid' | 'auth' | 'network' | 'cancelled' | 'checkout' | 'other';
 
 export type GitCloneResult = {
 	ok: boolean;

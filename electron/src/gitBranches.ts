@@ -1,7 +1,17 @@
 // Branches for the Source Control panel: the list behind the branch name, switching to one,
 // starting one, and taking up one that exists only on a remote. VS Code's Git: Checkout to...,
 // with the refusals said in words: git will not switch over unsaved work it would overwrite.
-import { git, errMsg, isMissingGit, resolveRepoRoot, retryLocked, gitDirsOf, operationIn, type GitOpResult } from './gitService';
+import {
+	git,
+	errMsg,
+	isMissingGit,
+	isNameClash,
+	resolveRepoRoot,
+	retryLocked,
+	gitDirsOf,
+	operationIn,
+	type GitOpResult
+} from './gitService';
 import { OVERWRITE_RE, classifyPushError, netGit, parseBlockingFiles, type GitAuthEnv, type PushFailure } from './gitRemote';
 import { resolve } from 'node:path';
 
@@ -76,12 +86,12 @@ export async function gitBranches(workspaceRoot: string): Promise<GitBranchesRes
 		const raw = await g.raw([
 			'for-each-ref',
 			'--sort=-committerdate',
-			`--format=%(refname)${SEP}%(refname:short)${SEP}%(upstream:short)${SEP}%(committerdate:iso-strict)`,
+			`--format=%(refname)${SEP}%(refname:lstrip=2)${SEP}%(upstream:lstrip=2)${SEP}%(committerdate:iso-strict)`,
 			'refs/heads',
 			'refs/remotes'
 		]);
 		// with -q, a detached HEAD prints nothing and exits 1, which simple-git resolves as ''
-		const current = (await g.raw(['symbolic-ref', '-q', '--short', 'HEAD'])).trim() || null;
+		const current = (await g.raw(['symbolic-ref', '-q', 'HEAD'])).trim().replace(/^refs\/heads\//, '') || null;
 		return { ok: true, current, ...parseRefs(raw) };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -94,10 +104,12 @@ async function validName(root: string, name: string): Promise<boolean> {
 	if (!name || name.startsWith('-') || /\s/.test(name)) return false;
 	try {
 		await git(root).raw(['check-ref-format', '--branch', name]);
-		return true;
 	} catch {
 		return false;
 	}
+	// not a milestone's name either: git would refuse to upload the branch as ambiguous
+	const tags = (await git(root).raw(['for-each-ref', '--format=%(refname)', `refs/tags/${name}`])).split('\n');
+	return !tags.includes(`refs/tags/${name}`);
 }
 
 async function run(workspaceRoot: string, args: (root: string) => Promise<string[] | GitSwitchResult>): Promise<GitSwitchResult> {
@@ -110,7 +122,7 @@ async function run(workspaceRoot: string, args: (root: string) => Promise<string
 		const planned = await args(root);
 		if (!Array.isArray(planned)) return planned;
 		await retryLocked(() => g.raw(planned));
-		const branch = (await g.raw(['symbolic-ref', '-q', '--short', 'HEAD'])).trim();
+		const branch = (await g.raw(['symbolic-ref', '-q', 'HEAD'])).trim().replace(/^refs\/heads\//, '');
 		return { ok: true, branch };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -118,6 +130,8 @@ async function run(workspaceRoot: string, args: (root: string) => Promise<string
 		if (OVERWRITE_RE.test(msg))
 			return { ok: false, failure: 'dirty', files: parseBlockingFiles(msg).map((p) => resolve(root, p)), error: msg };
 		if (/already exists/i.test(msg)) return { ok: false, failure: 'exists', error: msg };
+		// "draft/v2" beside a branch called "draft": not a name git can use here
+		if (isNameClash(msg)) return { ok: false, failure: 'invalid', error: msg };
 		return { ok: false, error: msg };
 	}
 }
@@ -129,7 +143,7 @@ async function run(workspaceRoot: string, args: (root: string) => Promise<string
  */
 export function gitSwitch(workspaceRoot: string, name: string): Promise<GitSwitchResult> {
 	return run(workspaceRoot, async (root) => {
-		const known = (await git(root).raw(['for-each-ref', '--format=%(refname:short)', 'refs/heads'])).split('\n');
+		const known = (await git(root).raw(['for-each-ref', '--format=%(refname:lstrip=2)', 'refs/heads'])).split('\n');
 		return known.includes(name) ? ['switch', '--', name] : { ok: false, failure: 'missing' };
 	});
 }
@@ -142,7 +156,7 @@ export function gitCreateBranch(workspaceRoot: string, name: string): Promise<Gi
 /** take up a branch that exists only on a remote: a local branch of the same name, tracking it */
 export function gitTrackBranch(workspaceRoot: string, remoteName: string): Promise<GitSwitchResult> {
 	return run(workspaceRoot, async (root) => {
-		const known = (await git(root).raw(['for-each-ref', '--format=%(refname:short)', 'refs/remotes'])).split('\n');
+		const known = (await git(root).raw(['for-each-ref', '--format=%(refname:lstrip=2)', 'refs/remotes'])).split('\n');
 		return known.includes(remoteName) && !remoteName.startsWith('-')
 			? ['switch', '--track', remoteName]
 			: { ok: false, failure: 'missing' };
@@ -159,7 +173,7 @@ export type GitDeleteBranchResult = GitOpResult & {
 
 function localNames(root: string): Promise<string[]> {
 	return git(root)
-		.raw(['for-each-ref', '--format=%(refname:short)', 'refs/heads'])
+		.raw(['for-each-ref', '--format=%(refname:lstrip=2)', 'refs/heads'])
 		.then((raw) => raw.split('\n').filter(Boolean));
 }
 
@@ -176,7 +190,8 @@ export async function gitDeleteBranch(workspaceRoot: string, name: string, force
 	try {
 		if (name.startsWith('-') || !(await localNames(root)).includes(name)) return { ok: false, failure: 'missing' };
 		// with -q, a detached HEAD prints nothing and exits 1, which simple-git resolves as ''
-		if ((await g.raw(['symbolic-ref', '-q', '--short', 'HEAD'])).trim() === name) return { ok: false, failure: 'current' };
+		if ((await g.raw(['symbolic-ref', '-q', 'HEAD'])).trim().replace(/^refs\/heads\//, '') === name)
+			return { ok: false, failure: 'current' };
 		await retryLocked(() => g.raw(['branch', force ? '-D' : '-d', name]));
 		return { ok: true };
 	} catch (e) {

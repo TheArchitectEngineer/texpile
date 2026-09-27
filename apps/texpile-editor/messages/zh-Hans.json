@@ -1822,5 +1822,9 @@
 	"vcs_branch_delete_current": "无法删除你当前所在的分支。请先切换到其他分支。",
 	"vcs_toast_branch_deleted": "已删除分支 {name}",
 	"vcs_toast_remote_branch_deleted": "已从 {remote} 删除 {name}",
-	"vcs_signin_kept_session": "验证通过后，Texpile 会记住它直到你退出，这样每次同步时都不会再询问。这台电脑没有钥匙串，无法保存更久。"
+	"vcs_signin_kept_session": "验证通过后，Texpile 会记住它直到你退出，这样每次同步时都不会再询问。这台电脑没有钥匙串，无法保存更久。",
+	"vcs_ssh_key_refused": "服务器没有接受你的 SSH 密钥。请确认该密钥已添加到你在该服务器上的账户，或改用 https 地址并使用密码或令牌。",
+	"vcs_ssh_host_changed": "自你上次连接以来，服务器的 SSH 密钥已经更改，因此 Texpile 没有连接。更换服务器时会出现这种情况，但也可能意味着连接被拦截：请先向服务器的管理者确认。确认更改后，请从这台电脑的 known_hosts 文件中删除旧密钥。",
+	"vcs_restore_untracked": "该版本中有与你尚未保存到任何版本的新文件同名的文件（{files}），恢复会替换它们。请先将它们保存到一个版本中，或将它们重命名。",
+	"vcs_clone_checkout": "项目已下载，但其文件无法写入该文件夹，因此没有保留任何内容。Git 提示：{reason}。常见原因是这台电脑不允许的文件名，或大文件（Git LFS）下载失败。"
 }

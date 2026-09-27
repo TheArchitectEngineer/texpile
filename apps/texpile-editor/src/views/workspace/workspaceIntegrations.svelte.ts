@@ -9,7 +9,7 @@ import { attachSessionHandlers } from '$lib/collab/workspaceSession';
 import { DocRegistries } from '$lib/workspace/docRegistries.svelte';
 import { ScmActions } from '$lib/workspace/scmActions.svelte';
 import { ChangeBaseline } from '$lib/workspace/changeBaseline.svelte';
-import { gitHead, gitOperation, gitTracking, isGitRepo } from '$lib/workspace/gitStore';
+import { gitHead, gitHeldBack, gitOperation, gitTracking, isGitRepo } from '$lib/workspace/gitStore';
 import { gitignoreLines } from '$lib/workspace/buildArtifacts';
 import { provideScmHandlers } from '$lib/workspace/scmHandlers.svelte';
 import { ScmFetch } from '$lib/workspace/scmFetch.svelte';
@@ -168,13 +168,15 @@ export class WorkspaceIntegrations {
 			})
 		);
 
-		// again whenever HEAD moves: the file's last saved version is then a different one; and when a
-		// merge starts or ends, since a file being combined has no marks
+		// again whenever HEAD moves: the file's last saved version is then a different one; when a
+		// merge starts or ends, since a file being combined has no marks; and when the author chooses
+		// to use a repository above the folder, whose HEAD may be the one already read
 		$effect(() => {
 			const path = doc.path;
 			void gitHead.current;
 			void isGitRepo.current;
 			void gitOperation.current;
+			void gitHeldBack.current;
 			untrack(() => void this.changeBaseline.load(path));
 		});
 

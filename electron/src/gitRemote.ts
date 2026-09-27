@@ -3,6 +3,7 @@
 // command factory it shares; the helper process serves both (helper/helperWorker.ts).
 import { simpleGit, type SimpleGit, type SimpleGitOptions } from 'simple-git';
 import { spawn } from 'node:child_process';
+import { resolve } from 'node:path';
 import { git, isMissingGit, errMsg, resolveRepoRoot, retryLocked, upstreamExists, type GitOpResult } from './gitService';
 
 // -- remotes --------------------------------------------------------------------
@@ -183,9 +184,9 @@ export async function gitPush(workspaceRoot: string, auth: GitAuthEnv = {}): Pro
 		const up = await upstreamOf(g, status.current);
 		if (!up) return { ok: false, failure: 'no-upstream' };
 		remote = up.remote;
-		// explicit refspec: `git push` alone refuses when the upstream branch is named differently
-		// --follow-tags: milestones on the versions sent go with them (gitTags.ts)
-		await g.push(up.remote, `${status.current}:${up.ref}`, ['--follow-tags']);
+		// explicit refspec: `git push` alone refuses when the upstream branch is named differently.
+		// Milestones marked here go with it (pushBranch)
+		await pushBranch(g, up.remote, status.current, up.ref);
 		return { ok: true, remote };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -207,7 +208,7 @@ export async function gitPublish(workspaceRoot: string, remote: string, auth: Gi
 		const g = netGit(rr.root, auth);
 		const status = await g.status();
 		if (!status.current || status.detached) return { ok: false, failure: 'other', error: 'There is no branch to publish.', remote };
-		await g.push(remote, status.current, ['--set-upstream', '--follow-tags']);
+		await pushBranch(g, remote, status.current, status.current, ['--set-upstream']);
 		return { ok: true, remote };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -309,23 +310,50 @@ async function takeIn(g: SimpleGit, diverged: boolean): Promise<TakeIn> {
 	return behind === 0 ? { ok: true } : { ok: false, failure: 'other', error: msg || 'git did not join the two histories' };
 }
 
-/** an annotated tag here (a milestone, gitTags.ts) that the remote does not have, and that
- *  `push --follow-tags` would send: only those on a version the branch contains. One on another
- *  branch is not a reason to push, and in a clone the author may not write to, pushing for it
- *  would be refused for nothing. Exported for the tests. */
-export async function milestonesMissingOn(g: SimpleGit, remote: string): Promise<boolean> {
-	const local = (await g.raw(['for-each-ref', '--merged', 'HEAD', '--format=%(objecttype) %(refname:short)', 'refs/tags']))
-		.split('\n')
-		.filter((l) => l.startsWith('tag '))
-		.map((l) => l.slice(4));
-	if (!local.length) return false;
-	const there = new Set(
-		(await g.raw(['ls-remote', '--tags', '--refs', remote]))
+/** Milestones marked in this copy and not uploaded yet (gitTags.ts notes each one here), by name.
+ *  Only these go with an upload, named one by one. --follow-tags sent every milestone this copy
+ *  held that the remote lacked, so one a co-author had removed there came back with anyone's next
+ *  Sync. Local config: it belongs to this copy, and nothing else reads it. */
+export const PENDING_MILESTONES = 'texpile.pendingMilestone';
+
+/** the noted milestones on a version this branch contains: the ones an upload of it may carry.
+ *  One on another branch waits for that branch, or its push would send that branch's versions too.
+ *  Exported for the tests. */
+export async function milestonesToSend(g: SimpleGit): Promise<string[]> {
+	// a missing key exits 1 with nothing on stderr, which simple-git resolves as ''
+	const pending = (await g.raw(['config', '--get-all', PENDING_MILESTONES])).split('\n').map((l) => l.trim());
+	if (!pending.some(Boolean)) return [];
+	const onBranch = new Set(
+		(await g.raw(['for-each-ref', '--merged', 'HEAD', '--format=%(objecttype) %(refname:lstrip=2)', 'refs/tags']))
 			.split('\n')
-			.map((l) => l.split('\t')[1]?.replace(/^refs\/tags\//, ''))
-			.filter(Boolean)
+			.filter((l) => l.startsWith('tag '))
+			.map((l) => l.slice(4))
 	);
-	return local.some((name) => !there.has(name));
+	return [...new Set(pending)].filter((name) => name && onBranch.has(name));
+}
+
+/** a milestone that went up, or was removed: no longer waiting to be sent */
+export async function forgetPendingMilestones(g: SimpleGit, names: string[]): Promise<void> {
+	for (const name of names) {
+		const exact = `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`;
+		await g.raw(['config', '--unset-all', PENDING_MILESTONES, exact]).catch(() => {});
+	}
+}
+
+/** Send `branch` to `remote` as `target`, with the noted milestones on it. Every ref is named in
+ *  full: a milestone or a branch elsewhere with the same short name would make git refuse the
+ *  upload as ambiguous. */
+async function pushBranch(g: SimpleGit, remote: string, branch: string, target: string, opts: string[] = []): Promise<void> {
+	const tags = await milestonesToSend(g);
+	await g.raw([
+		'push',
+		...opts,
+		'--',
+		remote,
+		`refs/heads/${branch}:refs/heads/${target}`,
+		...tags.map((t) => `refs/tags/${t}:refs/tags/${t}`)
+	]);
+	await forgetPendingMilestones(g, tags);
 }
 
 /**
@@ -347,7 +375,8 @@ export async function gitSync(workspaceRoot: string, auth: GitAuthEnv = {}): Pro
 		if (!up) return { ok: false, failure: 'no-upstream' };
 		remote = up.remote;
 
-		await g.fetch(up.remote);
+		// --prune, as in gitFetch.ts: an upstream deleted there must read as gone, not be published again
+		await g.raw(['fetch', '--prune', '--', up.remote]);
 		// the branch was deleted on the remote (a merged pull request's) and the fetch pruned it:
 		// there is nothing to sync with, and the panel offers Publish once it refreshes
 		if (!(await upstreamExists(g))) return { ok: false, failure: 'no-upstream', remote };
@@ -356,14 +385,16 @@ export async function gitSync(workspaceRoot: string, auth: GitAuthEnv = {}): Pro
 		const [ahead, behind] = await aheadBehind(g);
 		if (behind > 0) {
 			const took = await takeIn(g, ahead > 0);
-			if (!took.ok) return { ...took, remote };
+			// files in the way as absolute paths, as a branch switch and Combine give them: the panel
+			// saves those very rows first (scmSaveFirst.ts)
+			if (!took.ok) return { ...took, ...(took.failure === 'dirty' && { files: took.files?.map((f) => resolve(rr.root!, f)) }), remote };
 		}
 
 		stage = 'push';
 		const [toSend] = await aheadBehind(g);
 		// a milestone marked on a version the remote already has goes over only with a push of its
-		// own; asking first keeps Sync from pushing at all in a clone the author cannot write to
-		if (toSend > 0 || (await milestonesMissingOn(g, up.remote))) await g.push(up.remote, `${status.current}:${up.ref}`, ['--follow-tags']);
+		// own; with nothing to send, Sync does not push at all, as in a clone the author cannot write to
+		if (toSend > 0 || (await milestonesToSend(g)).length) await pushBranch(g, up.remote, status.current, up.ref);
 		return { ok: true, remote, pulled: behind, pushed: toSend };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };

@@ -1,10 +1,10 @@
 // Milestones: a name on a version that matters ("Sent to the committee", "Camera ready"), kept as
 // an annotated git tag so every other tool sees it too. The name the author types is the tag's
-// message; the tag itself gets a ref-safe form of it. Sync carries them to the remote
-// (--follow-tags in gitRemote.ts), and removing one removes it there as well, or the next fetch
-// would bring it straight back.
+// message; the tag itself gets a ref-safe form of it. The next upload of the branch carries one
+// marked here (noted in PENDING_MILESTONES, gitRemote.ts), and removing one removes it there as
+// well, or the next fetch would bring it straight back.
 import { git, errMsg, isMissingGit, resolveRepoRoot, type GitOpResult } from './gitService';
-import { classifyPushError, netEnv, OWN_ENVIRONMENT, type GitAuthEnv } from './gitRemote';
+import { classifyPushError, forgetPendingMilestones, netEnv, OWN_ENVIRONMENT, PENDING_MILESTONES, type GitAuthEnv } from './gitRemote';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
 export type GitMilestone = {
@@ -39,7 +39,8 @@ export async function milestonesByCommit(repoRoot: string): Promise<Record<strin
 	const raw = await git(repoRoot).raw([
 		'for-each-ref',
 		'--sort=-creatordate',
-		`--format=%(refname:short)${SEP}%(objecttype)${SEP}%(*objectname)${SEP}%(objectname)${SEP}%(contents:subject)`,
+		// lstrip, not :short, which says "tags/main" when a branch is also called main
+		`--format=%(refname:lstrip=2)${SEP}%(objecttype)${SEP}%(*objectname)${SEP}%(objectname)${SEP}%(contents:subject)`,
 		'refs/tags'
 	]);
 	return parseTags(raw);
@@ -66,7 +67,14 @@ async function refFree(root: string, name: string): Promise<boolean> {
 	} catch {
 		return false;
 	}
-	return (await git(root).raw(['tag', '--list', name])).trim() === '';
+	// nor a branch's name, here or on a remote: git would then refuse to upload that branch as
+	// ambiguous, and read the milestone as "tags/<name>" everywhere
+	const taken = new Set(
+		(await git(root).raw(['for-each-ref', '--format=%(refname)', 'refs/tags', 'refs/heads', 'refs/remotes']))
+			.split('\n')
+			.map((r) => r.replace(/^refs\/(tags|heads)\//, '').replace(/^refs\/remotes\/[^/]+\//, ''))
+	);
+	return name !== 'HEAD' && !taken.has(name);
 }
 
 /** Mark a version as a milestone. Resolves to the tag's name, suffixed when the plain one is taken. */
@@ -84,6 +92,8 @@ export async function gitMarkMilestone(workspaceRoot: string, hash: string, labe
 			name = `${base}-${i}`;
 		}
 		await git(root).raw(['tag', '-a', name, '-m', text, hash]);
+		// to go up with the next upload of a branch that has this version (gitRemote.ts)
+		await git(root).raw(['config', '--add', PENDING_MILESTONES, name]);
 		return { ok: true, name };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -93,7 +103,7 @@ export async function gitMarkMilestone(workspaceRoot: string, hash: string, labe
 
 /** the remote the current branch syncs with, read from config; null without one */
 async function syncRemote(root: string): Promise<string | null> {
-	const branch = (await git(root).raw(['symbolic-ref', '-q', '--short', 'HEAD'])).trim();
+	const branch = (await git(root).raw(['symbolic-ref', '-q', 'HEAD'])).trim().replace(/^refs\/heads\//, '');
 	if (!branch) return null;
 	return (await git(root).raw(['config', '--get', `branch.${branch}.remote`])).trim() || null;
 }
@@ -135,6 +145,7 @@ export async function gitRemoveMilestone(workspaceRoot: string, name: string, au
 			}
 		}
 		await git(root).raw(['tag', '-d', name]);
+		await forgetPendingMilestones(git(root), [name]);
 		return { ok: true, name };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };

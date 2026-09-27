@@ -40,11 +40,17 @@ function folderName(resource: string): string {
 	return createHash('sha1').update(resourceKey(resource)).digest('hex').slice(0, 16);
 }
 
-function randomId(resource: string): string {
+/** four characters and the file's extension, as VS Code names a copy; never one the file already
+ *  has, compared as macOS's and Windows's disks do, without case: "aB3d" there is "Ab3D", and the
+ *  new copy would be written over an older one */
+function randomId(resource: string, taken: { id: string }[]): string {
 	const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-	const bytes = randomBytes(4);
 	const ext = extname(resource);
-	return [...bytes].map((b) => alphabet[b % alphabet.length]).join('') + (ext.length <= 33 ? ext : '');
+	const used = new Set(taken.map((e) => e.id.toLowerCase()));
+	for (;;) {
+		const id = [...randomBytes(4)].map((b) => alphabet[b % alphabet.length]).join('') + (ext.length <= 33 ? ext : '');
+		if (!used.has(id.toLowerCase())) return id;
+	}
 }
 
 export class LocalHistory {
@@ -152,13 +158,17 @@ export class LocalHistory {
 			}
 			await mkdir(dir, { recursive: true });
 			const entry: LocalHistoryEntry = {
-				id: randomId(resource),
+				id: randomId(resource, model.entries),
 				timestamp,
 				...(source ? { source } : {}),
 				...(sourceDescription ? { sourceDescription } : {})
 			};
-			await writeFile(join(dir, entry.id), content);
 			model.entries.push(entry);
+			// a file's first copy: its listing goes first, so the folder says whose it is before any copy
+			// is in it. Copies with no listing belong to no file that all() or move() can name; a listing
+			// whose copy never arrived loses only that entry (load() skips it)
+			if (model.entries.length === 1) await this.store(resource, model);
+			await writeFile(join(dir, entry.id), content);
 			await this.trim(resource, model);
 			await this.store(resource, model);
 			return entry;
@@ -282,7 +292,7 @@ export class LocalHistory {
 				if (newest) {
 					const same = resolve(target, '..') === resolve(model.resource, '..');
 					const copy: LocalHistoryEntry = {
-						id: randomId(target),
+						id: randomId(target, into.entries),
 						timestamp: Date.now(),
 						source: same ? 'renamed' : 'moved',
 						sourceDescription: model.resource

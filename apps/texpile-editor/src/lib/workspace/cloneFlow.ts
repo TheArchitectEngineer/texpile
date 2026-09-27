@@ -5,6 +5,7 @@ import { gitClone, cancelClone, type GitCloneResult } from './gitClone';
 import { dirname, joinPath, pickFolder } from './fileSystem';
 import { recentFolders } from './workspaceStore';
 import { toastGitFailure } from './gitFailureToast';
+import { sshReason } from './uploadReason';
 import { m } from '$lib/paraglide/messages';
 
 const LAST_PARENT = 'texpile:cloneParent';
@@ -29,6 +30,12 @@ function rememberParent(parent: string): void {
 	}
 }
 
+/** git's most specific line ("fatal: fig.png: smudge filter lfs failed"), without its prefix */
+function gitReasonLine(output: string): string {
+	const line = output.split('\n').find((l) => /^(fatal|error):/.test(l.trim())) ?? output.split('\n')[0] ?? '';
+	return line.trim().replace(/^(fatal|error):\s*/, '');
+}
+
 /** what to tell the author, or '' when there is nothing to say (they stopped it) */
 export function cloneReason(res: GitCloneResult): string {
 	if (res.reason === 'no-git') return m.vcs_git_missing();
@@ -40,11 +47,13 @@ export function cloneReason(res: GitCloneResult): string {
 		case 'not-found':
 			return m.vcs_clone_not_found();
 		case 'auth':
-			return m.vcs_clone_auth();
+			return sshReason(res.error) ?? m.vcs_clone_auth();
 		case 'network':
 			return m.vcs_clone_network();
 		case 'invalid':
 			return m.vcs_clone_invalid();
+		case 'checkout':
+			return m.vcs_clone_checkout({ reason: gitReasonLine(res.error ?? '') });
 		default:
 			return res.error || m.vcs_clone_failed();
 	}
