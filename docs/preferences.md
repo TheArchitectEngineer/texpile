@@ -1,6 +1,6 @@
 ---
 nav: Preferences
-description: Every setting in Texpile's Preferences dialog, tab by tab: appearance, editor, version history, collaboration, toolchain, integrations, startup, and the AI assistant.
+description: Every setting in Texpile's Preferences dialog, tab by tab: appearance, editor, version control, collaboration, toolchain, integrations, startup, and the AI assistant.
 blurb: Every setting in the Preferences dialog, tab by tab.
 icon: settings
 order: 15
@@ -52,13 +52,21 @@ Settings apply to every folder you open. The compile command and its options are
 | Hyphenate words   | On by default, and shown while Justify text is on. Long words can split at line ends. The hyphens are only drawn in the editor and are not written to the file. |
 | Image resize step | Dragging an image snaps its width to multiples of this fraction of the text width: 10%, 25%, or 50%.                                                            |
 
-## Version History
+## Version Control
 
-| Setting                              | What it does                                                                                                                                                                        |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Check for new versions automatically | On by default. Every few minutes, while Texpile is in front, it runs git fetch so the Sync button shows how many new versions are waiting. Your files do not change until you Sync. |
-| Keep local history                   | On by default. A copy of each file as you save it, kept on this computer for 30 days ([Local history](version-control.md#local-history)). Off records nothing; what was kept stays. |
-| Saved copies                         | How much space Local History takes. Open it for Clear Local History…, which deletes every copy of every file.                                                                       |
+### Git
+
+| Setting      | What it does                                                                                                                                                                                                |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Autofetch    | On by default. Runs git fetch every 3 minutes while Texpile is in front, so the Sync button shows how many commits there are to pull. Your files do not change until you Sync.                              |
+| Git Identity | The user.name and user.email git will use in the open folder. Comments fall back to that name while the display name under Collaboration is blank. Shown read-only: set them with git config in a terminal. |
+
+### Local History
+
+| Setting            | What it does                                                                                                                                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Keep local history | On by default. A copy of each file as you save it, kept on this computer for 30 days ([Local history](version-control.md#local-history)). Off records nothing; what was kept stays. |
+| Saved copies       | How much space Local History takes. Open it for Clear Local History…, which deletes every copy of every file.                                                                       |
 
 ## Collaboration
 
@@ -68,7 +76,6 @@ How other people see you in a [shared session](collaboration.md). The name and t
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Display name | The name over your cursor, in the participant list, and on the review comments you write. It also fills in the join form. Left blank you appear as Host when you share, and as Guest when you join. |
 | Color        | Your cursor color. Automatic gives the host blue, and every guest a color of their own.                                                                                                             |
-| Git Identity | The name and email git will use in the open folder. Comments fall back to that name while the display name is blank. Set them with git, not here.                                                   |
 
 ## Toolchain
 

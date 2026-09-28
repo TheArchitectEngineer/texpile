@@ -44,7 +44,7 @@ On Fedora it is `sudo dnf install git`, and on Arch `sudo pacman -S git`.
 
 ## Tell git who you are
 
-A commit carries a name and an email address. Texpile asks for them the first time you save a version if git does not know them yet, or set them once yourself:
+A commit carries a name and an email address, git's user.name and user.email. Texpile asks for them the first time you commit if git does not know them yet, or set them once yourself:
 
 ```bash
 git config --global user.name "Your Name"
@@ -58,6 +58,6 @@ git --version
 ```
 
 > [!NOTE]
-> Texpile only looks for programs when it starts, so restart it after installing. Preferences › Toolchain lists git under Version control and says whether it was found.
+> Texpile only looks for programs when it starts, so restart it after installing. Preferences › Toolchain lists git under Version Control and says whether it was found.
 
 [Version control](../version-control.md)

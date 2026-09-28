@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// The panel's guarded states. During a merge: Finish combining stays disabled while any file still
+// The panel's guarded states. During a merge: Complete Merge stays disabled while any file still
 // holds a marked place, the file row opens that file rather than a comparison, and the ordinary
-// Save version box is not offered, since the merge is saved by Finish as one version. Inside a
+// commit box is not offered, since the merge is committed by Complete Merge. Inside a
 // larger repository: nothing of it is used until the author says so.
 import { it, expect, vi, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
@@ -54,8 +54,8 @@ const button = (name: string) => [...document.querySelectorAll('button')].find((
 
 it('will not finish while a file still holds a marked place', () => {
 	render([{ path: '/p/main.tex', x: 'U', y: 'U', markers: true }]);
-	expect(button('Finish Combining')?.disabled).toBe(true);
-	expect(button('Cancel Combining')?.disabled).toBe(false);
+	expect(button('Complete Merge')?.disabled).toBe(true);
+	expect(button('Abort Merge')?.disabled).toBe(false);
 	expect(document.body.textContent).not.toContain('Ready');
 	expect(document.querySelector('textarea')).toBeNull();
 });
@@ -67,7 +67,7 @@ it('finishes once every place is chosen, and says the file is ready', () => {
 	]);
 	expect(document.body.textContent).toContain('All conflicts are resolved');
 	expect(document.body.textContent).toContain('Ready');
-	button('Finish Combining')!.click();
+	button('Complete Merge')!.click();
 	expect(calls.finish).toHaveBeenCalledOnce();
 });
 
@@ -81,7 +81,7 @@ it('opens a file both sides changed at its marked place, not as a comparison', (
 
 it('leaves a rebase to the terminal it was started in', () => {
 	render([{ path: '/p/main.tex', x: 'U', y: 'U', markers: true }], { operation: 'rebase' });
-	expect(button('Finish Combining')).toBeUndefined();
+	expect(button('Complete Merge')).toBeUndefined();
 	expect(document.body.textContent).toContain('git rebase --continue');
 });
 
@@ -99,9 +99,9 @@ it('asks before using a repository that starts above the folder', () => {
 	expect(document.body.textContent).not.toContain('main.tex');
 	expect(document.querySelector('textarea')).toBeNull();
 	expect(document.body.textContent).toContain('/home/ada');
-	button('Use That History')!.click();
+	button('Use Parent Repository')!.click();
 	expect(onUse).toHaveBeenCalledOnce();
-	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Start Separate History'))!.click();
+	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Initialize Repository Here'))!.click();
 	expect(onInit).toHaveBeenCalledOnce();
 });
 

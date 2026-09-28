@@ -29,9 +29,13 @@ it('offers the three choices above each place, and names both sides', () => {
 	const view = mount();
 	const bars = view.dom.querySelectorAll('.cm-conflict-bar');
 	expect(bars).toHaveLength(1);
-	expect([...bars[0].querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Keep Mine', 'Keep Theirs', 'Keep Both']);
-	expect(view.dom.querySelector('.cm-conflict-label-mine')?.textContent).toBe('Your version');
-	expect(view.dom.querySelector('.cm-conflict-label-theirs')?.textContent).toBe('Their version · origin/main');
+	expect([...bars[0].querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+		'Accept Current Change',
+		'Accept Incoming Change',
+		'Accept Both Changes'
+	]);
+	expect(view.dom.querySelector('.cm-conflict-label-mine')?.textContent).toBe('Current Change');
+	expect(view.dom.querySelector('.cm-conflict-label-theirs')?.textContent).toBe('Incoming Change · origin/main');
 	expect(view.dom.querySelectorAll('.cm-conflict-mine')).toHaveLength(1);
 	expect(view.dom.querySelectorAll('.cm-conflict-theirs')).toHaveLength(1);
 });

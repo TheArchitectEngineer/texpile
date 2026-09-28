@@ -15,7 +15,7 @@ it('offers to keep the surviving side first, and to delete the file', async () =
 	const first = promptAsk.mock.calls[0][0];
 	expect(first.message).toContain('methods.tex');
 	expect(first.buttons.map((b) => [b.id, b.label])).toEqual([
-		['mine', 'Keep My Version'],
+		['mine', 'Keep Our Version'],
 		['theirs', 'Delete File'],
 		['cancel', 'Cancel']
 	]);
@@ -33,5 +33,5 @@ it('names both versions for a figure, and backing out keeps nothing', async () =
 	expect(await askWholeFile('plot.pdf', 'binary')).toBeNull();
 	expect(keepLabel('binary', 'theirs')).toBe('Keep Their Version');
 	// a text file both changed keeps its old menu wording
-	expect(keepLabel(undefined, 'mine')).toBe('Keep My Whole File');
+	expect(keepLabel(undefined, 'mine')).toBe('Keep Ours (Whole File)');
 });
