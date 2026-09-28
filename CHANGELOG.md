@@ -10,7 +10,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: a copy is kept before a discard, a restore, or a reload over unsaved edits, and discard and restore offer Undo; in a shared session the host keeps guests' edits too
 - feat: the portable build files a project on its own drive by its path from Texpile's folder, so Local History follows the drive to another computer
 - fix: Escape closes a menu open over a dialog, not the dialog too
-- feat: Preferences has a Version History tab: Check for co-authors' new versions, Keep local history, and Saved copies, which opens to Clear Local History…
+- feat: Preferences has a Version History tab: Check for new versions automatically (git fetch every few minutes, renamed from Check for co-authors' new versions), Keep local history, and Saved copies, which opens to Clear Local History…
 - change: comparisons no longer draw a colored bar down the left of changed lines, and the source editor's margin marks changed lines orange, as the file list does, instead of blue
 - change: Source Control explains less and lets the buttons speak: the Publish dialog has no intro, sign-in prompts no longer describe how the answer is kept, confirmations drop the extra paragraph, and a folder inside another repository or owned by another account says so in one line, with the rest in the buttons' tooltips
 - fix: rows in History and the changes list use the panel's full width: the "…" button takes room only while you hover the row, and in History a version's message keeps its room before the author and time

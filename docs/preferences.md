@@ -54,11 +54,11 @@ Settings apply to every folder you open. The compile command and its options are
 
 ## Version History
 
-| Setting                            | What it does                                                                                                                                                                        |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Check for co-authors' new versions | On by default. Every few minutes, while Texpile is in front, it looks for versions co-authors have synced. Nothing changes in your files until you Sync.                            |
-| Keep local history                 | On by default. A copy of each file as you save it, kept on this computer for 30 days ([Local history](version-control.md#local-history)). Off records nothing; what was kept stays. |
-| Saved copies                       | How much space Local History takes. Open it for Clear Local History…, which deletes every copy of every file.                                                                       |
+| Setting                              | What it does                                                                                                                                                                        |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Check for new versions automatically | On by default. Every few minutes, while Texpile is in front, it runs git fetch so the Sync button shows how many new versions are waiting. Your files do not change until you Sync. |
+| Keep local history                   | On by default. A copy of each file as you save it, kept on this computer for 30 days ([Local history](version-control.md#local-history)). Off records nothing; what was kept stays. |
+| Saved copies                         | How much space Local History takes. Open it for Clear Local History…, which deletes every copy of every file.                                                                       |
 
 ## Collaboration
 
