@@ -1,9 +1,9 @@
 // Local History as VS Code keeps it: a copy per save, saves close together from one source merged,
 // the newest 50 kept, big files skipped, and a rename taking the entries along.
 import { it, expect, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { LocalHistory } from '../../../../../../electron/src/localHistory';
 
 const homes: string[] = [];
@@ -127,4 +127,84 @@ it('lists every file with history under a folder, deleted ones too, newest first
 	]);
 	// a folder named like the project's start is not inside it
 	expect(await h.all(join(tmpdir(), 'proj'))).toEqual([]);
+});
+
+it('carries a file whose listing was lost when it is renamed, as its folder is named by its path', async () => {
+	const { h, home } = history();
+	await h.add(FILE, 'one', undefined, undefined, 1_000);
+	await h.add(FILE, 'two', undefined, undefined, 50_000);
+	writeFileSync(join(home, readdirSync(home)[0], 'entries.json'), '{"version":1,"reso');
+	const renamed = join(tmpdir(), 'project', 'chapters', 'introduction.tex');
+	expect(await h.move(FILE, renamed)).toEqual([renamed]);
+	const after = await h.list(renamed);
+	expect(await Promise.all(after.map((e) => h.read(renamed, e.id)))).toEqual(['one', 'two', 'two']);
+	expect(await h.all(join(tmpdir(), 'project'))).toEqual([{ resource: renamed, count: 3, newest: after[2].timestamp }]);
+});
+
+it('keeps the old folder when a copy cannot be read during a move, rather than losing it', async () => {
+	const { h, home } = history();
+	await h.add(FILE, 'one', undefined, undefined, 1_000);
+	const locked = (await h.add(FILE, 'two', undefined, undefined, 50_000))!;
+	const [folder] = readdirSync(home);
+	// a copy another program holds open: reading it fails with something other than "not there"
+	rmSync(join(home, folder, locked.id));
+	mkdirSync(join(home, folder, locked.id));
+	const renamed = join(tmpdir(), 'project', 'chapters', 'introduction.tex');
+	await h.move(FILE, renamed);
+	expect(readdirSync(home)).toContain(folder);
+	expect(readdirSync(join(home, folder))).toContain(locked.id);
+});
+
+it('makes the rename entry from the moved file, not from history the new path already had', async () => {
+	const { h } = history();
+	const renamed = join(tmpdir(), 'project', 'chapters', 'introduction.tex');
+	// a file of that name, deleted since, saved more recently than this one
+	await h.add(renamed, 'the deleted file', undefined, undefined, 90_000);
+	await h.add(FILE, 'this file', undefined, undefined, 1_000);
+	await h.move(FILE, renamed);
+	const after = await h.list(renamed);
+	expect(after.at(-1)?.source).toBe('renamed');
+	expect(await h.read(renamed, after.at(-1)!.id)).toBe('this file');
+});
+
+it('gives a carried copy a name of its own when the new path has one differing only in case', async () => {
+	const { h, home } = history();
+	const renamed = join(tmpdir(), 'project', 'chapters', 'introduction.tex');
+	const mine = (await h.add(FILE, 'this file', undefined, undefined, 1_000))!;
+	const theirs = (await h.add(renamed, 'the other file', undefined, undefined, 2_000))!;
+	// the other file's copy renamed to this one's name in another case, as a case-insensitive disk sees them
+	const clash = mine.id.slice(0, 4).replace(/[a-z]/gi, (c) => (c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase())) + '.tex';
+	const theirFolder = readdirSync(home).find((f) => readdirSync(join(home, f)).includes(theirs.id))!;
+	renameSync(join(home, theirFolder, theirs.id), join(home, theirFolder, clash));
+	const listing = join(home, theirFolder, 'entries.json');
+	writeFileSync(listing, readFileSync(listing, 'utf8').replace(theirs.id, clash));
+	await h.move(FILE, renamed);
+	const ids = (await h.list(renamed)).map((e) => e.id.toLowerCase());
+	expect(new Set(ids).size).toBe(ids.length);
+	const texts = await Promise.all((await h.list(renamed)).map((e) => h.read(renamed, e.id)));
+	expect(texts).toEqual(['this file', 'the other file', 'this file']);
+});
+
+it('lists files for a project at the root of a drive', async () => {
+	const { h } = history();
+	await h.add(FILE, 'intro', undefined, undefined, 1_000);
+	expect((await h.all(sep)).map((f) => f.resource)).toEqual([FILE]);
+});
+
+it('keeps a file whose name ends in a dot, whose copies are named without an extension', async () => {
+	const { h } = history();
+	const odd = join(tmpdir(), 'project', 'notes.');
+	const e = (await h.add(odd, 'text'))!;
+	expect(e.id).toMatch(/^[A-Za-z0-9]{4}$/);
+	expect((await h.list(odd)).map((x) => x.id)).toEqual([e.id]);
+	expect(await h.read(odd, e.id)).toBe('text');
+});
+
+it('adds nothing for an unchanged save after a rename or restore, but keeps an entry asked for by name', async () => {
+	const { h } = history();
+	await h.add(FILE, 'text', undefined, undefined, 1_000);
+	await h.add(FILE, 'text', 'restored', undefined, 60_000);
+	await h.add(FILE, 'text', undefined, undefined, 120_000);
+	await h.add(FILE, 'text', 'Sent to the committee', undefined, 180_000);
+	expect((await h.list(FILE)).map((e) => e.source)).toEqual([undefined, 'restored', 'Sent to the committee']);
 });

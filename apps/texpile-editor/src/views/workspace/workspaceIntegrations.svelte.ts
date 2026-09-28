@@ -135,6 +135,7 @@ export class WorkspaceIntegrations {
 		const history = new LocalHistoryActions({
 			getLoadedPath: () => doc.path,
 			discardPendingSave: () => d.editFlow().saver.discard(),
+			whenSaved: () => d.editFlow().saver.whenIdle(),
 			readTextIfPresent: async (p) => {
 				try {
 					return await d.provider.readText(p);

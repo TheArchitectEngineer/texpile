@@ -48,7 +48,10 @@ function randomId(resource: string, taken: { id: string }[]): string {
 	const ext = extname(resource);
 	const used = new Set(taken.map((e) => e.id.toLowerCase()));
 	for (;;) {
-		const id = [...randomBytes(4)].map((b) => alphabet[b % alphabet.length]).join('') + (ext.length <= 33 ? ext : '');
+		const stem = [...randomBytes(4)].map((b) => alphabet[b % alphabet.length]).join('');
+		// an extension load() would not recognise (too long, or a name ending in ".") is left off:
+		// a copy it cannot list is never shown, trimmed or removed
+		const id = ID_RE.test(stem + ext) ? stem + ext : stem;
 		if (!used.has(id.toLowerCase())) return id;
 	}
 }
@@ -144,9 +147,14 @@ export class LocalHistory {
 			const model = await this.load(resource);
 			const dir = this.folder(resource);
 			const last = model.entries.at(-1);
-			if (last && last.source === source) {
+			// a save that changed nothing adds nothing, whatever made the last entry: Ctrl+S right after a
+			// rename or a restore would otherwise spend one of the 50 on a second copy of it (VS Code's
+			// tracker skips it too). An entry the author asked for by name is kept regardless
+			if (last && (last.source === source || !source)) {
 				const previous = await readFile(join(dir, last.id), 'utf8').catch(() => null);
 				if (previous === content) return last;
+			}
+			if (last && last.source === source) {
 				if (timestamp - last.timestamp <= this.limits.mergeWindowMs) {
 					await writeFile(join(dir, last.id), content);
 					last.timestamp = timestamp;
@@ -221,7 +229,9 @@ export class LocalHistory {
 	 */
 	all(under: string): Promise<{ resource: string; count: number; newest: number }[]> {
 		return this.queue(async () => {
-			const prefix = resourceKey(under) + sep;
+			// a project at the root of a drive already ends in a separator
+			const key = resourceKey(under);
+			const prefix = key.endsWith(sep) ? key : key + sep;
 			let folders: string[];
 			try {
 				folders = await readdir(this.home);
@@ -252,63 +262,94 @@ export class LocalHistory {
 	/**
 	 * A file or folder was renamed or moved: every file under `from` takes its entries to its new
 	 * path, merged with any the new path already had, and gets one more entry saying where it was.
-	 * Nothing is read from disk here, so that entry starts as a copy of the newest one; the window
-	 * then hands over what the file holds now (moveLocalHistory), which replaces it inside the merge
-	 * window, as VS Code's entry is a copy of the file itself. Resolves to the new paths.
+	 * Nothing is read from disk here, so that entry starts as a copy of the file's own newest one; the
+	 * window then hands over what the file holds now (moveLocalHistory), which replaces it inside the
+	 * merge window, as VS Code's entry is a copy of the file itself. Resolves to the new paths.
 	 */
 	move(from: string, to: string): Promise<string[]> {
 		return this.queue(async () => {
 			const src = resourceKey(from);
-			const moved: string[] = [];
-			let folders: string[];
+			// The file itself is found by its own folder, whose name comes from its path, so a listing
+			// that cannot be read does not strand its copies under the old name (load() rebuilds it).
+			// Files under a moved folder can only be found by their listings, where their paths are.
+			const sources: string[] = [];
+			if ((await this.load(from)).entries.length) sources.push(resolve(from));
+			let folders: string[] = [];
 			try {
 				folders = await readdir(this.home);
 			} catch {
-				return moved;
+				// nothing kept yet
 			}
 			for (const name of folders) {
-				let model: Model;
+				let resource: unknown;
 				try {
-					model = JSON.parse(await readFile(join(this.home, name, ENTRIES_FILE), 'utf8')) as Model;
+					resource = (JSON.parse(await readFile(join(this.home, name, ENTRIES_FILE), 'utf8')) as Model).resource;
 				} catch {
 					continue;
 				}
-				const key = resourceKey(model.resource);
-				if (key !== src && !key.startsWith(src + sep)) continue;
-				const target = resolve(to) + resolve(model.resource).slice(resolve(from).length);
-				const carried = (await this.load(model.resource)).entries;
-				const into = await this.load(target);
-				const targetDir = this.folder(target);
-				await mkdir(targetDir, { recursive: true });
-				for (const entry of carried) {
-					const bytes = await readFile(join(this.home, name, entry.id)).catch(() => null);
-					if (!bytes || into.entries.some((e) => e.id === entry.id)) continue;
-					await writeFile(join(targetDir, entry.id), bytes);
-					into.entries.push(entry);
-				}
-				into.entries.sort((a, b) => a.timestamp - b.timestamp);
-				into.resource = target;
-				const newest = into.entries.at(-1);
-				if (newest) {
-					const same = resolve(target, '..') === resolve(model.resource, '..');
-					const copy: LocalHistoryEntry = {
-						id: randomId(target, into.entries),
-						timestamp: Date.now(),
-						source: same ? 'renamed' : 'moved',
-						sourceDescription: model.resource
-					};
-					const bytes = await readFile(join(targetDir, newest.id)).catch(() => null);
-					if (bytes) {
-						await writeFile(join(targetDir, copy.id), bytes);
-						into.entries.push(copy);
-					}
-				}
-				await this.trim(target, into);
-				await this.store(target, into);
-				if (folderName(target) !== name) await rm(join(this.home, name), { recursive: true, force: true });
-				moved.push(target);
+				if (typeof resource === 'string' && resourceKey(resource).startsWith(src + sep)) sources.push(resource);
+			}
+			const moved: string[] = [];
+			for (const source of sources) {
+				const target = resolve(to) + resolve(source).slice(resolve(from).length);
+				if (await this.carry(source, target)) moved.push(target);
 			}
 			return moved;
 		});
+	}
+
+	/** One file's entries to its new path; false when it had none. The old folder is removed only
+	 *  once every copy is across: one another program holds open for a moment (an indexer, a virus
+	 *  scan on Windows) keeps the folder, and the rest with it, rather than being lost. */
+	private async carry(source: string, target: string): Promise<boolean> {
+		const carried = (await this.load(source)).entries;
+		if (!carried.length) return false;
+		const fromDir = this.folder(source);
+		const toDir = this.folder(target);
+		// a rename that only changes case on macOS or Windows keeps the same folder: nothing to carry
+		const same = fromDir === toDir;
+		const into: Model = same ? { version: 1, resource: target, entries: carried } : await this.load(target);
+		let complete = true;
+		// this file's newest copy that made it across, which the entry below repeats: the newest in
+		// `into` may be another file's, one deleted from the new path earlier
+		let newest = same ? carried.at(-1) : undefined;
+		if (!same) {
+			await mkdir(toDir, { recursive: true });
+			for (const entry of carried) {
+				let bytes: Buffer;
+				try {
+					bytes = await readFile(join(fromDir, entry.id));
+				} catch (e) {
+					if ((e as NodeJS.ErrnoException).code !== 'ENOENT') complete = false;
+					continue;
+				}
+				// compared without case, as macOS's and Windows's disks compare names: a copy the new path
+				// already has under the same name would be written over, so this one gets a name of its own
+				const taken = into.entries.some((e) => e.id.toLowerCase() === entry.id.toLowerCase());
+				const copy = taken ? { ...entry, id: randomId(target, into.entries) } : entry;
+				await writeFile(join(toDir, copy.id), bytes);
+				into.entries.push(copy);
+				newest = copy;
+			}
+			into.entries.sort((a, b) => a.timestamp - b.timestamp);
+		}
+		into.resource = target;
+		if (newest) {
+			const entry: LocalHistoryEntry = {
+				id: randomId(target, into.entries),
+				timestamp: Date.now(),
+				source: resolve(target, '..') === resolve(source, '..') ? 'renamed' : 'moved',
+				sourceDescription: source
+			};
+			const bytes = await readFile(join(toDir, newest.id)).catch(() => null);
+			if (bytes) {
+				await writeFile(join(toDir, entry.id), bytes);
+				into.entries.push(entry);
+			}
+		}
+		await this.trim(target, into);
+		await this.store(target, into);
+		if (!same && complete) await rm(fromDir, { recursive: true, force: true });
+		return true;
 	}
 }

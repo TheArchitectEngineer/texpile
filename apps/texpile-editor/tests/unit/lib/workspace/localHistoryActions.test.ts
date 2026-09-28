@@ -22,6 +22,7 @@ function make(loaded: string | null) {
 	const deps = {
 		getLoadedPath: () => loaded,
 		discardPendingSave: vi.fn(),
+		whenSaved: vi.fn(async () => {}),
 		readTextIfPresent: vi.fn(async () => 'Now.\r\n' as string | null),
 		writeText: vi.fn(async () => {}),
 		loadFile: vi.fn(async () => {}),

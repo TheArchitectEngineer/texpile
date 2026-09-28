@@ -22,6 +22,8 @@ export type LocalHistoryDeps = {
 	getLoadedPath(): string | null;
 	/** drop the file's queued autosave: a restore replaces what it was about to write */
 	discardPendingSave(): void;
+	/** resolves once a save already being written has landed, so it cannot land on the restore */
+	whenSaved(): Promise<void>;
 	/** null when the file is gone */
 	readTextIfPresent(path: string): Promise<string | null>;
 	writeText(path: string, content: string): Promise<void>;
@@ -75,6 +77,7 @@ export class LocalHistoryActions {
 		const open = !!loaded && samePath(loaded, path);
 		try {
 			if (open) this.deps.discardPendingSave();
+			await this.deps.whenSaved();
 			// the file's own line endings, whatever the copy was kept with
 			current = await this.deps.readTextIfPresent(path);
 			await this.deps.writeText(path, current === null ? content : fromLf(toLf(content), detectEol(current)));
