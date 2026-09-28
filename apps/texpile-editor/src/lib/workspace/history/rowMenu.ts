@@ -1,0 +1,26 @@
+// The look of the "…" menus on rows in Source Control, History and the Timeline, taken from the
+// app's shared context menu (lib/menus/ContextMenuHost.svelte) so every menu in the workspace reads
+// alike: a size-4 icon column (a spacer when an item has none), destructive items last, after a
+// separator, in the error colour, and "…" only on items that ask for more input.
+import { toaster } from '$lib/modals/toaster-svelte';
+import { m } from '$lib/paraglide/messages';
+
+/** the menu's card, positioned by the caller */
+export const MENU_CARD = 'bg-surface-50-950 border-surface-300-700 z-dropdown min-w-48 overflow-hidden card border py-1 text-sm shadow-lg';
+/** one item; add MENU_DANGER for a destructive one */
+export const MENU_ITEM =
+	'hover:preset-tonal flex w-full items-center gap-2.5 px-3 py-1.5 text-left disabled:pointer-events-none disabled:opacity-40';
+export const MENU_DANGER = 'text-error-ink';
+/** an item's icon; a destructive item's icon keeps the item's colour */
+export const MENU_ICON = 'text-muted size-4 shrink-0';
+/** where an item with no icon keeps the column */
+export const MENU_SPACER = 'size-4 shrink-0';
+export const MENU_SEPARATOR = 'border-surface-200-800 my-1 border-t';
+/** the "…" button that opens a row's menu */
+export const MENU_TRIGGER = 'hover:preset-tonal rounded-base p-0.5';
+
+/** Copy from a menu: silent when it worked, as copying is everywhere else in Texpile (a tab's
+ *  Copy path, the terminal); said when it did not, since nothing else would show it */
+export function copyText(text: string): void {
+	navigator.clipboard.writeText(text).catch(() => toaster.error({ title: m.vcs_copy_failed() }));
+}

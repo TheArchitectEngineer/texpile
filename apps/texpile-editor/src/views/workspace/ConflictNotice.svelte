@@ -3,11 +3,12 @@
 	// the way from one to the next and the same choice for all of them at once; then, once none is,
 	// where the merge is finished and the way back to the visual editor.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { GitMerge, ChevronUp, ChevronDown, ChevronsDown } from '@lucide/svelte';
+	import { GitMerge, ChevronUp, ChevronDown, ChevronsDown, ArrowLeft, ArrowRight, ArrowLeftRight } from '@lucide/svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { sourceCmView } from '$lib/stores/editorStore';
 	import { chooseAllConflicts, nextConflict, previousConflict } from '$lib/editor/source/cmConflicts';
 	import type { ConflictChoice } from '$lib/workspace/conflictMarkers';
+	import { MENU_CARD, MENU_ITEM, MENU_ICON } from '$lib/workspace/history/rowMenu';
 	import { m } from '$lib/paraglide/messages';
 
 	let { left, onLeave }: { left: number; onLeave?: () => void } = $props();
@@ -31,10 +32,12 @@
 		view.focus();
 	}
 
-	const ALL: [ConflictChoice, () => string][] = [
-		['mine', () => m.vcs_conflict_keep_all_mine()],
-		['theirs', () => m.vcs_conflict_keep_all_theirs()],
-		['both', () => m.vcs_conflict_keep_all_both()]
+	// the arrows a changed file's row menu uses for keeping a whole side: mine one way, theirs the other
+	// each tooltip names VS Code's command (Accept All Current and so on)
+	const ALL: [ConflictChoice, () => string, typeof ArrowLeft, () => string][] = [
+		['mine', () => m.vcs_conflict_keep_all_mine(), ArrowLeft, () => m.vcs_conflict_keep_all_mine_tip()],
+		['theirs', () => m.vcs_conflict_keep_all_theirs(), ArrowRight, () => m.vcs_conflict_keep_all_theirs_tip()],
+		['both', () => m.vcs_conflict_keep_all_both(), ArrowLeftRight, () => m.vcs_conflict_keep_all_both_tip()]
 	];
 	const ICON = 'btn-icon btn-icon-xs hover:preset-tonal shrink-0';
 </script>
@@ -56,15 +59,16 @@
 			<ChevronDown class="size-3.5" />
 		</button>
 		<Popover open={allOpen} onOpenChange={(e) => (allOpen = e.open)} positioning={{ placement: 'bottom-end', offset: { mainAxis: 2 } }}>
-			<Popover.Trigger class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal shrink-0 gap-1">
+			<Popover.Trigger class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal shrink-0 gap-1.5">
 				<ChevronsDown class="size-3.5" />
 				{m.vcs_conflict_keep_all()}
 			</Popover.Trigger>
 			<Portal>
 				<Popover.Positioner class="z-floating-ui">
-					<Popover.Content class="card bg-surface-50-950 border-surface-300-700 min-w-[190px] border py-1 shadow-lg">
-						{#each ALL as [choice, label] (choice)}
-							<button type="button" class="hover:preset-tonal flex w-full px-3 py-1.5 text-left text-sm" onclick={() => keepAll(choice)}>
+					<Popover.Content class={MENU_CARD}>
+						{#each ALL as [choice, label, Icon, hint] (choice)}
+							<button type="button" class={MENU_ITEM} onclick={() => keepAll(choice)} use:tip={hint()}>
+								<Icon class={MENU_ICON} />
 								{label()}
 							</button>
 						{/each}

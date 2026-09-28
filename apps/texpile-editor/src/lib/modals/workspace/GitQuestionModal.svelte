@@ -16,7 +16,10 @@
 	// explicit, not autofocus: that one is skipped whenever the control that started the operation
 	// still has focus
 	let inputEl = $state<HTMLInputElement>();
-	onMount(() => inputEl?.focus());
+	// a question with nothing to type (a server's key to trust) takes the keyboard on what it asks
+	// about, so Enter answers and Escape declines, as in the dialogs with a field
+	let promptEl = $state<HTMLElement>();
+	onMount(() => (inputEl ?? promptEl)?.focus());
 
 	// GitHub has not taken account passwords for git since 2021; saying "password" there sends people
 	// to type the one thing that cannot work
@@ -54,12 +57,16 @@
 >
 	{#if question.input === 'confirm'}
 		<p class="text-muted mb-3 text-sm">{m.vcs_hostkey_desc()}</p>
-		<pre class="bg-surface-100-900 rounded-base overflow-x-auto p-3 text-xs whitespace-pre-wrap">{question.prompt}</pre>
+		<pre
+			class="bg-surface-100-900 rounded-base overflow-x-auto p-3 text-xs whitespace-pre-wrap outline-none"
+			tabindex="-1"
+			bind:this={promptEl}>{question.prompt}</pre>
 	{:else}
 		{#if question.github}
 			<!-- VS Code's GitHub account: the browser signs in, and no token is typed or kept by hand -->
-			<button class="btn btn-sm preset-filled-primary-500 mb-2 w-full gap-1.5" onclick={() => void answerWithGithubSignIn(question)}>
-				<Globe class="size-4" />
+			<!-- tonal: Continue below stays the dialog's one primary, at the dialog's button size -->
+			<button class="btn btn-xs preset-tonal-primary mb-2 w-full gap-1.5" onclick={() => void answerWithGithubSignIn(question)}>
+				<Globe class="size-3.5" />
 				{m.github_signin_browser()}
 			</button>
 			<p class="text-muted mb-3 text-center text-xs">{m.github_signin_or()}</p>

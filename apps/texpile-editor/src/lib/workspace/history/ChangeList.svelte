@@ -7,8 +7,10 @@
 	// collapsed and unticked: a LaTeX project puts a dozen sidecars next to the source, and
 	// committing them makes every later version's diff meaningless.
 	import { tip } from '$lib/components/tooltip.svelte';
+	import { EyeOff } from '@lucide/svelte';
 	import ChangeGroup from './ChangeGroup.svelte';
 	import { pathLabels } from './pathLabels';
+	import { MENU_TRIGGER } from './rowMenu';
 	import type { GitStatusEntry } from '$lib/workspace/git';
 	import { gitWriting } from '$lib/workspace/gitStore';
 	import { m } from '$lib/paraglide/messages';
@@ -102,14 +104,16 @@
 	>
 		{#snippet action()}
 			{#if onIgnoreArtifacts}
-				<!-- the permanent fix, one click: unticking these every time is a chore nobody should repeat -->
+				<!-- the permanent fix, one click: unticking these every time is a chore nobody should repeat.
+				     The rows' own hover button, with the icon a row's Add to .gitignore carries. -->
 				<button
-					class="hover:preset-tonal text-primary-ink shrink-0 rounded-base px-1 text-[11px] opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-50"
+					class="{MENU_TRIGGER} shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-50"
 					use:tip={m.vcs_ignore_artifacts_title()}
+					aria-label={m.vcs_ignore_artifacts()}
 					onclick={onIgnoreArtifacts}
 					disabled={gitWriting.current}
 				>
-					{m.vcs_ignore_artifacts()}
+					<EyeOff class="size-3.5" />
 				</button>
 			{/if}
 		{/snippet}

@@ -65,7 +65,7 @@ it('finishes once every place is chosen, and says the file is ready', () => {
 		{ path: '/p/main.tex', x: 'U', y: 'U', markers: false },
 		{ path: '/p/notes.tex', x: 'M', y: ' ' }
 	]);
-	expect(document.body.textContent).toContain('Every place is chosen');
+	expect(document.body.textContent).toContain('All conflicts are resolved');
 	expect(document.body.textContent).toContain('Ready');
 	button('Finish combining')!.click();
 	expect(calls.finish).toHaveBeenCalledOnce();
@@ -99,9 +99,9 @@ it('asks before using a repository that starts above the folder', () => {
 	expect(document.body.textContent).not.toContain('main.tex');
 	expect(document.querySelector('textarea')).toBeNull();
 	expect(document.body.textContent).toContain('/home/ada');
-	button('Use that repository')!.click();
+	button('Open repository')!.click();
 	expect(onUse).toHaveBeenCalledOnce();
-	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Start a repository for this folder'))!.click();
+	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Initialize repository in this project'))!.click();
 	expect(onInit).toHaveBeenCalledOnce();
 });
 
@@ -118,6 +118,6 @@ it('offers Sync as the next step when there is nothing to save but versions to e
 it('offers Publish as the next step for a branch with nowhere to go yet', () => {
 	const publish = vi.fn();
 	render([], { operation: null, tracking: null, hasCommits: true, onPublish: publish });
-	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Publish main'))!.click();
+	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Publish branch "main"'))!.click();
 	expect(publish).toHaveBeenCalledOnce();
 });

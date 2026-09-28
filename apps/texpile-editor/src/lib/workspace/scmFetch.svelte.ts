@@ -36,7 +36,7 @@ async function gitFetch(root: string): Promise<GitFetchResult> {
 
 /** `host` is ScmActions: its busy flag keeps a Save version or Sync from starting underneath */
 export class ScmFetch {
-	constructor(private host: { busy: boolean }) {}
+	constructor(private host: { busy: boolean; sync: () => unknown }) {}
 
 	checkForNew = async (): Promise<void> => {
 		const root = workspaceRoot.current;
@@ -60,11 +60,14 @@ export class ScmFetch {
 		}
 		resumeAutoCheck();
 		const behind = res.behind ?? 0;
-		if (!behind) toaster.success({ title: m.vcs_fetch_none({ remote }) });
+		// nothing to do reads the same everywhere (Sync already up to date, a restore that changes
+		// nothing): info. New versions offer Sync, as the automatic check's notice does
+		if (!behind) toaster.info({ title: m.vcs_fetch_none({ remote }) });
 		else
 			toaster.info({
 				title: behind === 1 ? m.vcs_fetch_new_one({ remote }) : m.vcs_fetch_new_count({ remote, count: behind }),
-				description: m.vcs_fetch_new_detail()
+				description: m.vcs_fetch_new_detail(),
+				action: { label: m.vcs_action_sync(), onClick: () => void this.host.sync() }
 			});
 	};
 }

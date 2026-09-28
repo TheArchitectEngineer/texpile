@@ -6,6 +6,8 @@ import { gitMarkMilestone, gitRemoveMilestone, type GitTagResult } from './gitMi
 import { uploadReason } from './uploadReason';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
+import { toastGitFailure } from './gitFailureToast';
+import { localGitReason } from './gitLocalReason';
 import { m } from '$lib/paraglide/messages';
 import type { GitLogEntry } from './git';
 
@@ -13,7 +15,8 @@ function reason(res: GitTagResult): string {
 	if (res.reason === 'no-git') return m.vcs_git_missing();
 	if (res.failure === 'invalid') return m.vcs_milestone_invalid();
 	if (res.failure === 'auth' || res.failure === 'network') return uploadReason({ failure: res.failure, error: res.error });
-	return res.error || m.vcs_milestone_failed();
+	// git's own words are behind Details in a toast; shown inline in the menu, they would be all there is
+	return m.vcs_milestone_failed();
 }
 
 export class ScmMilestones {
@@ -34,12 +37,14 @@ export class ScmMilestones {
 	remove = async (name: string, label: string): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return;
-		if (!(await confirmAsk(m.vcs_confirm_remove_milestone({ name: label }), { confirmLabel: m.vcs_remove(), danger: true }))) return;
+		const detail = m.vcs_confirm_remove_milestone_detail();
+		if (!(await confirmAsk(m.vcs_confirm_remove_milestone({ name: label }), { detail, confirmLabel: m.vcs_remove(), danger: true })))
+			return;
 		this.host.busy = true;
 		try {
 			const res = await gitRemoveMilestone(root, name);
 			if (!res.ok && res.failure !== 'cancelled') {
-				toaster.error({ title: m.vcs_toast_milestone_remove_failed(), description: reason(res) });
+				toastGitFailure(m.vcs_toast_milestone_remove_failed(), res.error ? localGitReason(res.error) : reason(res), res);
 				return;
 			}
 			if (res.ok) toaster.success({ title: m.vcs_toast_milestone_removed({ name: label }) });

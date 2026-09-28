@@ -186,7 +186,7 @@
 		<a class="anchor text-sm" href="https://texpile.com/docs/installation/git" target="_blank" rel="noopener noreferrer"
 			>{m.vcs_git_install()}</a
 		>
-		<button class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal gap-1.5" onclick={onRecheckGit} disabled={busy}>
+		<button class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal w-full gap-1.5" onclick={onRecheckGit} disabled={busy}>
 			<RefreshCw class="size-3.5" />
 			{m.vcs_check_again()}
 		</button>
@@ -291,12 +291,17 @@
 							use:tip={m.vcs_commit_placeholder({ combo: combo('Enter') })}
 							bind:value={draft.message}
 							onkeydown={onKeydown}></textarea>
-						<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={save} disabled={!canSave}>
+						<button
+							class="btn btn-xs preset-filled-primary-500 w-full gap-1.5"
+							onclick={save}
+							disabled={!canSave}
+							use:tip={m.vcs_save_version_tip()}
+						>
 							{#if gitRunning.current === 'save'}
-								<LoaderCircle class="size-4 animate-spin" />
+								<LoaderCircle class="size-3.5 animate-spin" />
 								{m.vcs_running_save()}
 							{:else}
-								<Check class="size-4" />
+								<Check class="size-3.5" />
 								{selected.length === 1 ? m.vcs_save_version_one() : m.vcs_save_version_count({ count: selected.length })}
 							{/if}
 						</button>
@@ -317,7 +322,8 @@
 			></div>
 
 			<div class="border-surface-200-800 flex min-h-0 flex-col border-t" style="flex: {historyFraction} 1 0%">
-				<div class="text-muted shrink-0 px-2 py-1 text-sm">{m.vcs_history_heading()}</div>
+				<!-- the explorer's section heading, so the two sidebars name their parts alike -->
+				<div class="text-faint shrink-0 px-3 py-1 text-xs font-semibold tracking-wide uppercase">{m.vcs_history_heading()}</div>
 				<div class="scroll-inset-r min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] pb-2">
 					<HistoryTimeline
 						{history}

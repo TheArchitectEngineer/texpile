@@ -3,13 +3,15 @@
 	// saturated ticks would be the loudest thing in the panel while saying the least. The control
 	// picks up the accent on hover and focus, where it means something.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { Info, MoreHorizontal, Undo2, Trash2, GitCompare, Check, EyeOff, FolderPlus } from '@lucide/svelte';
+	import { Info, MoreHorizontal, Undo2, Trash2, GitCompare, Check, EyeOff, FolderPlus, ArrowLeft, ArrowRight } from '@lucide/svelte';
 	import { scmHandlers } from '$lib/workspace/scmHandlers.svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { isTexpileManaged } from '$lib/comments/managed';
+	import FileIcon from '$lib/filetree/FileIcon.svelte';
 	import { STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
 	import { badgeOf, gitWriting, isNewFile } from '$lib/workspace/gitStore';
 	import { chooseNote, keepLabel } from '$lib/workspace/wholeFileChoice';
+	import { MENU_CARD, MENU_ITEM, MENU_DANGER, MENU_ICON, MENU_SEPARATOR, MENU_TRIGGER } from './rowMenu';
 	import type { GitStatusEntry } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
 
@@ -31,7 +33,17 @@
 
 	let openMenu = $state<string | null>(null);
 
-	const KEEP: ('mine' | 'theirs')[] = ['mine', 'theirs'];
+	type Side = 'mine' | 'theirs';
+
+	/** keeping this side deletes the file: it is the side that deleted it */
+	function deletes(c: GitStatusEntry, side: Side): boolean {
+		return (c.choose === 'deleted-by-them' && side === 'theirs') || (c.choose === 'deleted-by-us' && side === 'mine');
+	}
+
+	/** the side that keeps the file first, as the question asks it; a delete is destructive, so last */
+	function keepOrder(c: GitStatusEntry): Side[] {
+		return c.choose === 'deleted-by-us' ? ['theirs', 'mine'] : ['mine', 'theirs'];
+	}
 
 	/** new files have no committed copy, so discarding one deletes it rather than reverting it */
 	function isUntracked(c: GitStatusEntry) {
@@ -49,6 +61,7 @@
 			onchange={() => onToggle(c.path)}
 			disabled={locked}
 			aria-label={relPath(c.path)}
+			use:tip={m.vcs_tick_tip()}
 		/>
 		<button
 			class="flex min-w-0 flex-1 items-center gap-1.5 text-left"
@@ -61,10 +74,12 @@
 		>
 			{#if c.files}
 				<!-- a folder of new files, as one row: there is no one comparison to open -->
-				<FolderPlus class="size-3.5 shrink-0 {STATUS_COLOR[badge]}" />
+				<FolderPlus class="size-4 shrink-0 {STATUS_COLOR[badge]}" />
 				<span class="max-w-[60%] shrink-0 truncate {STATUS_COLOR[badge]}">{baseName(c.path)}/</span>
 				<span class="text-muted truncate text-xs tabular-nums">{m.vcs_folder_files({ count: c.files.toLocaleString() })}</span>
 			{:else}
+				<!-- the same file reads the same here as under a version in History -->
+				<FileIcon name={baseName(c.path)} class="size-4 shrink-0" />
 				<span
 					class="truncate {STATUS_COLOR[badge]} {STATUS_DECOR[badge] ?? ''} {c.choose ? 'max-w-[60%] shrink-0' : ''}"
 					use:tip={STATUS_TITLE[badge]}>{baseName(c.path)}</span
@@ -101,7 +116,7 @@
 			autoFocus={false}
 		>
 			<Popover.Trigger
-				class="hover:preset-tonal shrink-0 rounded-base p-0.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 {openMenu ===
+				class="{MENU_TRIGGER} shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 {openMenu ===
 				c.path
 					? 'opacity-100'
 					: ''}"
@@ -113,78 +128,85 @@
 			</Popover.Trigger>
 			<Portal>
 				<Popover.Positioner class="z-floating-ui">
-					<Popover.Content class="card bg-surface-50-950 border-surface-300-700 min-w-[190px] border shadow-lg">
-						<div class="py-1">
-							{#if !c.files}
+					<Popover.Content class={MENU_CARD}>
+						{#if !c.files}
+							<button
+								type="button"
+								class={MENU_ITEM}
+								onclick={() => {
+									openMenu = null;
+									onOpenDiff(c.path);
+								}}
+							>
+								<GitCompare class={MENU_ICON} />
+								{m.wsview_diff_heading()}
+							</button>
+						{/if}
+						<!-- the whole file one way, where there are no places to click: a figure, a PDF, a file
+						     one side deleted. Mine and theirs point the two ways, so the pair is not two ticks. -->
+						{#if locked && scmHandlers.current}
+							{#each keepOrder(c) as side (side)}
+								{@const deleting = deletes(c, side)}
+								{#if deleting}<div class={MENU_SEPARATOR}></div>{/if}
 								<button
 									type="button"
-									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
-									onclick={() => {
-										openMenu = null;
-										onOpenDiff(c.path);
-									}}
-								>
-									<GitCompare class="size-4 shrink-0" />
-									{m.wsview_diff_heading()}
-								</button>
-							{/if}
-							<!-- the whole file one way, where there are no places to click: a figure, a PDF, a file
-							     one side deleted -->
-							{#if locked && scmHandlers.current}
-								{#each KEEP as side (side)}
-									<button
-										type="button"
-										class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"
-										disabled={gitWriting.current}
-										onclick={() => {
-											openMenu = null;
-											scmHandlers.current?.keepSide(c.path, side);
-										}}
-									>
-										<Check class="size-4 shrink-0" />
-										{keepLabel(c.choose, side)}
-									</button>
-								{/each}
-							{/if}
-							<!-- a new file only: git keeps tracking a file it already has, whatever .gitignore says -->
-							{#if c.x === '?' && scmHandlers.current}
-								<button
-									type="button"
-									class="hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"
+									class="{MENU_ITEM} {deleting ? MENU_DANGER : ''}"
 									disabled={gitWriting.current}
+									use:tip={deleting ? undefined : side === 'mine' ? m.vcs_keep_file_mine_tip() : m.vcs_keep_file_theirs_tip()}
 									onclick={() => {
 										openMenu = null;
-										// a folder's line ends in a slash, so it cannot match a file of that name
-										scmHandlers.current?.ignore([c.files ? `${c.path}/` : c.path]);
+										scmHandlers.current?.keepSide(c.path, side);
 									}}
 								>
-									<EyeOff class="size-4 shrink-0" />
-									{c.files ? m.vcs_ignore_folder() : m.vcs_ignore_file()}
-								</button>
-							{/if}
-							<!-- git cannot put back a file it is still combining: Cancel combining does that for all of
-							     them. A folder that also holds ignored files is not deleted whole: they would go too -->
-							{#if !locked && !c.ignoredInside}
-								<div class="border-surface-200-800 my-1 border-t"></div>
-								<button
-									type="button"
-									class="hover:preset-tonal text-error-ink flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm disabled:opacity-50"
-									disabled={gitWriting.current}
-									onclick={() => {
-										openMenu = null;
-										onDiscard([c]);
-									}}
-								>
-									{#if isUntracked(c)}
+									{#if deleting}
 										<Trash2 class="size-4 shrink-0" />
-										{c.files ? m.vcs_delete_folder() : m.vcs_delete_untracked()}
+									{:else if side === 'mine'}
+										<ArrowLeft class={MENU_ICON} />
 									{:else}
-										<Undo2 class="size-4 shrink-0" />
-										{m.vcs_discard_changes()}
+										<ArrowRight class={MENU_ICON} />
 									{/if}
+									{keepLabel(c.choose, side)}
 								</button>
-							{/if}
-						</div>
+							{/each}
+						{/if}
+						<!-- a new file only: git keeps tracking a file it already has, whatever .gitignore says -->
+						{#if c.x === '?' && scmHandlers.current}
+							<button
+								type="button"
+								class={MENU_ITEM}
+								disabled={gitWriting.current}
+								onclick={() => {
+									openMenu = null;
+									// a folder's line ends in a slash, so it cannot match a file of that name
+									scmHandlers.current?.ignore([c.files ? `${c.path}/` : c.path]);
+								}}
+							>
+								<EyeOff class={MENU_ICON} />
+								{c.files ? m.vcs_ignore_folder() : m.vcs_ignore_file()}
+							</button>
+						{/if}
+						<!-- git cannot put back a file it is still combining: Cancel combining does that for all of
+						     them. A folder that also holds ignored files is not deleted whole: they would go too -->
+						{#if !locked && !c.ignoredInside}
+							<div class={MENU_SEPARATOR}></div>
+							<button
+								type="button"
+								class="{MENU_ITEM} {MENU_DANGER}"
+								disabled={gitWriting.current}
+								onclick={() => {
+									openMenu = null;
+									onDiscard([c]);
+								}}
+							>
+								{#if isUntracked(c)}
+									<Trash2 class="size-4 shrink-0" />
+									{c.files ? m.vcs_delete_folder() : m.vcs_delete_untracked()}
+								{:else}
+									<Undo2 class="size-4 shrink-0" />
+									{m.vcs_discard_changes()}
+								{/if}
+							</button>
+						{/if}
 					</Popover.Content>
 				</Popover.Positioner>
 			</Portal>

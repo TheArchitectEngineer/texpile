@@ -5,6 +5,7 @@
 	// fixed in place.
 	import { onMount } from 'svelte';
 	import { FolderGit2 } from '@lucide/svelte';
+	import { tip } from '$lib/components/tooltip.svelte';
 	import Modal from '../Modal.svelte';
 	import ModalActions from '../ModalActions.svelte';
 	import { closeClone, type CloneAsk, type CloneStep } from '$lib/workspace/gitDialogs.svelte';
@@ -116,7 +117,7 @@
 		/>
 		<span class="font-medium">{m.vcs_clone_save_in()}</span>
 		<div class="flex min-w-0 items-center gap-2">
-			<span class="text-muted min-w-0 flex-1 truncate" title={parent ?? ''}>{parent ?? m.vcs_clone_no_folder()}</span>
+			<span class="text-muted min-w-0 flex-1 truncate" use:tip={parent ?? ''}>{parent ?? m.vcs_clone_no_folder()}</span>
 			<button type="button" class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal shrink-0" onclick={choose} disabled={busy}>
 				{m.vcs_clone_choose()}
 			</button>

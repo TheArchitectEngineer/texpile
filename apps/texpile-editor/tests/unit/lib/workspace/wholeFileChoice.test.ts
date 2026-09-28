@@ -16,7 +16,7 @@ it('offers to keep the surviving side first, and to delete the file', async () =
 	expect(first.message).toContain('methods.tex');
 	expect(first.buttons.map((b) => [b.id, b.label])).toEqual([
 		['mine', 'Keep my version'],
-		['theirs', 'Delete the file'],
+		['theirs', 'Delete file'],
 		['cancel', 'Cancel']
 	]);
 
@@ -24,7 +24,7 @@ it('offers to keep the surviving side first, and to delete the file', async () =
 	await askWholeFile('methods.tex', 'deleted-by-us');
 	expect(promptAsk.mock.calls[1][0].buttons.map((b) => [b.id, b.label]).slice(0, 2)).toEqual([
 		['theirs', 'Keep their version'],
-		['mine', 'Delete the file']
+		['mine', 'Delete file']
 	]);
 });
 

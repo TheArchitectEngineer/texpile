@@ -5,10 +5,11 @@
 	// row's bin is VS Code's Delete Branch (or Delete Remote Branch).
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { tick } from 'svelte';
-	import { GitBranch, Check, Cloud, Plus, ChevronDown, Loader2, Trash2 } from '@lucide/svelte';
+	import { GitBranch, Check, Cloud, Plus, ChevronDown, LoaderCircle, Trash2 } from '@lucide/svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { branchNameFrom, type GitBranchesResult, type GitRemoteBranch } from '$lib/workspace/gitBranches';
 	import { gitHead } from '$lib/workspace/gitStore';
+	import { MENU_ITEM, MENU_ICON, MENU_SPACER } from './rowMenu';
 	import { m } from '$lib/paraglide/messages';
 
 	type Props = {
@@ -89,8 +90,6 @@
 		else if (local.length === 1 && !offerNew) void act(() => onSwitch(local[0].name));
 		else if (offerNew) void act(() => onCreate(newName));
 	}
-
-	const ROW = 'hover:preset-tonal flex w-full items-center gap-2 px-3 py-1 text-left text-sm disabled:opacity-50';
 </script>
 
 {#snippet trash(label: string, run: () => void)}
@@ -127,7 +126,8 @@
 	</Popover.Trigger>
 	<Portal>
 		<Popover.Positioner class="z-floating-ui">
-			<Popover.Content class="card bg-surface-50-950 border-surface-300-700 w-72 border shadow-lg">
+			<!-- the rows are the shared menu's items; the card is its own, as it opens with a filter -->
+			<Popover.Content class="card bg-surface-50-950 border-surface-300-700 w-72 overflow-hidden border text-sm shadow-lg">
 				<div class="border-surface-200-800 border-b p-2">
 					<input
 						class="input w-full text-sm"
@@ -143,33 +143,39 @@
 				</div>
 				<div class="max-h-72 overflow-y-auto py-1">
 					{#if loading}
-						<p class="text-muted flex items-center gap-2 px-3 py-1 text-sm">
-							<Loader2 class="size-3.5 animate-spin" />{m.vcs_branch_loading()}
+						<!-- a local read is usually done before it is worth announcing -->
+						<p class="text-muted reveal-late flex items-center gap-2.5 px-3 py-1.5 text-sm">
+							<LoaderCircle class="size-4 shrink-0 animate-spin" />{m.vcs_branch_loading()}
 						</p>
 					{:else}
 						{#if offerNew}
 							<button
 								type="button"
-								class={ROW}
+								class={MENU_ITEM}
 								onclick={() => act(() => onCreate(newName))}
 								disabled={working}
 								use:tip={m.vcs_branch_create_tip()}
 							>
-								<Plus class="size-3.5 shrink-0" />
+								<Plus class={MENU_ICON} />
 								<span class="truncate">{m.vcs_branch_create({ name: newName })}</span>
 							</button>
 						{/if}
 						{#each local as b (b.name)}
 							<div class="group flex items-center">
+								<!-- the whole name in the tip, as a remote row has its own: either can be cut short -->
 								<button
 									type="button"
-									class="{ROW} min-w-0 flex-1"
+									class="{MENU_ITEM} min-w-0 flex-1"
 									onclick={() => (b.name === branch ? (open = false) : act(() => onSwitch(b.name)))}
 									disabled={working}
+									use:tip={b.upstream
+										? `${m.vcs_branch_switch_tip({ name: b.name })} · ${b.upstream}`
+										: m.vcs_branch_switch_tip({ name: b.name })}
 								>
-									{#if b.name === branch}<Check class="size-3.5 shrink-0" />{:else}<span class="size-3.5 shrink-0"></span>{/if}
+									{#if b.name === branch}<Check class={MENU_ICON} />{:else}<span class={MENU_SPACER}></span>{/if}
 									<span class="truncate {b.name === branch ? 'font-medium' : ''}">{b.name}</span>
-									{#if b.upstream}<span class="text-muted ml-auto shrink-0 truncate text-xs">{b.upstream}</span>{/if}
+									<!-- capped, so a long upstream cannot squeeze out the name it belongs to -->
+									{#if b.upstream}<span class="text-muted ml-auto max-w-[45%] min-w-0 truncate text-xs">{b.upstream}</span>{/if}
 								</button>
 								<!-- never the branch checked out, as in VS Code -->
 								{#if onDelete && b.name !== branch}
@@ -183,12 +189,12 @@
 								<div class="group flex items-center">
 									<button
 										type="button"
-										class="{ROW} min-w-0 flex-1"
+										class="{MENU_ITEM} min-w-0 flex-1"
 										onclick={() => act(() => onTrack(b.name))}
 										disabled={working}
 										use:tip={m.vcs_branch_track_tip({ remote: b.remote })}
 									>
-										<Cloud class="size-3.5 shrink-0" />
+										<Cloud class={MENU_ICON} />
 										<span class="truncate">{b.branch}</span>
 										<span class="text-muted ml-auto shrink-0 text-xs">{b.remote}</span>
 									</button>
@@ -205,7 +211,7 @@
 				</div>
 				{#if working}
 					<p class="text-muted border-surface-200-800 flex items-center gap-2 border-t px-3 py-1.5 text-xs">
-						<Loader2 class="size-3.5 animate-spin" />{m.vcs_branch_switching()}
+						<LoaderCircle class="size-3.5 animate-spin" />{m.vcs_branch_switching()}
 					</p>
 				{/if}
 				{#if error}

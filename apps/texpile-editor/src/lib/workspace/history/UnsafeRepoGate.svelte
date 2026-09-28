@@ -3,8 +3,8 @@
 	// USB or network drive, or a project copied from another user. It used to read as "not a
 	// repository", with an Initialize that did nothing. Trusting it is asked, not assumed: git's
 	// check exists because a repository's own settings can run programs.
-	import { tip } from '$lib/components/tooltip.svelte';
-	import { ShieldAlert } from '@lucide/svelte';
+	import { ShieldAlert, ShieldCheck, LoaderCircle } from '@lucide/svelte';
+	import RepoPath from './RepoPath.svelte';
 	import { promptAsk } from '$lib/modals/confirm.svelte';
 	import { toaster } from '$lib/modals/toaster-svelte';
 	import { canTrustRepo, gitTrustRepo } from '$lib/workspace/gitTrust';
@@ -28,22 +28,28 @@
 		if (answer !== 'trust') return;
 		trusting = true;
 		const res = await gitTrustRepo(root);
-		trusting = false;
 		if (!res.ok) {
+			trusting = false;
 			toaster.error({ title: m.vcs_unsafe_failed(), description: res.error });
 			return;
 		}
+		// still turning until the panel has read the repository it may now use, so the click is
+		// answered all the way to the screen that replaces this one
 		await refreshGitStatus(root);
 		await refreshGitHistory(root);
+		trusting = false;
 	}
 </script>
 
 <div class="flex flex-col items-center gap-3 p-6 text-center">
 	<ShieldAlert class="text-warning-ink size-8" />
 	<p class="text-sm">{m.vcs_unsafe()}</p>
-	<p class="bg-surface-200-800 max-w-full truncate rounded-base px-2 py-0.5 font-mono text-xs" use:tip={repo}>{repo}</p>
+	<RepoPath path={repo} />
 	<p class="text-muted text-xs">{m.vcs_unsafe_detail()}</p>
 	{#if canTrustRepo()}
-		<button class="btn btn-xs preset-filled-primary-500 w-full" onclick={trust} disabled={trusting}>{m.vcs_unsafe_trust()}</button>
+		<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={trust} disabled={trusting}>
+			{#if trusting}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ShieldCheck class="size-3.5" />{/if}
+			{trusting ? m.vcs_running_trust() : m.vcs_unsafe_trust()}
+		</button>
 	{/if}
 </div>

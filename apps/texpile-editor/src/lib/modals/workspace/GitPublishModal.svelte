@@ -50,6 +50,13 @@
 		return `rounded-base flex items-center px-2.5 text-xs ${active ? 'bg-surface-50-950 font-medium shadow-sm' : 'text-muted hover:text-surface-950-50'}`;
 	}
 	const ROW = 'hover:preset-tonal-surface flex items-start gap-2 px-3 py-2 text-sm';
+
+	/** the keyboard starts on the choice already made, as every other Git dialog starts in its first
+	 *  field: arrows change it, Enter publishes. A task later, as GitCloneModal explains */
+	function focusPicked(node: HTMLElement) {
+		const t = setTimeout(() => node.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.focus(), 0);
+		return { destroy: () => clearTimeout(t) };
+	}
 </script>
 
 <!-- not dismissable mid-publish: the upload runs on regardless, and closing would hide how it ended -->
@@ -63,7 +70,7 @@
 >
 	<p class="text-muted mb-3 text-sm">{m.vcs_publish_intro()}</p>
 
-	<div class="border-surface-300-700 divide-surface-200-800 divide-y overflow-hidden rounded-container border">
+	<div class="border-surface-300-700 divide-surface-200-800 divide-y overflow-hidden rounded-container border" use:focusPicked>
 		<!-- a div, not a label: a label may hold only the one control it names, and this row holds three -->
 		<div class="{ROW} {picked === 'github' ? 'preset-tonal-primary' : ''}">
 			<input
@@ -134,7 +141,7 @@
 				<input type="radio" class="radio mt-0.5" name="publish-to" value="remote:{r.name}" bind:group={picked} disabled={busy} />
 				<div class="min-w-0 flex-1">
 					<div class="font-medium">{r.name}</div>
-					<div class="text-muted truncate text-xs">{r.url}</div>
+					<div class="text-muted truncate text-xs" use:tip={r.url}>{r.url}</div>
 				</div>
 			</label>
 		{/each}

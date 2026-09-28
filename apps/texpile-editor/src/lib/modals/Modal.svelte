@@ -59,7 +59,11 @@
 	}
 
 	function onWindowKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && dismissable && escapeStack[escapeStack.length - 1] === id) close();
+		if (e.key === 'Escape' && dismissable && escapeStack[escapeStack.length - 1] === id) {
+			// used up here: nothing behind the dialog should act on it too
+			e.preventDefault();
+			close();
+		}
 	}
 
 	function onCardKeydown(e: KeyboardEvent) {

@@ -75,7 +75,7 @@ describe("Sync's offer to combine", () => {
 		const { combine, deps } = make({ loaded: 'C:/project/main.tex', disk: { 'C:/project/main.tex': MARKED } });
 		await combine.offer('C:/project', CONFLICT);
 
-		expect((promptAsk.mock.calls[0][0] as { message: string }).message).toBe('You and origin both changed main.tex.');
+		expect((promptAsk.mock.calls[0][0] as { message: string }).message).toBe('You and origin both changed "main.tex".');
 		expect(gitCombine).toHaveBeenCalledWith('C:/project');
 		// the open file is read again from disk, markers and all, before anyone is sent to it
 		expect(order).toContain('load C:/project/main.tex');

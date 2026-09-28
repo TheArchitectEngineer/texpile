@@ -3,7 +3,7 @@
 	// included, and the copies each has. The Timeline shows only the file that is open, so this is
 	// the one way back to a chapter that was deleted: pick it, pick a copy, Restore brings it back.
 	import { onMount } from 'svelte';
-	import { History } from '@lucide/svelte';
+	import { History, Columns2, Rows2, LoaderCircle } from '@lucide/svelte';
 	import { tip } from '$lib/components/tooltip.svelte';
 	import Modal from '$lib/modals/Modal.svelte';
 	import FileIcon from '$lib/filetree/FileIcon.svelte';
@@ -18,6 +18,7 @@
 	} from '$lib/workspace/localHistory.svelte';
 	import { localHistoryActions, entryDate } from '$lib/workspace/localHistoryActions.svelte';
 	import { closeLocalHistoryFinder } from '$lib/workspace/localHistoryFinder.svelte';
+	import { layout as savedLayout } from '$lib/storage/layout';
 	import DiffPanel from './DiffPanel.svelte';
 	import { m } from '$lib/paraglide/messages';
 
@@ -32,6 +33,7 @@
 	let entry = $state<LocalHistoryEntry | null>(null);
 	let saved = $state('');
 	let now = $state('');
+	let diffLayout = $state<'unified' | 'split'>(savedLayout.current.diffLayout === 'split' ? 'split' : 'unified');
 	let seq = 0;
 
 	const shown = $derived(
@@ -43,6 +45,13 @@
 		loading = false;
 		if (files[0]) void pickFile(files[0]);
 	});
+
+	/** the search takes the keyboard as it appears, after the list is read, and a task later, as in
+	 *  GitCloneModal: opened from a menu, the closing menu hands focus back to its trigger */
+	function takeFocus(node: HTMLInputElement) {
+		const t = setTimeout(() => node.focus(), 0);
+		return { destroy: () => clearTimeout(t) };
+	}
 
 	async function pickFile(f: LocalHistoryFile) {
 		file = f;
@@ -96,13 +105,24 @@
 	onClose={closeLocalHistoryFinder}
 >
 	{#if loading}
-		<p class="text-muted text-sm">{m.vcs_loading_changes()}</p>
+		<!-- nothing for the first 300ms, the app's threshold for announcing a wait -->
+		<p class="text-muted reveal-late flex items-center gap-2 text-sm">
+			<LoaderCircle class="size-4 shrink-0 animate-spin" />
+			{m.vcs_loading_changes()}
+		</p>
 	{:else if !files.length}
 		<p class="text-muted text-sm">{m.history_find_none()}</p>
 	{:else}
 		<div class="flex min-h-0 flex-1 gap-3">
 			<div class="flex w-64 shrink-0 flex-col gap-2">
-				<input class="input text-sm" type="search" placeholder={m.history_find_search()} bind:value={query} />
+				<input
+					class="input text-sm"
+					type="search"
+					placeholder={m.history_find_search()}
+					aria-label={m.history_find_search()}
+					bind:value={query}
+					use:takeFocus
+				/>
 				<ul class="border-surface-200-800 min-h-0 flex-1 overflow-y-auto rounded-base border py-1">
 					{#each shown as f (f.resource)}
 						<li>
@@ -142,17 +162,25 @@
 								<option value={e.id}>{sourceLabel(e.source)} · {entryDate(e.timestamp)}</option>
 							{/each}
 						</select>
+						<button
+							class="btn-icon btn-icon-xs hover:preset-tonal"
+							onclick={() => (diffLayout = diffLayout === 'split' ? 'unified' : 'split')}
+							use:tip={diffLayout === 'unified' ? m.wsview_switch_to_side_by_side() : m.wsview_switch_to_inline()}
+							aria-label={diffLayout === 'unified' ? m.wsview_side_by_side_label() : m.wsview_inline_label()}
+						>
+							{#if diffLayout === 'split'}<Rows2 class="size-3.5" />{:else}<Columns2 class="size-3.5" />{/if}
+						</button>
 						{#if file.exists}
-							<button class="btn btn-sm preset-outlined-surface-200-800 hover:preset-tonal" onclick={compare} disabled={!entry}
+							<button class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal" onclick={compare} disabled={!entry}
 								>{m.history_compare_with_file()}</button
 							>
 						{/if}
-						<button class="btn btn-sm preset-filled-primary-500" onclick={restore} disabled={!entry}>{m.history_restore()}</button>
+						<button class="btn btn-xs preset-filled-primary-500" onclick={restore} disabled={!entry}>{m.history_restore()}</button>
 					</div>
 					<div class="border-surface-200-800 min-h-0 flex-1 overflow-hidden rounded-base border">
 						{#if entry}
 							{#key `${file.resource}:${entry.id}`}
-								<DiffPanel filename={file.resource} original={saved} modified={now} layout="split" readOnly />
+								<DiffPanel filename={file.resource} original={saved} modified={now} layout={diffLayout} readOnly />
 							{/key}
 						{/if}
 					</div>

@@ -5,6 +5,8 @@
 	// they cannot drift into different shapes. They previously did: a section heading in one style
 	// sat above a group row in another, and the pair read as two unrelated things.
 	import { ChevronRight, ChevronDown } from '@lucide/svelte';
+	import { tip } from '$lib/components/tooltip.svelte';
+	import { m } from '$lib/paraglide/messages';
 	import ChangeRows from './ChangeRows.svelte';
 	import type { GitStatusEntry } from '$lib/workspace/git';
 	import type { Snippet } from 'svelte';
@@ -74,6 +76,7 @@
 		onchange={toggleGroup}
 		disabled={locked}
 		aria-label={label}
+		use:tip={m.vcs_tick_tip()}
 	/>
 	<button class="flex min-w-0 flex-1 items-center gap-1.5 text-left" onclick={onToggleOpen}>
 		{#if open}<ChevronDown class="size-3.5 shrink-0" />{:else}<ChevronRight class="size-3.5 shrink-0" />{/if}

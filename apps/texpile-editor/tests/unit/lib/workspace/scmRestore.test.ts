@@ -13,7 +13,7 @@ const gitCommit = vi.fn(async (_root: string, _message: string) => ({ ok: true }
 const gitStage = vi.fn(async (_root: string, _paths: string[]) => ({ ok: true }));
 const gitUnstage = vi.fn(async (_root: string, _paths: string[]) => ({ ok: true }));
 const gitDiscard = vi.fn(async (_root: string, _paths: string[]) => ({ ok: true }));
-const confirmAsk = vi.fn(async (_message: string, _opts?: { confirmLabel?: string }) => true);
+const confirmAsk = vi.fn(async (_message: string, _opts?: { confirmLabel?: string; detail?: string }) => true);
 const gitIdentity = vi.fn(async (_root: string) => ({ name: 'Ada Lovelace' as string | null, email: 'ada@example.com' as string | null }));
 const askIdentity = vi.fn(async (_current: { name: string; email: string }) => null as { name: string; email: string } | null);
 const gitChanges = { current: [] as { path: string; x: string; y: string; markers?: boolean; from?: string }[] };
@@ -156,7 +156,9 @@ describe('work that would be in the way', () => {
 
 	it('asks the plain question when there is nothing in the way', async () => {
 		await makeScm().restore(ENTRY);
-		expect(String(confirmAsk.mock.calls[0]?.[0] ?? '')).toContain('undo');
+		// the question, and under it (the detail line) that it can be undone
+		expect(String(confirmAsk.mock.calls[0]?.[0] ?? '')).toMatch(/^Restore /);
+		expect(String(confirmAsk.mock.calls[0]?.[1]?.detail ?? '')).toContain('undo');
 		expect(gitCommit).not.toHaveBeenCalled();
 	});
 });

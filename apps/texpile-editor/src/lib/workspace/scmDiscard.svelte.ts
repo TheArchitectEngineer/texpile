@@ -17,14 +17,18 @@ type DiscardDeps = Pick<
 	'getLoadedPath' | 'discardPendingSave' | 'trashEntry' | 'removeEntry' | 'refreshTree' | 'loadFile' | 'isDiffMode' | 'captureDiffSnapshot'
 >;
 
-function question(changes: GitStatusEntry[], allNew: boolean): string {
+/** VS Code's question: what is about to happen, and under it what follows from it */
+function question(changes: GitStatusEntry[], allNew: boolean): { message: string; detail: string } {
+	const one = changes.length === 1;
+	const name = basename(changes[0].path);
 	if (allNew)
-		return changes.length === 1
-			? m.vcs_confirm_trash_one({ name: basename(changes[0].path) })
-			: m.vcs_confirm_trash_other({ count: changes.length });
-	return changes.length === 1
-		? m.wsview_confirm_discard_one({ name: basename(changes[0].path) })
-		: m.wsview_confirm_discard_other({ count: changes.length });
+		return one
+			? { message: m.vcs_confirm_trash_one({ name }), detail: m.vcs_confirm_trash_one_detail() }
+			: { message: m.vcs_confirm_trash_other({ count: changes.length }), detail: m.vcs_confirm_trash_other_detail() };
+	return {
+		message: one ? m.wsview_confirm_discard_one({ name }) : m.wsview_confirm_discard_other({ count: changes.length }),
+		detail: m.history_irreversible()
+	};
 }
 
 export class ScmDiscard {
@@ -42,7 +46,8 @@ export class ScmDiscard {
 		// the question says which of the two will happen
 		const allNew = changes.every(isNewFile);
 		const confirmLabel = allNew ? m.vcs_move_to_trash() : m.vcs_discard_changes();
-		if (!(await confirmAsk(question(changes, allNew), { confirmLabel, danger: true }))) return;
+		const ask = question(changes, allNew);
+		if (!(await confirmAsk(ask.message, { detail: ask.detail, confirmLabel, danger: true }))) return;
 		// if the open file is being discarded, drop its queued autosave first: otherwise a debounced
 		// write scheduled just before the confirm lands after git reverts and re-creates the changes
 		const loadedPath = this.deps.getLoadedPath();
@@ -106,8 +111,9 @@ export class ScmDiscard {
 	}
 
 	#deleteOutright(paths: string[]): Promise<boolean> {
-		const msg =
-			paths.length === 1 ? m.vcs_confirm_no_trash_one({ name: basename(paths[0]) }) : m.vcs_confirm_no_trash_other({ count: paths.length });
-		return confirmAsk(msg, { confirmLabel: m.vcs_delete_permanently(), danger: true });
+		const one = paths.length === 1;
+		const msg = one ? m.vcs_confirm_no_trash_one({ name: basename(paths[0]) }) : m.vcs_confirm_no_trash_other({ count: paths.length });
+		const detail = one ? m.vcs_confirm_no_trash_one_detail() : m.vcs_confirm_no_trash_other_detail();
+		return confirmAsk(msg, { detail, confirmLabel: m.vcs_delete_permanently(), danger: true });
 	}
 }

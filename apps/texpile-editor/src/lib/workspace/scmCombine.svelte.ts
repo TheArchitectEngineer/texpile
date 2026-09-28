@@ -10,6 +10,8 @@ import { firstConflictLine } from './conflictMarkers';
 import { basename, samePath } from './fileSystem';
 import { confirmAsk, promptAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
+import { localGitReason } from './gitLocalReason';
+import { toastGitFailure } from './gitFailureToast';
 import { m } from '$lib/paraglide/messages';
 import type { ScmDeps } from './scmActions.svelte';
 
@@ -30,10 +32,11 @@ function fromTheMerge(c: GitStatusEntry): boolean {
 	return isConflicted(c.x, c.y) || (c.x !== ' ' && c.x !== '?');
 }
 
-function combineReason(res: GitCombineResult): string | undefined {
+function combineReason(res: GitCombineResult): string {
 	if (res.failure === 'dirty') return m.vcs_combine_dirty({ files: names(res.files ?? []) });
 	if (res.failure === 'busy') return m.vcs_toast_finish_first();
-	return res.error;
+	// git's own words are behind Details
+	return localGitReason(res.error);
 }
 
 export class ScmCombine {
@@ -77,7 +80,7 @@ export class ScmCombine {
 
 		const combined = await gitCombine(root);
 		if (!combined.ok) {
-			toaster.error({ title: m.vcs_toast_combine_failed(), description: combineReason(combined) });
+			toastGitFailure(m.vcs_toast_combine_failed(), combineReason(combined), combined);
 			await refreshGitStatus(root);
 			return;
 		}
@@ -128,7 +131,7 @@ export class ScmCombine {
 					toaster.warning({ title: m.vcs_toast_finish_marked(), description: names(res.files ?? []) });
 					if (res.files?.[0]) await this.openConflict(res.files[0]);
 				} else {
-					toaster.error({ title: m.vcs_toast_finish_combine_failed(), description: res.error });
+					toastGitFailure(m.vcs_toast_finish_combine_failed(), localGitReason(res.error), res);
 				}
 				return;
 			}
@@ -154,7 +157,7 @@ export class ScmCombine {
 		const res = await gitKeepSide(root, path, side);
 		this.host.busy = false;
 		if (!res.ok) {
-			toaster.error({ title: m.vcs_keep_side_failed({ name: basename(path) }), description: res.error });
+			toastGitFailure(m.vcs_keep_side_failed({ name: basename(path) }), localGitReason(res.error), res);
 			return;
 		}
 		await this.reload(root);
@@ -172,6 +175,7 @@ export class ScmCombine {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return;
 		const ok = await confirmAsk(m.vcs_confirm_cancel_combine(), {
+			detail: m.vcs_confirm_cancel_combine_detail(),
 			confirmLabel: m.vcs_cancel_combine(),
 			cancelLabel: m.vcs_keep_combining(),
 			danger: true
@@ -186,7 +190,7 @@ export class ScmCombine {
 		try {
 			const res = await gitCancelCombine(root);
 			if (!res.ok) {
-				toaster.error({ title: m.vcs_toast_cancel_combine_failed(), description: res.error });
+				toastGitFailure(m.vcs_toast_cancel_combine_failed(), localGitReason(res.error), res);
 				await refreshGitStatus(root);
 				return;
 			}

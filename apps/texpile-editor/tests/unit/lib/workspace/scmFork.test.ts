@@ -25,7 +25,9 @@ it('names the repository, and on yes forks and uploads to the fork', async () =>
 	expect(await offerFork('/p', 'origin')).toBe(true);
 	expect((promptAsk.mock.calls[0][0] as { message: string }).message).toContain('babbage/thesis');
 	expect(githubFork).toHaveBeenCalledWith('/p', 'origin');
-	expect(toaster.success).toHaveBeenCalledWith(expect.objectContaining({ title: 'Uploaded to your fork ada/thesis' }));
+	expect(toaster.success).toHaveBeenCalledWith(
+		expect.objectContaining({ title: 'The fork "ada/thesis" was successfully created on GitHub' })
+	);
 });
 
 it('takes no for an answer', async () => {

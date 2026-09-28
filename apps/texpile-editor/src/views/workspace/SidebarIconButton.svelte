@@ -8,7 +8,7 @@
 	type Props = { icon: typeof FilePlus; label: string; title?: string; active?: boolean; count?: number; onclick: () => void };
 	let { icon: Icon, label, title, active = false, count = 0, onclick }: Props = $props();
 
-	const counted = $derived(count ? m.vcs_badge_changes({ count }) : '');
+	const counted = $derived(count === 1 ? m.vcs_badge_changes_one() : count ? m.vcs_badge_changes({ count }) : '');
 </script>
 
 <button

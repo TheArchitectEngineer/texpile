@@ -4,7 +4,21 @@
 	// file as it is now; its menu restores, renames or deletes a local entry. For a project that has
 	// never been put under git, the local half is the only history there is.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { History, GitCommitHorizontal, MoreHorizontal, Check } from '@lucide/svelte';
+	import {
+		History,
+		GitCommitHorizontal,
+		MoreHorizontal,
+		Check,
+		GitCompare,
+		FileDiff,
+		RotateCcw,
+		Pencil,
+		Trash2,
+		Copy,
+		Search,
+		Plus,
+		LoaderCircle
+	} from '@lucide/svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import TextPrompt from '$lib/chrome/menubar/TextPrompt.svelte';
 	import SectionHeader from './SectionHeader.svelte';
@@ -26,6 +40,16 @@
 	} from '$lib/workspace/localHistory.svelte';
 	import { localHistoryActions, entryDate } from '$lib/workspace/localHistoryActions.svelte';
 	import type { GitLogEntry } from '$lib/workspace/git';
+	import {
+		MENU_CARD,
+		MENU_ITEM,
+		MENU_DANGER,
+		MENU_ICON,
+		MENU_SPACER,
+		MENU_SEPARATOR,
+		MENU_TRIGGER,
+		copyText
+	} from '$lib/workspace/history/rowMenu';
 	import { m } from '$lib/paraglide/messages';
 
 	let { path, collapsed, onToggle }: { path: string | null; collapsed: boolean; onToggle: () => void } = $props();
@@ -55,6 +79,12 @@
 
 	let local = $state<LocalHistoryEntry[]>([]);
 	let versions = $state<GitLogEntry[]>([]);
+	// the file each list was last read for. Until both have answered for the file now open, the
+	// Timeline is loading rather than empty, and the rows it still holds are another file's: shown,
+	// their menus would restore or delete against this one
+	let localFor = $state<string | null>(null);
+	let versionsFor = $state<string | null>(null);
+	const loaded = $derived(!!path && localFor === path && versionsFor === path);
 	// VS Code's paging: a page of git versions at a time, one more asked for to know there are more
 	const PAGE = 50;
 	let gitLimit = $state(PAGE);
@@ -69,10 +99,13 @@
 		void localHistoryRevision.current;
 		if (!p || !canKeepLocalHistory()) {
 			local = [];
+			localFor = p;
 			return;
 		}
 		void listLocalHistory(p).then((entries) => {
-			if (path === p) local = entries;
+			if (path !== p) return;
+			local = entries;
+			localFor = p;
 		});
 	});
 	// another file starts from the first page again
@@ -88,6 +121,7 @@
 		if (!p || !root || !isGitRepo.current || gitHeldBack.current) {
 			versions = [];
 			moreGit = false;
+			versionsFor = p;
 			return;
 		}
 		void gitFileLog(root, p, limit + 1).then((res) => {
@@ -95,18 +129,22 @@
 			const all = res.ok ? (res.entries ?? []) : [];
 			moreGit = all.length > limit;
 			versions = all.slice(0, limit);
+			versionsFor = p;
 		});
 	});
 
+	const gitShown = $derived(sources.git && versionsFor === path);
 	const gitItems = $derived(
-		sources.git ? versions.map((entry): Item => ({ kind: 'git', key: `g:${entry.hash}`, at: Date.parse(entry.date) || 0, entry })) : []
+		gitShown ? versions.map((entry): Item => ({ kind: 'git', key: `g:${entry.hash}`, at: Date.parse(entry.date) || 0, entry })) : []
 	);
 	// with more git versions still to load, the list stops at the oldest one loaded, as VS Code's
 	// does: a local entry below it would read as coming right after it, with versions missing between
-	const cutoff = $derived(sources.git && moreGit ? Math.min(...gitItems.map((i) => i.at)) : -Infinity);
+	const cutoff = $derived(gitShown && moreGit ? Math.min(...gitItems.map((i) => i.at)) : -Infinity);
 	const items = $derived(
 		[
-			...(sources.local ? local.map((entry): Item => ({ kind: 'local', key: `l:${entry.id}`, at: entry.timestamp, entry })) : []),
+			...(sources.local && localFor === path
+				? local.map((entry): Item => ({ kind: 'local', key: `l:${entry.id}`, at: entry.timestamp, entry }))
+				: []),
 			...gitItems
 		]
 			.filter((i) => i.at >= cutoff)
@@ -193,8 +231,6 @@
 		['local', () => m.timeline_local()],
 		['git', () => m.timeline_git()]
 	];
-	const ROW = 'hover:preset-tonal flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm';
-	const MENU = 'card bg-surface-50-950 border-surface-300-700 min-w-[200px] border py-1 shadow-lg';
 </script>
 
 {#snippet menu(open: boolean, onOpenChange: (open: boolean) => void, label: string, body: import('svelte').Snippet)}
@@ -205,7 +241,7 @@
 		autoFocus={false}
 	>
 		<Popover.Trigger
-			class="hover:preset-tonal shrink-0 rounded-base p-0.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 {open
+			class="{MENU_TRIGGER} shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 {open
 				? 'opacity-100'
 				: ''}"
 			aria-label={label}
@@ -216,7 +252,7 @@
 		</Popover.Trigger>
 		<Portal>
 			<Popover.Positioner class="z-floating-ui">
-				<Popover.Content class={MENU}>{@render body()}</Popover.Content>
+				<Popover.Content class={MENU_CARD}>{@render body()}</Popover.Content>
 			</Popover.Positioner>
 		</Portal>
 	</Popover>
@@ -224,31 +260,39 @@
 
 {#snippet headerBody()}
 	{#if canKeepLocalHistory()}
-		<button type="button" class={ROW} onclick={() => run(openLocalHistoryFinder)}>{m.history_find()}</button>
+		<button type="button" class={MENU_ITEM} onclick={() => run(openLocalHistoryFinder)}>
+			<Search class={MENU_ICON} />
+			{m.history_find()}
+		</button>
+		{#if path}
+			<button
+				type="button"
+				class={MENU_ITEM}
+				onclick={() =>
+					run(async () => {
+						const name = await prompt.askText(m.history_create_title());
+						if (name && path) await localHistoryActions.current?.create(path, name);
+					})}
+			>
+				<Plus class={MENU_ICON} />
+				{m.history_create()}
+			</button>
+		{/if}
+		<div class={MENU_SEPARATOR}></div>
 	{/if}
-	{#if path && canKeepLocalHistory()}
-		<button
-			type="button"
-			class={ROW}
-			onclick={() =>
-				run(async () => {
-					const name = await prompt.askText(m.history_create_title());
-					if (name && path) await localHistoryActions.current?.create(path, name);
-				})}>{m.history_create()}</button
-		>
-		<div class="border-surface-200-800 my-1 border-t"></div>
-	{/if}
+	<!-- the tick sits where the other items have their icon -->
 	{#each SOURCE_ROWS as [which, label] (which)}
-		<button type="button" class={ROW} onclick={() => toggle(which)}>
-			<Check class="size-4 shrink-0 {sources[which] ? '' : 'invisible'}" />
+		<button type="button" class={MENU_ITEM} aria-pressed={sources[which]} onclick={() => toggle(which)}>
+			{#if sources[which]}<Check class={MENU_ICON} />{:else}<span class={MENU_SPACER}></span>{/if}
 			{label()}
 		</button>
 	{/each}
 	{#if canKeepLocalHistory()}
-		<div class="border-surface-200-800 my-1 border-t"></div>
-		<button type="button" class="{ROW} text-error-ink" onclick={() => run(() => localHistoryActions.current?.removeAll())}
-			>{m.history_delete_all()}…</button
-		>
+		<div class={MENU_SEPARATOR}></div>
+		<button type="button" class="{MENU_ITEM} {MENU_DANGER}" onclick={() => run(() => localHistoryActions.current?.removeAll())}>
+			<Trash2 class="size-4 shrink-0" />
+			{m.history_delete_all()}
+		</button>
 	{/if}
 {/snippet}
 {#snippet headerActions()}
@@ -267,6 +311,13 @@
 				>{m.history_find()}</button
 			>
 		{/if}
+	{:else if !items.length && !loaded}
+		<!-- not "No history yet" before the reads have said so. Nothing for the first 300ms, the
+		     app's threshold for announcing a wait: a quick read never flashes it -->
+		<p class="text-muted reveal-late flex items-center gap-2 px-1 text-xs">
+			<LoaderCircle class="size-4 shrink-0 animate-spin" />
+			{m.vcs_loading_changes()}
+		</p>
 	{:else if !items.length}
 		<p class="text-faint px-1 text-xs">{m.timeline_empty()}</p>
 	{:else}
@@ -288,49 +339,76 @@
 						<span class="text-faint ml-auto shrink-0 text-xs tabular-nums">{ago(item.at)}</span>
 					</button>
 					{#snippet rowBody()}
-						<button type="button" class={ROW} onclick={() => run(() => open(item))}>{m.history_compare_with_file()}</button>
+						<button type="button" class={MENU_ITEM} onclick={() => run(() => open(item))}>
+							<GitCompare class={MENU_ICON} />
+							{m.history_compare_with_file()}
+						</button>
 						{#if previousOf(item)}
-							<button type="button" class={ROW} onclick={() => run(() => comparePrevious(item))}>{m.history_compare_previous()}</button>
+							<button type="button" class={MENU_ITEM} onclick={() => run(() => comparePrevious(item))}>
+								<FileDiff class={MENU_ICON} />
+								{m.history_compare_previous()}
+							</button>
 						{/if}
 						{#if item.kind === 'local' && path}
 							{@const entry = item.entry}
 							{@const p = path}
-							<button type="button" class={ROW} onclick={() => run(() => localHistoryActions.current?.restore(p, entry))}
-								>{m.history_restore()}…</button
-							>
+							<!-- no "…" on Restore or Delete: they only ask to be confirmed. Rename asks for a name -->
+							<button type="button" class={MENU_ITEM} onclick={() => run(() => localHistoryActions.current?.restore(p, entry))}>
+								<RotateCcw class={MENU_ICON} />
+								{m.history_restore()}
+							</button>
 							<button
 								type="button"
-								class={ROW}
+								class={MENU_ITEM}
 								onclick={() =>
 									run(async () => {
 										const name = await prompt.askText(m.history_rename_title(), sourceLabel(entry.source));
 										if (name) await localHistoryActions.current?.rename(p, entry, name);
-									})}>{m.history_rename()}…</button
+									})}
 							>
-							<div class="border-surface-200-800 my-1 border-t"></div>
-							<button type="button" class="{ROW} text-error-ink" onclick={() => run(() => localHistoryActions.current?.remove(p, entry))}
-								>{m.history_delete()}…</button
-							>
-						{:else if item.kind === 'git'}
-							{@const entry = item.entry}
-							<button type="button" class={ROW} onclick={() => run(() => showVersionChanges(entry))}>{m.vcs_version_changes_open()}</button>
-							<button type="button" class={ROW} onclick={() => run(() => navigator.clipboard.writeText(entry.hash).catch(() => {}))}
-								>{m.vcs_copy_id()}</button
-							>
+								<Pencil class={MENU_ICON} />
+								{m.history_rename()}…
+							</button>
+							<div class={MENU_SEPARATOR}></div>
 							<button
 								type="button"
-								class={ROW}
-								onclick={() =>
-									run(() =>
-										navigator.clipboard.writeText(entry.body ? `${entry.subject}\n\n${entry.body}` : entry.subject).catch(() => {})
-									)}>{m.vcs_copy_message()}</button
+								class="{MENU_ITEM} {MENU_DANGER}"
+								onclick={() => run(() => localHistoryActions.current?.remove(p, entry))}
 							>
+								<Trash2 class="size-4 shrink-0" />
+								{m.history_delete()}
+							</button>
+						{:else if item.kind === 'git'}
+							{@const entry = item.entry}
+							<button
+								type="button"
+								class={MENU_ITEM}
+								onclick={() => run(() => showVersionChanges(entry))}
+								use:tip={m.vcs_version_changes_open_tip()}
+							>
+								<FileDiff class={MENU_ICON} />
+								{m.vcs_version_changes_open()}
+							</button>
+							<div class={MENU_SEPARATOR}></div>
+							<button type="button" class={MENU_ITEM} onclick={() => run(() => copyText(entry.hash))} use:tip={m.vcs_copy_id_tip()}>
+								<Copy class={MENU_ICON} />
+								<span class="flex-1">{m.vcs_copy_id()}</span>
+								<span class="text-muted font-mono text-[10px]">{entry.short}</span>
+							</button>
+							<button
+								type="button"
+								class={MENU_ITEM}
+								onclick={() => run(() => copyText(entry.body ? `${entry.subject}\n\n${entry.body}` : entry.subject))}
+							>
+								<Copy class={MENU_ICON} />
+								{m.vcs_copy_message()}
+							</button>
 						{/if}
 					{/snippet}
 					{@render menu(openMenu === item.key, (o) => (openMenu = o ? item.key : null), m.vcs_row_actions(), rowBody)}
 				</div>
 			{/each}
-			{#if sources.git && moreGit}
+			{#if gitShown && moreGit}
 				<button type="button" class="text-muted hover:text-surface-950-50 px-1 py-0.5 text-left text-xs" onclick={() => (gitLimit += PAGE)}
 					>{m.timeline_load_more()}</button
 				>

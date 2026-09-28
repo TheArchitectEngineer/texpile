@@ -75,6 +75,10 @@ export const gitHistoryError = box<string | null>(null);
 /** the history runs past what was fetched, so the oldest row shown is not the project's first
  *  version - which is exactly what it would otherwise look like. */
 export const gitHistoryHasMore = box<boolean>(false);
+/** History has been read for the folder open now: until it has, an empty list is not "no versions"
+ *  but "not read yet", and the panel says loading instead */
+export const gitHistoryLoaded = box<boolean>(false);
+let historyRoot: string | null = null;
 
 /** how many versions the timeline currently asks for; grows on demand rather than fetching a long
  *  history nobody scrolled to. Reset when the folder changes: it is a property of one project's
@@ -188,6 +192,8 @@ function clearGitState(): void {
 	gitTruncated.current = 0;
 	gitHistory.current = [];
 	gitHistoryError.current = null;
+	gitHistoryLoaded.current = false;
+	historyRoot = null;
 }
 
 /** refreshes git state for the open folder; never throws. missingGit lets the caller show the install hint. */
@@ -262,11 +268,16 @@ export async function refreshGitHistory(root: string | null): Promise<void> {
 		gitHistory.current = [];
 		gitHistoryError.current = null;
 		gitHistoryHasMore.current = false;
+		gitHistoryLoaded.current = false;
+		historyRoot = null;
 		historyLimit = HISTORY_PAGE;
 		return;
 	}
+	if (historyRoot === null || !samePath(historyRoot, root)) gitHistoryLoaded.current = false;
 	const res = await fetchGitLog(root, historyLimit);
 	if (!stillOpen(root)) return;
+	historyRoot = root;
+	gitHistoryLoaded.current = true;
 	gitHistory.current = res.ok ? (res.entries ?? []) : [];
 	gitHistoryHasMore.current = res.ok && !!res.hasMore;
 	// 'not-a-repo' is not a failure to report: the panel already says the folder is not tracked

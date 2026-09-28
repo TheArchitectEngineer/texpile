@@ -83,7 +83,9 @@ export class ScmBranches {
 		if (!root || this.host.busy) return '';
 		let res = await this.#busyWith(() => gitDeleteBranch(root, name));
 		if (!res.ok && res.failure === 'unmerged') {
-			if (!(await confirmAsk(m.vcs_branch_delete_unmerged({ name }), { confirmLabel: m.vcs_branch_delete(), danger: true }))) return '';
+			const detail = m.vcs_branch_delete_unmerged_detail();
+			if (!(await confirmAsk(m.vcs_branch_delete_unmerged({ name }), { detail, confirmLabel: m.vcs_branch_delete(), danger: true })))
+				return '';
 			res = await this.#busyWith(() => gitDeleteBranch(root, name, true));
 		}
 		if (!res.ok) return deleteReason(res);
@@ -97,7 +99,8 @@ export class ScmBranches {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return '';
 		const ask = m.vcs_branch_delete_remote_confirm({ name: b.branch, remote: b.remote });
-		if (!(await confirmAsk(ask, { confirmLabel: m.vcs_branch_delete(), danger: true }))) return '';
+		const detail = m.vcs_branch_delete_remote_confirm_detail({ remote: b.remote });
+		if (!(await confirmAsk(ask, { detail, confirmLabel: m.vcs_branch_delete(), danger: true }))) return '';
 		const res = await this.#busyWith(() => gitDeleteRemoteBranch(root, b.name));
 		if (!res.ok) return res.failure === 'cancelled' ? '' : deleteReason(res);
 		await refreshGitHistory(root);

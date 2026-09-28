@@ -6,6 +6,8 @@ import { toaster } from '$lib/modals/toaster-svelte';
 import { m } from '$lib/paraglide/messages';
 
 export async function forgetSignIns(): Promise<void> {
-	if (!(await confirmAsk(m.vcs_forget_signins_confirm(), { confirmLabel: m.vcs_forget_signins(), cancelLabel: m.vcs_cancel() }))) return;
+	const detail = m.vcs_forget_signins_confirm_detail();
+	if (!(await confirmAsk(m.vcs_forget_signins_confirm(), { detail, confirmLabel: m.vcs_forget_signins(), cancelLabel: m.vcs_cancel() })))
+		return;
 	if (await gitForgetSignIns()) toaster.success({ title: m.vcs_toast_signins_forgotten() });
 }

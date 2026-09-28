@@ -233,7 +233,7 @@ export class ScmActions {
 		const answer = await askIdentity({ name: who.name ?? '', email: who.email ?? '' });
 		if (!answer) return false;
 		const res = await gitSetIdentity(root, answer.name, answer.email);
-		if (!res.ok) toaster.error({ title: m.vcs_identity_failed(), description: res.error });
+		if (!res.ok) toastGitFailure(m.vcs_identity_failed(), localGitReason(res.error), res);
 		return res.ok;
 	}
 
@@ -250,7 +250,10 @@ export class ScmActions {
 
 		const ok = await confirmAsk(
 			dirty ? m.vcs_confirm_restore_unsaved({ name: entry.subject }) : m.vcs_confirm_restore({ name: entry.subject }),
-			{ confirmLabel: dirty ? m.vcs_save_and_restore() : m.vcs_restore() }
+			{
+				detail: dirty ? m.vcs_confirm_restore_unsaved_detail() : m.vcs_confirm_restore_detail(),
+				confirmLabel: dirty ? m.vcs_save_and_restore() : m.vcs_restore()
+			}
 		);
 		if (!ok || !dirty) return ok;
 
@@ -339,7 +342,7 @@ export class ScmActions {
 				gitRunning.current = null;
 			});
 			const problem = await this.published(root, res);
-			if (problem) toaster.error({ title: m.vcs_toast_publish_failed(), description: problem });
+			if (problem) toastGitFailure(m.vcs_toast_publish_failed(), problem, res);
 			return;
 		}
 		await askPublish({
@@ -396,10 +399,11 @@ export class ScmActions {
 				// failed. Trying again from here would try to create it again, so the dialog closes and
 				// Publish - which now finds exactly that one remote - retries just the upload.
 				await refreshGitStatus(root);
-				toaster.error({
-					title: m.vcs_toast_publish_failed(),
-					description: m.vcs_publish_created_not_uploaded({ name: res.fullName ?? choice.name, reason: uploadReason(res) })
-				});
+				toastGitFailure(
+					m.vcs_toast_publish_failed(),
+					m.vcs_publish_created_not_uploaded({ name: res.fullName ?? choice.name, reason: uploadReason(res) }),
+					res
+				);
 				return null;
 			}
 			if (res.failure === 'exists') return m.vcs_publish_exists({ name: choice.name });
@@ -465,11 +469,8 @@ export class ScmActions {
 					...(pulled ? [pulled === 1 ? m.vcs_sync_received_one() : m.vcs_sync_received_count({ count: pulled })] : []),
 					...(pushed ? [pushed === 1 ? m.vcs_sync_sent_one() : m.vcs_sync_sent_count({ count: pushed })] : [])
 				];
-				toaster.success(
-					moved.length
-						? { title: m.vcs_toast_synced({ remote }), description: moved.join(' · ') }
-						: { title: m.vcs_toast_sync_uptodate({ remote }) }
-				);
+				if (moved.length) toaster.success({ title: m.vcs_toast_synced({ remote }), description: moved.join(' · ') });
+				else toaster.info({ title: m.vcs_toast_sync_uptodate({ remote }) });
 			} else if (res.failure === 'conflict') {
 				await this.combine.offer(root, res);
 			} else if (res.failure === 'forbidden' && (await offerFork(root, res.remote))) {

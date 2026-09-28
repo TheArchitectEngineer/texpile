@@ -46,7 +46,7 @@ export class LocalHistoryActions {
 	compare(path: string, entry: LocalHistoryEntry): void {
 		this.deps.openCompareTab(path, {
 			hash: `${LOCAL_REF}${entry.id}`,
-			subject: `${sourceLabel(entry.source)} • ${entryDate(entry.timestamp)}`
+			subject: `${sourceLabel(entry.source)} · ${entryDate(entry.timestamp)}`
 		});
 	}
 
@@ -86,6 +86,8 @@ export class LocalHistoryActions {
 		if (current === null) openFile(path);
 		else if (open && loaded) await this.deps.loadFile(loaded);
 		await addLocalHistory(path, toLf(content), 'restored');
+		// said, as restoring a version is: the file may not be the one on screen
+		toaster.success({ title: m.history_toast_restored({ name: basename(path) }) });
 	}
 
 	/** the file as it is on disk now; null when it is gone */

@@ -247,7 +247,11 @@
 
 	// the three callback surfaces live in ./workspaceActionSurfaces.ts
 	const actionDeps: ActionSurfaceDeps = {
-		provider,
+		// read when an action runs, not now: the provider follows the folder (and file mode), and a
+		// copy taken here kept whatever it was while the window was still starting
+		get provider() {
+			return provider;
+		},
 		wsdoc,
 		editFlow: () => editFlow,
 		files: () => files,

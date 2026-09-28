@@ -7,6 +7,7 @@ import { githubFork, githubRepoOf } from './githubFork';
 import { uploadReason } from './uploadReason';
 import { promptAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
+import { toastGitFailure } from './gitFailureToast';
 import { m } from '$lib/paraglide/messages';
 
 /**
@@ -48,7 +49,7 @@ export async function offerFork(root: string, remote: string | undefined): Promi
 				: res.failure === 'auth'
 					? m.vcs_publish_github_auth()
 					: uploadReason({ error: res.error, remote: 'GitHub', failure: res.failure === 'network' ? 'network' : 'other' });
-		toaster.error({ title: m.vcs_toast_fork_failed(), description });
+		toastGitFailure(m.vcs_toast_fork_failed(), description, res);
 	}
 	return true;
 }

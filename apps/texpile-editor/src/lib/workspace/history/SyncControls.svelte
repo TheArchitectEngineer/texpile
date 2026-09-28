@@ -40,7 +40,8 @@
 	const syncing = $derived(gitRunning.current === 'sync');
 	const publishing = $derived(gitRunning.current === 'publish');
 	const fetching = $derived(gitRunning.current === 'fetch');
-	const HEADER = 'hover:preset-tonal flex items-center gap-1 rounded-base py-0.5 disabled:opacity-50';
+	// the Fetch and Refresh buttons' own box, widened to its contents, so the row's hovers are one height
+	const HEADER = 'btn-icon btn-icon-xs w-auto gap-1 px-1 hover:preset-tonal';
 	const ACTION = 'btn btn-xs preset-filled-primary-500 w-full gap-1.5';
 </script>
 
@@ -67,7 +68,7 @@
 	     itself runs, and the tooltip says so. Without one: Publish, once there is a version to
 	     publish and a branch to publish it from. -->
 	<button
-		class="{HEADER} px-1"
+		class={HEADER}
 		use:tip={syncing ? m.vcs_running_sync() : syncTip}
 		aria-label={m.vcs_sync_aria()}
 		onclick={onSync}
@@ -94,7 +95,7 @@
 		</button>
 	</div>
 {:else if showPublish && place === 'header'}
-	<button class="{HEADER} px-1.5" use:tip={m.vcs_publish_button_tip()} onclick={onPublish} disabled={busy}>
+	<button class={HEADER} use:tip={m.vcs_publish_button_tip()} onclick={onPublish} disabled={busy}>
 		{#if publishing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<CloudUpload class="size-3.5" />{/if}
 		<span>{publishing ? m.vcs_running_publish() : m.vcs_publish_button()}</span>
 	</button>

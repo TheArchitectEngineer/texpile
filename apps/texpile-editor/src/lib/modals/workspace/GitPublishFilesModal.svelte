@@ -21,11 +21,17 @@
 	function go() {
 		if (kept.length) answerPublishFiles(kept);
 	}
+
+	/** the keyboard starts in the list, as the other Git dialogs start in their first field */
+	function focusFirst(node: HTMLElement) {
+		const t = setTimeout(() => node.querySelector<HTMLInputElement>('input')?.focus(), 0);
+		return { destroy: () => clearTimeout(t) };
+	}
 </script>
 
 <Modal title={m.vcs_publish_files_title()} icon={UploadCloud} onClose={() => answerPublishFiles(null)} onEnter={go}>
 	<p class="text-muted mb-3 text-sm">{m.vcs_publish_files_desc()}</p>
-	<ul class="border-surface-200-800 max-h-72 overflow-y-auto rounded-base border py-1">
+	<ul class="border-surface-200-800 max-h-72 overflow-y-auto rounded-base border py-1" use:focusFirst>
 		{#each ask.entries as e (e.name)}
 			<li>
 				<label class="hover:bg-surface-200-800 flex cursor-pointer items-center gap-2 px-2 py-0.5 text-sm">
