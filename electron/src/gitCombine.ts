@@ -95,7 +95,9 @@ export async function gitFinishCombine(workspaceRoot: string): Promise<GitCombin
 		if (marked.length) return { ok: false, failure: 'markers', files: marked };
 		// -A: a file one side deleted is settled by its absence as much as by its presence
 		if (unmerged.length) await retryLocked(() => g.raw(['add', '-A', '--', ...unmerged]));
-		await retryLocked(() => g.raw(['commit', '--no-edit']));
+		// strip: git's "# Conflicts:" list is a comment for an editor, which --no-edit alone would keep
+		// in the message
+		await retryLocked(() => g.raw(['commit', '--no-edit', '--cleanup=strip']));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };

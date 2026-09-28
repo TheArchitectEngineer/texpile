@@ -245,9 +245,11 @@
 <svelte:window
 	onkeydown={(e) => {
 		if (e.key !== 'Escape' || view === 'explorer' || e.defaultPrevented) return;
-		// a row's menu, a popover or a dialog takes this Escape to close itself; the view stays.
+		// a row's menu, a popover, a dialog or a confirmation takes this Escape to close itself; the view stays.
 		// Visible ones only: a closed popover stays in the page, hidden
-		const open = [...document.querySelectorAll('.z-dropdown, [role="dialog"]')].some((el) => el.getClientRects().length > 0);
+		const open = [...document.querySelectorAll('.z-dropdown, [role="dialog"], [role="alertdialog"]')].some(
+			(el) => el.getClientRects().length > 0
+		);
 		if (open) return;
 		const el = document.activeElement;
 		if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el as HTMLElement | null)?.isContentEditable) return;

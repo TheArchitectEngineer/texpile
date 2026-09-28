@@ -51,9 +51,9 @@
 </div>
 
 {#if gitId}
-	<h3 class="text-muted pt-5 text-xs font-semibold tracking-wide uppercase">{m.prefs_collab_git()}</h3>
-	<p class="text-muted pt-1 pb-1 text-xs leading-relaxed">{m.prefs_collab_git_note()}</p>
-	<div class="{ROW} pl-4">
+	<!-- a row of its own: under the Git identity heading it read as part of the name and email that
+	     heading says to set in a terminal -->
+	<div class={ROW}>
 		{@render label(m.prefs_check_new_versions(), m.prefs_check_new_versions_note())}
 		<Switch
 			checked={settings.current.checkForNewVersions !== false}
@@ -63,6 +63,8 @@
 			<Switch.HiddenInput />
 		</Switch>
 	</div>
+	<h3 class="text-muted pt-5 text-xs font-semibold tracking-wide uppercase">{m.prefs_collab_git()}</h3>
+	<p class="text-muted pt-1 pb-1 text-xs leading-relaxed">{m.prefs_collab_git_note()}</p>
 	<div class="{ROW} pl-4">
 		{@render label(m.prefs_collab_git_name())}
 		<span class="text-muted max-w-64 shrink-0 truncate text-sm">{gitId.name ?? m.prefs_collab_git_none()}</span>

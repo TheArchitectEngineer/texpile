@@ -54,8 +54,8 @@ describe.skipIf(!AVAILABLE)('combining two lines of work', () => {
 		writeFileSync(join(root, 'main.tex'), 'My first line.\nTheir first line.\nSecond line.\n');
 		expect(await gitFinishCombine(root)).toEqual({ ok: true });
 		expect(out(root, 'log', '-1', '--format=%s')).toBe('Joined with the versions on GitHub');
-		// git's list of the files both sides changed goes under it, as with its own message
-		expect(out(root, 'log', '-1', '--format=%B')).not.toMatch(/remote-tracking/);
+		// and that is all it says: git's "# Conflicts:" comment does not end up in the message
+		expect(out(root, 'log', '-1', '--format=%B').trim()).toBe('Joined with the versions on GitHub');
 	});
 
 	it('will not finish while a place still holds both versions', async () => {

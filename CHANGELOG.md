@@ -5,6 +5,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- fix: Combine now from the comparison view opens the file where Keep mine, Keep theirs and Keep both are, instead of showing the marked places as changes to revert; a combined version's message no longer carries git's "# Conflicts" comment; Escape that closes a confirmation no longer also leaves Source Control; in Preferences, the check for co-authors' versions is no longer filed under Git identity
 - change: Source Control, the Timeline and Local History use VS Code's wording for every feature VS Code has, keeping the writer words (version, combine, check for new versions) whose tooltips name VS Code's term, in sentence case throughout; conflicts are called conflicts everywhere
 - change: menus, dialogs and notices in source control look and behave alike: icons in every menu, destructive items last in red, confirmations that put the consequence under the question, git's own words behind Details, file icons in the changes list, and a loading state instead of "No versions saved yet" while History loads
 - fix: the default Cancel and OK of a confirmation were English in every language; Escape that closes a menu or dialog no longer also leaves Source Control; "Check for new versions" offers Sync, as the automatic check does
