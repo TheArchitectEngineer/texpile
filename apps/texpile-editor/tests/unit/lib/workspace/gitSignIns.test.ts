@@ -64,10 +64,10 @@ it('keeps nothing from an operation that failed, and drops a kept answer the hos
 
 it('keeps a sign-in the host accepted before refusing the upload for another reason', () => {
 	const store = new SignIns(memoryVault());
-	// someone else's repository: the account is known, it may not write there, and a fork is offered
+	// someone else's repository: the account is known, it may not write there
 	settle(store, { ok: false, failure: 'forbidden' }, new Map([[PASS, 'token']]), new Set());
 	expect(store.recall(PASS)).toBe('token');
-	// publishing over SSH: the token made the repository, then ssh refused the key
+	// an SSH remote refusing the key: no password was refused, so the sign-in stays
 	const ssh = { ok: false, failure: 'auth', error: 'git@github.com: Permission denied (publickey).' };
 	expect(refusedPassword(ssh)).toBe(false);
 	settle(store, ssh, new Map(), new Set([PASS]));

@@ -6,8 +6,6 @@ import type { GitCombineBridge } from './gitCombine';
 import type { GitCloneBridge } from './gitClone';
 import type { GitVersionBridge } from './gitVersion';
 import type { GitBranchBridge } from './gitBranches';
-import type { GitMilestoneBridge } from './gitMilestones';
-import type { GithubForkBridge } from './githubFork';
 import type { GitTrustBridge } from './gitTrust';
 import type { GitFetchBridge } from './scmFetch.svelte';
 import type { GitAutoCheckBridge } from './scmAutoCheck.svelte';
@@ -19,8 +17,6 @@ export type GitBridges = GitRemoteBridge &
 	GitCloneBridge &
 	GitVersionBridge &
 	GitBranchBridge &
-	GitMilestoneBridge &
-	GithubForkBridge &
 	GitTrustBridge &
 	GitFetchBridge &
 	GitAutoCheckBridge &

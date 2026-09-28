@@ -36,11 +36,9 @@ import {
 import { askIdentity, askPublish, type PublishChoice } from './gitDialogs.svelte';
 import { ScmCombine } from './scmCombine.svelte';
 import { ScmBranches } from './scmBranches.svelte';
-import { ScmMilestones } from './scmMilestones.svelte';
 import { ScmIgnore } from './scmIgnore.svelte';
 import { ScmDiscard } from './scmDiscard.svelte';
 import { autoCheckDone, resumeAutoCheck } from './scmAutoCheck.svelte';
-import { offerFork } from './scmFork.svelte';
 import { uploadReason } from './uploadReason';
 import { toastGitFailure } from './gitFailureToast';
 import { localGitReason } from './gitLocalReason';
@@ -99,14 +97,12 @@ export class ScmActions {
 	/** the branch picker behind the branch name */
 	readonly branches: ScmBranches;
 	/** names on versions, from History */
-	readonly milestones: ScmMilestones;
 	readonly ignore: ScmIgnore;
 	readonly discarder: ScmDiscard;
 
 	constructor(private deps: ScmDeps) {
 		this.combine = new ScmCombine(this, deps);
 		this.branches = new ScmBranches(this, deps);
-		this.milestones = new ScmMilestones(this);
 		this.ignore = new ScmIgnore(this, deps);
 		this.discarder = new ScmDiscard(this, deps);
 	}
@@ -303,7 +299,7 @@ export class ScmActions {
 		return true;
 	};
 
-	/** build output and new files into .gitignore (scmIgnore.svelte.ts) */
+	/** build output and big new folders into .gitignore (scmIgnore.svelte.ts) */
 	ignoreArtifacts = (): Promise<void> => this.ignore.artifacts();
 	ignoreFiles = (paths: string[]): Promise<void> => this.ignore.files(paths);
 
@@ -381,7 +377,6 @@ export class ScmActions {
 			const res = await githubPublish(root, {
 				name: choice.name,
 				isPrivate: choice.isPrivate,
-				ssh: choice.ssh,
 				remote: freeRemoteName(current, ['origin', 'github'])
 			});
 			if (res.ok) {
@@ -419,8 +414,6 @@ export class ScmActions {
 	/** after a push -u: '' when the author cancelled signing in, the reason it failed, or null */
 	private async published(root: string, res: GitPushResult): Promise<string | null> {
 		if (!res.ok && res.failure === 'rejected') return m.vcs_publish_rejected({ remote: res.remote ?? '' });
-		// someone else's repository: a fork is the way to publish to it
-		if (!res.ok && res.failure === 'forbidden' && (await offerFork(root, res.remote))) return null;
 		if (!res.ok) return res.failure === 'cancelled' ? '' : uploadReason(res);
 		await refreshGitStatus(root); // the branch tracks something now, and the panel shows Sync
 		toaster.success({ title: m.vcs_toast_published({ remote: res.remote ?? '' }) });
@@ -473,8 +466,6 @@ export class ScmActions {
 				else toaster.info({ title: m.vcs_toast_sync_uptodate({ remote }) });
 			} else if (res.failure === 'conflict') {
 				await this.combine.offer(root, res);
-			} else if (res.failure === 'forbidden' && (await offerFork(root, res.remote))) {
-				// someone else's repository: the fork offer was the answer
 			} else if (res.failure === 'dirty') {
 				// unsaved work that taking in versions would overwrite: saved as a version, then Sync again
 				again = await saveChangesFirst(

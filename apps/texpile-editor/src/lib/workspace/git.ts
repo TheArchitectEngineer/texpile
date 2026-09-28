@@ -154,11 +154,7 @@ export async function gitCommit(root: string, message: string): Promise<GitOpRes
 /** a rename carries the path it had before in `from` */
 export type GitFileChange = { path: string; status: GitBadge; from?: string };
 
-/** a name on a version, kept as an annotated tag: `name` is the tag, `label` what the author typed */
-export type GitMilestone = { name: string; label: string };
-
 export type GitLogEntry = {
-	milestones?: GitMilestone[];
 	hash: string;
 	short: string;
 	subject: string;
@@ -367,7 +363,7 @@ export type GithubPublishResult = {
 /** create a GitHub repository, add it as `remote`, and publish this branch to it */
 export async function githubPublish(
 	root: string,
-	opts: { name: string; isPrivate: boolean; remote: string; ssh?: boolean }
+	opts: { name: string; isPrivate: boolean; remote: string }
 ): Promise<GithubPublishResult> {
 	const n = nativeBridge();
 	if (!n?.githubPublish) return { ok: false, error: NO_BRIDGE };
@@ -387,7 +383,7 @@ export type GitRemoteBridge = {
 	gitAddRemote?: (root: string, name: string, url: string) => Promise<GitOpResult>;
 	gitPublish?: (root: string, remote: string) => Promise<GitPushResult>;
 	gitSync?: (root: string) => Promise<GitSyncResult>;
-	githubPublish?: (root: string, opts: { name: string; isPrivate: boolean; remote: string; ssh?: boolean }) => Promise<GithubPublishResult>;
+	githubPublish?: (root: string, opts: { name: string; isPrivate: boolean; remote: string }) => Promise<GithubPublishResult>;
 	onGitAskpass?: (cb: (req: GitAskpassRequest) => void) => () => void;
 	onGitAskpassClosed?: (cb: (ids: number[]) => void) => () => void;
 	gitAskpassReply?: (id: number, answer: string | null) => Promise<boolean>;

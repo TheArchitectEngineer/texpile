@@ -18,8 +18,6 @@
 	// svelte-ignore state_referenced_locally
 	let repoName = $state(ask.defaultName);
 	let isPrivate = $state(true);
-	// uploads over SSH with the author's key; the token is still what creates the repository
-	let ssh = $state(false);
 	let url = $state('');
 	let busy = $state(false);
 	let error = $state<string | null>(null);
@@ -28,7 +26,7 @@
 	const cleanName = $derived(repoName.trim().replace(/[^A-Za-z0-9_.-]+/g, '-'));
 
 	const choice = $derived.by((): PublishChoice | null => {
-		if (picked === 'github') return cleanName ? { kind: 'github', name: cleanName, isPrivate, ssh } : null;
+		if (picked === 'github') return cleanName ? { kind: 'github', name: cleanName, isPrivate } : null;
 		if (picked === 'url') return url.trim() ? { kind: 'url', url: url.trim() } : null;
 		return { kind: 'remote', remote: picked.slice('remote:'.length) };
 	});
@@ -119,10 +117,6 @@
 							</button>
 						</div>
 					</div>
-					<label class="text-surface-950-50 mt-2 flex items-center gap-2 text-xs" use:tip={m.vcs_publish_ssh_tip()}>
-						<input type="checkbox" class="checkbox size-3.5" bind:checked={ssh} disabled={busy} />
-						{m.vcs_publish_ssh()}
-					</label>
 					<p class="text-surface-950-50 mt-2 text-xs">
 						<span class="text-muted">{m.vcs_publish_github_signin()}</span>
 						<a

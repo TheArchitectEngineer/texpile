@@ -3,8 +3,7 @@
 // forgotten and asked for again, one without permission is explained, a taken name is a new name.
 // The bodies are GitHub's own.
 import { describe, it, expect } from 'vitest';
-import { createGithubRepo, githubRepoName, forkGithubRepo, parseGithubRepo } from '../../../../../../electron/src/github';
-import { githubRepoOf } from '$lib/workspace/githubFork';
+import { createGithubRepo, githubRepoName } from '../../../../../../electron/src/github';
 
 type Init = { method: string; headers: Record<string, string>; body: string };
 
@@ -76,75 +75,5 @@ describe('creating a repository on GitHub', () => {
 		const { calls, fetchImpl } = answering(201, {});
 		expect(await createGithubRepo(fetchImpl, 't', { name: '   ', isPrivate: true })).toMatchObject({ ok: false });
 		expect(calls).toHaveLength(0);
-	});
-});
-
-describe('the SSH address', () => {
-	it('is passed on when GitHub gives one, for publishing over SSH', async () => {
-		const { fetchImpl } = answering(201, {
-			full_name: 'ada/thesis',
-			html_url: 'https://github.com/ada/thesis',
-			clone_url: 'https://github.com/ada/thesis.git',
-			ssh_url: 'git@github.com:ada/thesis.git'
-		});
-		const res = await createGithubRepo(fetchImpl, 'tok', { name: 'thesis', isPrivate: true });
-		expect(res.ok && res.repo.sshUrl).toBe('git@github.com:ada/thesis.git');
-	});
-});
-
-describe('forking a repository on GitHub', () => {
-	it("asks for a fork of the remote's repository and returns the author's copy", async () => {
-		const { calls, fetchImpl } = answering(202, {
-			full_name: 'ada/thesis',
-			html_url: 'https://github.com/ada/thesis',
-			clone_url: 'https://github.com/ada/thesis.git',
-			ssh_url: 'git@github.com:ada/thesis.git',
-			owner: { login: 'ada' }
-		});
-		const res = await forkGithubRepo(fetchImpl, 'tok', 'babbage', 'thesis');
-		// the SSH address too, for an author whose remote is reached over SSH
-		expect(res).toEqual({
-			ok: true,
-			repo: {
-				fullName: 'ada/thesis',
-				htmlUrl: 'https://github.com/ada/thesis',
-				cloneUrl: 'https://github.com/ada/thesis.git',
-				sshUrl: 'git@github.com:ada/thesis.git',
-				owner: 'ada'
-			}
-		});
-		expect(calls[0].url).toBe('https://api.github.com/repos/babbage/thesis/forks');
-		expect(calls[0].init.headers.Authorization).toBe('Bearer tok');
-	});
-
-	it('tells a token GitHub does not know from one that may not fork', async () => {
-		expect(await forkGithubRepo(answering(401, { message: 'Bad credentials' }).fetchImpl, 't', 'a', 'b')).toMatchObject({
-			ok: false,
-			failure: 'auth'
-		});
-		expect(await forkGithubRepo(answering(403, { message: 'Resource not accessible' }).fetchImpl, 't', 'a', 'b')).toMatchObject({
-			ok: false,
-			failure: 'scope'
-		});
-		const offline = async () => {
-			throw new Error('net::ERR_INTERNET_DISCONNECTED');
-		};
-		expect(await forkGithubRepo(offline, 't', 'a', 'b')).toMatchObject({ ok: false, failure: 'network' });
-	});
-
-	it('finds the GitHub repository in an address, and nothing in any other', () => {
-		for (const url of [
-			'https://github.com/babbage/thesis.git',
-			'https://github.com/babbage/thesis',
-			'git@github.com:babbage/thesis.git',
-			'https://ada@github.com/babbage/thesis.git'
-		]) {
-			expect(parseGithubRepo(url)).toEqual({ owner: 'babbage', repo: 'thesis' });
-			expect(githubRepoOf(url)).toBe('babbage/thesis');
-		}
-		for (const url of ['https://gitlab.com/babbage/thesis.git', 'https://github.com/babbage', 'http://127.0.0.1:8765/remote.git']) {
-			expect(parseGithubRepo(url)).toBeNull();
-			expect(githubRepoOf(url)).toBeNull();
-		}
 	});
 });

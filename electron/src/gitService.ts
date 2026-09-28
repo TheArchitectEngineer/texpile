@@ -114,7 +114,7 @@ export function isLocked(e: unknown): boolean {
 	return LOCKED_RE.test(msg) && !isNameClash(msg);
 }
 
-/** a branch or milestone name that another one's name is in the way of ("draft" and "draft/v2") */
+/** a branch name that another one's name is in the way of ("draft" and "draft/v2") */
 export function isNameClash(msg: string): boolean {
 	return NAME_CLASH_RE.test(msg);
 }

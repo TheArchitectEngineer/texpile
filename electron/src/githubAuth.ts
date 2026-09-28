@@ -2,7 +2,7 @@
 // it has no client secret to hand: the device flow. Texpile asks GitHub for a one-time code, the
 // author types it at github.com/login/device, and Texpile polls until GitHub hands over a token.
 // The token then answers git's github.com questions (gitAskpass.ts), as VS Code's GitHub
-// credential provider answers its git extension's: Sync, Publish and Fork all sign in with it.
+// credential provider answers its git extension's: Sync and Publish both sign in with it.
 //
 // Same scopes as VS Code asks for git: repo, workflow, user:email, read:user. The token is kept
 // sealed by the system keychain (Electron's safeStorage) and never reaches the window; without a

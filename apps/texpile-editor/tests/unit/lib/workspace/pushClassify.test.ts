@@ -22,8 +22,8 @@ const AUTH = [
 	'Host key verification failed.'
 ];
 
-// signed in, as an account that may not write here: someone else's repository, where a fork is
-// the way in, or a token without write permission
+// signed in, as an account that may not write here: someone else's repository, whose owner can
+// add them, or a token without write permission
 const FORBIDDEN = [
 	"remote: Permission to a/b.git denied to someone.\nfatal: unable to access 'https://github.com/a/b.git/': The requested URL returned error: 403",
 	'remote: Permission to a/b.git denied to someone.',
@@ -58,6 +58,13 @@ describe('classifying why an upload failed', () => {
 		// three regexes match this one, which is the reason the order is fixed rather than incidental
 		const msg = "fatal: unable to access 'https://github.com/a/b.git/': The requested URL returned error: 403";
 		expect(classifyPushError(msg)).toBe('forbidden');
+	});
+
+	it("someone else's repository: ask its owner, rather than make a copy of it", () => {
+		const said = uploadReason({ failure: 'forbidden', remote: 'origin' });
+		expect(said).toContain('origin');
+		expect(said).toContain('add you as a collaborator');
+		expect(said).not.toMatch(/fork/i);
 	});
 
 	it('falls back rather than guessing, so git gets to speak for itself', () => {

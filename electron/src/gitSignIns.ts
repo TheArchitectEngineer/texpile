@@ -63,11 +63,11 @@ export class SignIns {
 
 // failures that come after the host let the author in: the sign-in worked even though the
 // operation did not (a conflict to combine, a remote that moved on, a rule GitHub enforces, an
-// account that may not write here and is offered a fork, a repository name already taken)
+// account that may not write here, a repository name already taken)
 const SIGNED_IN_FAILURES = new Set(['conflict', 'rejected', 'secret', 'protected', 'forbidden', 'exists']);
 
 // ssh refusing the author's key (or an unknown host) is an 'auth' failure too, but no password
-// was involved: publishing over SSH signs in to GitHub's API with a token, then uploads with a key
+// was refused, so no sign-in is to blame for it
 const SSH_REFUSED_RE = /permission denied \(publickey|host key verification failed|no such identity/i;
 
 /** the host refused a username and password (or token): an SSH key refused is not that */

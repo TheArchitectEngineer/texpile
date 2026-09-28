@@ -1,4 +1,4 @@
-// The line Add to .gitignore writes has to match the one file it was chosen for: not every file of
+// The line Publish writes for a file left out has to match that one file: not every file of
 // that name in every folder, and not whatever a glob character in its name happens to widen it to.
 import { it, expect } from 'vitest';
 import { ignoreLineFor, withIgnoreLines } from '$lib/workspace/gitignore';

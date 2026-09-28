@@ -6,7 +6,6 @@ import { handleFs, handleFsE } from './ipcResult';
 import { timeSpan } from '../startupStats';
 import { withAskpass, registerAskpassIpc } from '../gitAskpass';
 import { githubPublish } from '../githubPublish';
-import { githubFork } from '../githubFork';
 
 // channel -> gitService export
 const OPS: Record<string, string> = {
@@ -38,8 +37,7 @@ const OPS: Record<string, string> = {
 	'git:switch': 'gitSwitch',
 	'git:createBranch': 'gitCreateBranch',
 	'git:trackBranch': 'gitTrackBranch',
-	'git:deleteBranch': 'gitDeleteBranch',
-	'git:markMilestone': 'gitMarkMilestone'
+	'git:deleteBranch': 'gitDeleteBranch'
 };
 
 // The calls that reach a remote, and so may have to ask someone to sign in: channel -> [gitService
@@ -50,7 +48,6 @@ const NET_OPS: Record<string, [string, number]> = {
 	'git:publish': ['gitPublish', 2],
 	'git:sync': ['gitSync', 1],
 	'git:fetch': ['gitFetch', 1],
-	'git:removeMilestone': ['gitRemoveMilestone', 2],
 	'git:deleteRemoteBranch': ['gitDeleteRemoteBranch', 2]
 };
 
@@ -99,8 +96,7 @@ export function registerGitIpc(): void {
 		for (const [key, sender] of running) if (sender === e.sender) await helperCall('git.cancelClone', [key]);
 		return true;
 	});
-	handleFsE('git:githubFork', (e, root: string, remote: string) => timeSpan('git:githubFork', githubFork(e.sender, root, remote)));
-	handleFsE('git:githubPublish', (e, root: string, opts: { name: string; isPrivate: boolean; remote: string; ssh?: boolean }) =>
+	handleFsE('git:githubPublish', (e, root: string, opts: { name: string; isPrivate: boolean; remote: string }) =>
 		timeSpan('git:githubPublish', githubPublish(e.sender, root, opts))
 	);
 	registerAskpassIpc();

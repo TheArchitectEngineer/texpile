@@ -4,23 +4,12 @@
 	// is the one standing next to Restore. Shaped after VS Code's Source Control Graph.
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { onDestroy } from 'svelte';
-	import {
-		GitCommitHorizontal,
-		GitBranch,
-		TriangleAlert,
-		MoreHorizontal,
-		RotateCcw,
-		FileDiff,
-		Flag,
-		FlagOff,
-		Copy,
-		LoaderCircle
-	} from '@lucide/svelte';
+	import { GitCommitHorizontal, GitBranch, TriangleAlert, MoreHorizontal, RotateCcw, FileDiff, LoaderCircle } from '@lucide/svelte';
 	import { showVersionChanges } from '$lib/workspace/versionChanges.svelte';
 	import { canShowVersion } from '$lib/workspace/gitVersion';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import GraphRail from './GraphRail.svelte';
-	import { MENU_CARD, MENU_ITEM, MENU_DANGER, MENU_ICON, MENU_SEPARATOR, MENU_TRIGGER, copyText } from './rowMenu';
+	import { MENU_CARD, MENU_ITEM, MENU_ICON, MENU_TRIGGER } from './rowMenu';
 	import { gitHistoryLoaded } from '$lib/workspace/gitStore';
 	import FileIcon from '$lib/filetree/FileIcon.svelte';
 	import { STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
@@ -42,9 +31,6 @@
 		/** open that file as it was in this version */
 		onCompare: (entry: GitLogEntry, path: string) => void;
 		onRestore: (entry: GitLogEntry) => void;
-		/** name a version; resolves to what went wrong, or null once it is marked */
-		onMarkMilestone?: (entry: GitLogEntry, label: string) => Promise<string | null>;
-		onRemoveMilestone?: (name: string, label: string) => void;
 		baseName: (p: string) => string;
 		dirName: (p: string) => string;
 	};
@@ -58,8 +44,6 @@
 		onLoadChanges,
 		onCompare,
 		onRestore,
-		onMarkMilestone,
-		onRemoveMilestone,
 		baseName,
 		dirName
 	}: Props = $props();
@@ -70,39 +54,11 @@
 	let changes = $state<GitFileChange[]>([]);
 	let loading = $state(false);
 	let openMenu = $state<string | null>(null);
-	// the milestone name being typed in a row's menu
-	let naming = $state<string | null>(null);
-	let milestoneText = $state('');
-	let milestoneError = $state<string | null>(null);
-	let marking = $state(false);
-
-	function copy(text: string) {
-		openMenu = null;
-		copyText(text);
-	}
 
 	/** where a file is in the project, as the Changes list's rows say it */
 	function relPath(p: string): string {
 		const dir = dirName(p);
 		return dir ? `${dir}/${baseName(p)}` : baseName(p);
-	}
-
-	/** the name field takes the keyboard as it appears: it replaced the item that was just clicked */
-	function takeFocus(node: HTMLInputElement) {
-		const t = setTimeout(() => node.focus(), 0);
-		return { destroy: () => clearTimeout(t) };
-	}
-
-	async function mark(entry: GitLogEntry) {
-		if (!onMarkMilestone || !milestoneText.trim() || marking || busy) return;
-		marking = true;
-		milestoneError = null;
-		const problem = await onMarkMilestone(entry, milestoneText);
-		marking = false;
-		if (problem === null) {
-			naming = null;
-			openMenu = null;
-		} else if (problem) milestoneError = problem;
 	}
 
 	// clicked and still being read, which is not the same as open. Deliberately not $state: the
@@ -193,18 +149,11 @@
 				use:tip={`${entry.subject}\n${entry.author} · ${exact(entry.date)}${entry.parentCount > 1 ? `\n${m.vcs_merged_version()}` : ''}`}
 			>
 				<span class="truncate text-sm {i === 0 ? 'font-semibold' : ''}">{entry.subject}</span>
-				{#each entry.milestones ?? [] as ms (ms.name)}
-					<!-- the name that matters more than the message: kept whole where the message truncates -->
-					<span class="badge preset-tonal-warning max-w-32 shrink-0 gap-1 px-1.5 py-0 text-[10px]" use:tip={ms.label}>
-						<Flag class="size-3 shrink-0" />
-						<span class="truncate">{ms.label}</span>
-					</span>
-				{/each}
 				<span class="text-muted truncate text-xs">{entry.author} · {ago(entry.date)}</span>
 				{#if i === 0 && branch}
 					<!-- VS Code marks the checked-out branch against the newest item; here it also answers
-					     "is the version I am looking at the one the editor is showing". Capped like a milestone,
-					     so a long branch name cannot push the message out of the row. -->
+					     "is the version I am looking at the one the editor is showing". Capped, so a long branch
+					     name cannot push the message out of the row. -->
 					<span class="badge preset-tonal-primary ml-auto max-w-32 shrink-0 gap-1 px-1.5 py-0 text-[10px]" use:tip={branch}>
 						<GitBranch class="size-3 shrink-0" />
 						<span class="truncate">{branch}</span>
@@ -216,10 +165,7 @@
 			     buttons under an expanded version: it is the one action here that rewrites files. -->
 			<Popover
 				open={openMenu === entry.hash}
-				onOpenChange={(e) => {
-					openMenu = e.open ? entry.hash : null;
-					if (!e.open) naming = null;
-				}}
+				onOpenChange={(e) => (openMenu = e.open ? entry.hash : null)}
 				positioning={{ placement: 'bottom-end', offset: { mainAxis: 2 } }}
 				autoFocus={false}
 			>
@@ -253,46 +199,6 @@
 									{m.vcs_version_changes_open()}
 								</button>
 							{/if}
-							{#if onMarkMilestone}
-								{#if naming === entry.hash}
-									<div class="px-3 py-1.5">
-										<input
-											class="input w-full text-sm"
-											type="text"
-											placeholder={m.vcs_milestone_placeholder()}
-											aria-label={m.vcs_milestone_mark()}
-											bind:value={milestoneText}
-											use:takeFocus
-											onkeydown={(e) => e.key === 'Enter' && void mark(entry)}
-											disabled={marking}
-										/>
-										<button
-											type="button"
-											class="btn btn-xs preset-filled-primary-500 mt-1.5 w-full gap-1.5"
-											onclick={() => mark(entry)}
-											disabled={busy || marking || !milestoneText.trim()}
-										>
-											{#if marking}<LoaderCircle class="size-3.5 animate-spin" />{/if}
-											{m.vcs_milestone_confirm()}
-										</button>
-										{#if milestoneError}<p class="text-error-ink mt-1 text-xs" role="alert">{milestoneError}</p>{/if}
-									</div>
-								{:else}
-									<button
-										type="button"
-										class={MENU_ITEM}
-										onclick={() => {
-											naming = entry.hash;
-											milestoneText = '';
-											milestoneError = null;
-										}}
-										use:tip={m.vcs_milestone_mark_tip()}
-									>
-										<Flag class={MENU_ICON} />
-										{m.vcs_milestone_mark()}
-									</button>
-								{/if}
-							{/if}
 							<button
 								type="button"
 								class={MENU_ITEM}
@@ -305,40 +211,6 @@
 								<RotateCcw class={MENU_ICON} />
 								{m.vcs_restore()}
 							</button>
-							<div class={MENU_SEPARATOR}></div>
-							<!-- for a commit message, an issue or a colleague asking which version: the full ID,
-							     though the short one shown is what people read out -->
-							<button type="button" class={MENU_ITEM} onclick={() => copy(entry.hash)} use:tip={m.vcs_copy_id_tip()}>
-								<Copy class={MENU_ICON} />
-								<span class="flex-1">{m.vcs_copy_id()}</span>
-								<span class="text-muted font-mono text-[10px]">{entry.short}</span>
-							</button>
-							<button
-								type="button"
-								class={MENU_ITEM}
-								onclick={() => copy(entry.body ? `${entry.subject}\n\n${entry.body}` : entry.subject)}
-							>
-								<Copy class={MENU_ICON} />
-								{m.vcs_copy_message()}
-							</button>
-							<!-- deleting a milestone is the one thing here that loses a name: last, and in red -->
-							{#if onMarkMilestone && entry.milestones?.length}
-								<div class={MENU_SEPARATOR}></div>
-								{#each entry.milestones as ms (ms.name)}
-									<button
-										type="button"
-										class="{MENU_ITEM} {MENU_DANGER}"
-										disabled={busy}
-										onclick={() => {
-											openMenu = null;
-											onRemoveMilestone?.(ms.name, ms.label);
-										}}
-									>
-										<FlagOff class="size-4 shrink-0" />
-										<span class="truncate">{m.vcs_milestone_remove({ name: ms.label })}</span>
-									</button>
-								{/each}
-							{/if}
 						</Popover.Content>
 					</Popover.Positioner>
 				</Portal>

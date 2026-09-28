@@ -53,7 +53,6 @@ vi.mock('$lib/workspace/gitCombine', () => ({
 }));
 vi.mock('$lib/workspace/gitDialogs.svelte', () => ({ askIdentity: vi.fn(), askPublish: vi.fn() }));
 vi.mock('$lib/workspace/scmAutoCheck.svelte', () => ({ autoCheckDone: async () => {}, resumeAutoCheck: () => {} }));
-vi.mock('$lib/workspace/scmFork.svelte', () => ({ offerFork: vi.fn(async () => false) }));
 const promptAsk = vi.fn(async () => 'combine');
 vi.mock('$lib/modals/confirm.svelte', () => ({ promptAsk, confirmAsk: vi.fn(async () => true) }));
 const toaster = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() };

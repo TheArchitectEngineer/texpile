@@ -5,7 +5,7 @@
 import type { WholeFileChoice } from './wholeFileChoice';
 import { tick } from 'svelte';
 export type ScmHandlers = {
-	/** add new files or folders (a trailing slash) to the project's .gitignore */
+	/** add new folders (a trailing slash) to the project's .gitignore */
 	ignore(paths: string[]): void;
 	/** fetch the upstream's remote, so the counts beside Sync are current, and take nothing in */
 	checkForNew(): void;

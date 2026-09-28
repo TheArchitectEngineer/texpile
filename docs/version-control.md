@@ -10,8 +10,6 @@ section: Editor
 
 Texpile keeps versions of your project with git, from the Source Control panel. Changes since the last version are listed by file, you tick the ones to include, write what changed, and Save version. History lists every saved version, and any of them can be restored. If the folder is not a repository yet, the panel offers to initialise one, and Publish sends it to GitHub or any other remote.
 
-A new file you never want saved in a version, such as notes or an export, can be left out for good: open its menu in the Changes list and choose Add to .gitignore.
-
 Ctrl+Shift+G (⌃⇧G on a Mac, as in VS Code) opens Source Control with the keyboard in the message box; Show Source Control in the command palette does the same. While the open file differs from its last version, the button beside Visual and Source in the editor's top bar compares the two.
 
 The Source Control icon shows how many files have changed, not counting build output. With nothing to save, the panel's main button is the next thing to do: Sync changes, with the counts each way, or Publish for a branch that has nowhere to go yet.
@@ -38,13 +36,9 @@ In a comparison, the arrows in its bar (or Alt+F5 and Shift+Alt+F5 in the source
 
 In the file tree, a changed file's name takes its status colour, a deleted one is struck through in Source Control, a file still being combined carries a red !, and a folder with changes inside it is tinted and marked with a dot, so a changed chapter can be found without opening every folder.
 
-A version in History opens to what differs between it and your files now. To see what that version itself changed, open its menu and choose Show changes in this version: its files are listed with each one's difference from the version before. The same menu copies the version's ID or its full message.
+A version in History opens to what differs between it and your files now. To see what that version itself changed, open its menu and choose Show changes in this version: its files are listed with each one's difference from the version before.
 
 ![The visual editor showing a heading and a sentence changed since the last version](../landing/src/lib/assets/showcase/app/diff-view.png 'The visual editor showing a heading and a sentence changed since the last version')
-
-## Milestones
-
-A version that matters, such as the draft sent to your committee or the camera-ready copy, can carry a name. Open the version's menu in History and choose Mark as milestone; the name shows on that row from then on. Milestones are git tags, so other tools see them too. The next Sync sends a milestone you marked to the remote, once; milestones marked by co-authors are theirs to send. Removing one removes it there as well, after asking, since everyone who syncs loses it too, and a co-author's copy does not bring it back. A milestone never takes the name of a branch.
 
 ## Timeline and local history
 
@@ -90,11 +84,11 @@ To work on a project that is already on GitHub or elsewhere, choose Clone reposi
 
 Texpile signs in with whatever git already uses: Git Credential Manager, the macOS keychain, `gh auth setup-git`, or an SSH key. When none of those has an answer, git's question appears in the window instead of failing: a username and password, an SSH key's passphrase, or whether to trust a server it has not seen before. For GitHub, use a personal access token with the repo scope as the password. A credential manager keeps it after it works, so it is asked for once. Without one, Texpile keeps the username and password (or token) in your system keychain once they have worked, and forgets them if they stop working; Forget saved Git sign-ins in the command palette removes them. On Linux this needs a keyring (GNOME Keyring or KWallet); without one they are kept in memory until you quit Texpile, never written to disk, so you are asked once per session rather than on every Sync.
 
-You can also sign in to GitHub in your browser, as VS Code does. Choose Sign in to GitHub in the command palette, or Sign in with GitHub in your browser when git asks for your GitHub username or token. Texpile shows a one-time code and copies it, and GitHub's page opens so you can paste it there. From then on your GitHub account answers git's questions for Sync, Publish and Fork. The sign-in is kept in your system keychain, and Sign out of GitHub in the command palette ends it. If GitHub stops accepting it, the next upload asks again.
+You can also sign in to GitHub in your browser, as VS Code does. Choose Sign in to GitHub in the command palette, or Sign in with GitHub in your browser when git asks for your GitHub username or token. Texpile shows a one-time code and copies it, and GitHub's page opens so you can paste it there. From then on your GitHub account answers git's questions for Sync and Publish. The sign-in is kept in your system keychain, and Sign out of GitHub in the command palette ends it. If GitHub stops accepting it, the next upload asks again.
 
-To publish to a new GitHub repository over SSH, tick Upload over SSH in the Publish dialog: the token only creates the repository, and uploads then use the SSH key on your GitHub account.
+A new GitHub repository is published over HTTPS. A project whose remote is already an SSH address keeps using your SSH key.
 
-If you upload to someone else's GitHub repository, GitHub refuses it. Texpile then offers to make your own copy of it (a fork) and upload there; from then on the project syncs with your copy.
+If you upload to someone else's GitHub repository, GitHub refuses it, and Texpile says so: ask the owner to add you as a collaborator, then try again.
 
 The first time you save a version on a computer where git does not know your name and email, Texpile asks for them and saves them for all your projects.
 

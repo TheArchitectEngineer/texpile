@@ -27,7 +27,7 @@ export type GithubPublishResult = {
 export function githubPublish(
 	sender: WebContents,
 	root: string,
-	opts: { name: string; isPrivate: boolean; remote: string; ssh?: boolean }
+	opts: { name: string; isPrivate: boolean; remote: string }
 ): Promise<GithubPublishResult> {
 	return withAskpass(sender, async (env): Promise<GithubPublishResult> => {
 		const cred = (await helperCall('git.gitCredentialFill', [root, 'github.com', env])) as GitCredentialResult;
@@ -48,10 +48,8 @@ export function githubPublish(
 		// it worked, so a credential helper may keep it: the next upload does not ask
 		await helperCall('git.gitCredentialVerdict', [root, credential, true]);
 
-		const { fullName, htmlUrl, cloneUrl, sshUrl } = created.repo;
-		// over SSH, uploads use the author's key rather than the token: the token only made the repository
-		const address = opts.ssh && sshUrl ? sshUrl : cloneUrl;
-		const added = (await helperCall('git.gitAddRemote', [root, opts.remote, address])) as GitOpResult;
+		const { fullName, htmlUrl, cloneUrl } = created.repo;
+		const added = (await helperCall('git.gitAddRemote', [root, opts.remote, cloneUrl])) as GitOpResult;
 		if (!added.ok) return { ok: false, reason: added.reason, failure: 'other', error: added.error, url: htmlUrl, fullName };
 		const pushed = (await helperCall('git.gitPublish', [root, opts.remote, env])) as GitPushResult;
 		return { ...pushed, url: htmlUrl, fullName };

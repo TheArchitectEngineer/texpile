@@ -45,7 +45,6 @@ vi.mock('$lib/workspace/git', () => ({
 }));
 vi.mock('$lib/workspace/gitDialogs.svelte', () => ({ askIdentity: vi.fn(), askPublish: vi.fn() }));
 vi.mock('$lib/workspace/scmAutoCheck.svelte', () => ({ autoCheckDone: async () => {}, resumeAutoCheck: () => {} }));
-vi.mock('$lib/workspace/scmFork.svelte', () => ({ offerFork: vi.fn(async () => false) }));
 vi.mock('$lib/modals/confirm.svelte', () => ({ promptAsk: vi.fn(), confirmAsk: vi.fn(async () => true) }));
 vi.mock('$lib/modals/toaster-svelte', () => ({ toaster: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() } }));
 vi.mock('$lib/workspace/workspaceStore', () => ({ workspaceRoot }));

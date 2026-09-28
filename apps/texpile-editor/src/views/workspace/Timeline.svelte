@@ -14,7 +14,6 @@
 		RotateCcw,
 		Pencil,
 		Trash2,
-		Copy,
 		Search,
 		Plus,
 		LoaderCircle
@@ -40,16 +39,7 @@
 	} from '$lib/workspace/localHistory.svelte';
 	import { localHistoryActions, entryDate } from '$lib/workspace/localHistoryActions.svelte';
 	import type { GitLogEntry } from '$lib/workspace/git';
-	import {
-		MENU_CARD,
-		MENU_ITEM,
-		MENU_DANGER,
-		MENU_ICON,
-		MENU_SPACER,
-		MENU_SEPARATOR,
-		MENU_TRIGGER,
-		copyText
-	} from '$lib/workspace/history/rowMenu';
+	import { MENU_CARD, MENU_ITEM, MENU_DANGER, MENU_ICON, MENU_SPACER, MENU_SEPARATOR, MENU_TRIGGER } from '$lib/workspace/history/rowMenu';
 	import { m } from '$lib/paraglide/messages';
 
 	let { path, collapsed, onToggle }: { path: string | null; collapsed: boolean; onToggle: () => void } = $props();
@@ -388,20 +378,6 @@
 							>
 								<FileDiff class={MENU_ICON} />
 								{m.vcs_version_changes_open()}
-							</button>
-							<div class={MENU_SEPARATOR}></div>
-							<button type="button" class={MENU_ITEM} onclick={() => run(() => copyText(entry.hash))} use:tip={m.vcs_copy_id_tip()}>
-								<Copy class={MENU_ICON} />
-								<span class="flex-1">{m.vcs_copy_id()}</span>
-								<span class="text-muted font-mono text-[10px]">{entry.short}</span>
-							</button>
-							<button
-								type="button"
-								class={MENU_ITEM}
-								onclick={() => run(() => copyText(entry.body ? `${entry.subject}\n\n${entry.body}` : entry.subject))}
-							>
-								<Copy class={MENU_ICON} />
-								{m.vcs_copy_message()}
 							</button>
 						{/if}
 					{/snippet}

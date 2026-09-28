@@ -169,20 +169,20 @@
 								</button>
 							{/each}
 						{/if}
-						<!-- a new file only: git keeps tracking a file it already has, whatever .gitignore says -->
-						{#if c.x === '?' && scmHandlers.current}
+						<!-- a big new folder only (a data dump, an environment): a writer's own file is left unticked
+						     instead. A folder's line ends in a slash, so it cannot match a file of that name -->
+						{#if c.x === '?' && c.files && scmHandlers.current}
 							<button
 								type="button"
 								class={MENU_ITEM}
 								disabled={gitWriting.current}
 								onclick={() => {
 									openMenu = null;
-									// a folder's line ends in a slash, so it cannot match a file of that name
-									scmHandlers.current?.ignore([c.files ? `${c.path}/` : c.path]);
+									scmHandlers.current?.ignore([`${c.path}/`]);
 								}}
 							>
 								<EyeOff class={MENU_ICON} />
-								{c.files ? m.vcs_ignore_folder() : m.vcs_ignore_file()}
+								{m.vcs_ignore_folder()}
 							</button>
 						{/if}
 						<!-- git cannot put back a file it is still combining: Cancel combining does that for all of

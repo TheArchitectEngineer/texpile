@@ -8,7 +8,6 @@ import * as gitRemote from '../gitRemote';
 import * as gitHistory from '../gitHistory';
 import * as gitCombine from '../gitCombine';
 import * as gitBranches from '../gitBranches';
-import * as gitTags from '../gitTags';
 import * as gitTrust from '../gitTrust';
 import * as gitFetch from '../gitFetch';
 import { gitClone } from '../gitClone';
@@ -64,7 +63,6 @@ function run(op: string, args: unknown[]): unknown {
 			(gitRemote as Record<string, unknown>)[name] ??
 			(gitCombine as Record<string, unknown>)[name] ??
 			(gitBranches as Record<string, unknown>)[name] ??
-			(gitTags as Record<string, unknown>)[name] ??
 			(gitTrust as Record<string, unknown>)[name] ??
 			(gitFetch as Record<string, unknown>)[name];
 		if (typeof fn === 'function') return (fn as (...a: unknown[]) => unknown)(...args);

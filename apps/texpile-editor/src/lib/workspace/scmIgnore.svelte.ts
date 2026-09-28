@@ -1,6 +1,7 @@
 // Lines added to the project folder's .gitignore: the build output patterns for its compile format,
-// and new files or folders from a change row's menu (VS Code's Add to .gitignore). Appended, never
-// rewritten, and a line already there is not added again: the file may be hand-written.
+// a big new folder from its row's menu, and what is left out when a folder is first published.
+// Appended, never rewritten, and a line already there is not added again: the file may be
+// hand-written.
 import { workspaceRoot } from './workspaceStore';
 import { refreshGitStatus } from './gitStore';
 import { basename, joinPath, relativeTo } from './fileSystem';

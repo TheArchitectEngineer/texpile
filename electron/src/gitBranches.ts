@@ -107,7 +107,7 @@ async function validName(root: string, name: string): Promise<boolean> {
 	} catch {
 		return false;
 	}
-	// not a milestone's name either: git would refuse to upload the branch as ambiguous
+	// not a tag's name either: git would refuse to upload the branch as ambiguous
 	const tags = (await git(root).raw(['for-each-ref', '--format=%(refname)', `refs/tags/${name}`])).split('\n');
 	return !tags.includes(`refs/tags/${name}`);
 }

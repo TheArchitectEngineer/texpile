@@ -27,8 +27,8 @@ export type GitPushResult = {
 
 // checked in this order: a 403 from a host says both 'unable to access' and a permissions phrase,
 // and it is a permission problem, not a network one. 'forbidden' is a sign-in that worked for an
-// account that may not write here - someone else's repository, where a fork is the way in - and
-// is kept apart from 'auth', a password or token the host did not accept.
+// account that may not write here - someone else's repository, whose owner can add them - and is
+// kept apart from 'auth', a password or token the host did not accept.
 const FORBIDDEN_RE = /permission to \S+ denied|returned error: 403/i;
 // GH009 and GH013 are GitHub's push protection; GH006 and the rest of GH013 are branch rules
 const SECRET_RE = /GH009|push cannot contain secrets|secret scanning/i;
@@ -184,8 +184,7 @@ export async function gitPush(workspaceRoot: string, auth: GitAuthEnv = {}): Pro
 		const up = await upstreamOf(g, status.current);
 		if (!up) return { ok: false, failure: 'no-upstream' };
 		remote = up.remote;
-		// explicit refspec: `git push` alone refuses when the upstream branch is named differently.
-		// Milestones marked here go with it (pushBranch)
+		// explicit refspec: `git push` alone refuses when the upstream branch is named differently
 		await pushBranch(g, up.remote, status.current, up.ref);
 		return { ok: true, remote };
 	} catch (e) {
@@ -310,50 +309,10 @@ async function takeIn(g: SimpleGit, diverged: boolean): Promise<TakeIn> {
 	return behind === 0 ? { ok: true } : { ok: false, failure: 'other', error: msg || 'git did not join the two histories' };
 }
 
-/** Milestones marked in this copy and not uploaded yet (gitTags.ts notes each one here), by name.
- *  Only these go with an upload, named one by one. --follow-tags sent every milestone this copy
- *  held that the remote lacked, so one a co-author had removed there came back with anyone's next
- *  Sync. Local config: it belongs to this copy, and nothing else reads it. */
-export const PENDING_MILESTONES = 'texpile.pendingMilestone';
-
-/** the noted milestones on a version this branch contains: the ones an upload of it may carry.
- *  One on another branch waits for that branch, or its push would send that branch's versions too.
- *  Exported for the tests. */
-export async function milestonesToSend(g: SimpleGit): Promise<string[]> {
-	// a missing key exits 1 with nothing on stderr, which simple-git resolves as ''
-	const pending = (await g.raw(['config', '--get-all', PENDING_MILESTONES])).split('\n').map((l) => l.trim());
-	if (!pending.some(Boolean)) return [];
-	const onBranch = new Set(
-		(await g.raw(['for-each-ref', '--merged', 'HEAD', '--format=%(objecttype) %(refname:lstrip=2)', 'refs/tags']))
-			.split('\n')
-			.filter((l) => l.startsWith('tag '))
-			.map((l) => l.slice(4))
-	);
-	return [...new Set(pending)].filter((name) => name && onBranch.has(name));
-}
-
-/** a milestone that went up, or was removed: no longer waiting to be sent */
-export async function forgetPendingMilestones(g: SimpleGit, names: string[]): Promise<void> {
-	for (const name of names) {
-		const exact = `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`;
-		await g.raw(['config', '--unset-all', PENDING_MILESTONES, exact]).catch(() => {});
-	}
-}
-
-/** Send `branch` to `remote` as `target`, with the noted milestones on it. Every ref is named in
- *  full: a milestone or a branch elsewhere with the same short name would make git refuse the
- *  upload as ambiguous. */
+/** Send `branch` to `remote` as `target`. Both refs are named in full: a tag or a branch elsewhere
+ *  with the same short name would make git refuse the upload as ambiguous. */
 async function pushBranch(g: SimpleGit, remote: string, branch: string, target: string, opts: string[] = []): Promise<void> {
-	const tags = await milestonesToSend(g);
-	await g.raw([
-		'push',
-		...opts,
-		'--',
-		remote,
-		`refs/heads/${branch}:refs/heads/${target}`,
-		...tags.map((t) => `refs/tags/${t}:refs/tags/${t}`)
-	]);
-	await forgetPendingMilestones(g, tags);
+	await g.raw(['push', ...opts, '--', remote, `refs/heads/${branch}:refs/heads/${target}`]);
 }
 
 /**
@@ -392,9 +351,8 @@ export async function gitSync(workspaceRoot: string, auth: GitAuthEnv = {}): Pro
 
 		stage = 'push';
 		const [toSend] = await aheadBehind(g);
-		// a milestone marked on a version the remote already has goes over only with a push of its
-		// own; with nothing to send, Sync does not push at all, as in a clone the author cannot write to
-		if (toSend > 0 || (await milestonesToSend(g)).length) await pushBranch(g, up.remote, status.current, up.ref);
+		// with nothing to send, Sync does not push at all, as in a clone the author cannot write to
+		if (toSend > 0) await pushBranch(g, up.remote, status.current, up.ref);
 		return { ok: true, remote, pulled: behind, pushed: toSend };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };

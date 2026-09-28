@@ -5,13 +5,12 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
-- change: Source Control, the Timeline and Local History use VS Code's wording for every feature VS Code has, keeping the writer words (version, combine, check for new versions, milestone) whose tooltips name VS Code's term, in sentence case throughout; conflicts are called conflicts everywhere
+- change: Source Control, the Timeline and Local History use VS Code's wording for every feature VS Code has, keeping the writer words (version, combine, check for new versions) whose tooltips name VS Code's term, in sentence case throughout; conflicts are called conflicts everywhere
 - change: menus, dialogs and notices in source control look and behave alike: icons in every menu, destructive items last in red, confirmations that put the consequence under the question, git's own words behind Details, file icons in the changes list, and a loading state instead of "No versions saved yet" while History loads
 - fix: the default Cancel and OK of a confirmation were English in every language; Escape that closes a menu or dialog no longer also leaves Source Control; "Check for new versions" offers Sync, as the automatic check does
 - fix: your GitHub sign-in answers only github.com's questions; a question from any other server can never be answered with it
 - fix: a file with [ ] in its name is only ever that file: discarding, saving or restoring it no longer touches a file whose name it resembles
 - fix: Restore will not replace a new file that is in no version, and names it; files with quotes or a backslash in their names are restored and compared correctly
-- fix: a milestone never takes a branch's name, which stopped every upload, and one removed on the remote is not brought back by a co-author's Sync; each is uploaded once, from the copy it was marked in
 - fix: a branch deleted on the remote is seen as gone instead of being published again by the next Sync
 - fix: a clone whose files could not be written (a failed Git LFS download, a name the system refuses) says so instead of opening a project where every file reads as deleted
 - fix: an SSH key the server refused, or a server whose key changed, is said as such instead of advice about passwords and tokens
@@ -40,11 +39,11 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: a stray `<<<<<<<` or `>>>>>>>` line keeps a file from counting as settled
 - fix: a branch deleted on the remote (a merged pull request's) offers Publish again instead of failing on every Sync
 - fix: a clone whose submodule cannot be fetched opens, and says what is missing, instead of reporting nothing at the address
-- fix: removing a milestone asks first; Publish before a first version says so instead of creating an empty GitHub repository
-- fix: an SSH key refused while publishing no longer signs you out of GitHub, a fork is reached the way the original was (SSH or HTTPS), and the palette shows who is signed in now
+- fix: Publish before a first version says so instead of creating an empty GitHub repository
+- fix: an SSH key refused no longer signs you out of GitHub, and the palette shows who is signed in now
 - fix: Local History keeps every copy if its listing is lost, and a rename's entry holds the file as it is on disk
 
-- feat: sign in to GitHub in the browser with a one-time code (VS Code's device flow); the account answers git for Sync, Publish and Fork, and Sign out of GitHub ends it.
+- feat: sign in to GitHub in the browser with a one-time code (VS Code's device flow); the account answers git for Sync and Publish, and Sign out of GitHub ends it.
 - feat: local history: every save keeps a copy (as in VS Code), listed with the file's git versions in a new Timeline below Contents, with compare, restore, rename, delete and create entry; it works in projects without git
 - feat: a progress bar runs across Source Control while git works
 - feat: comparisons have previous and next change buttons (Alt+F5 and Shift+Alt+F5 in the source comparison) and Put back beside each change
@@ -63,7 +62,6 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: a Save version or discard that meets another git's lock tries once more before failing
 - fix: an edit waiting for autosave in a file that was not changed on disk yet is included in the version being saved
 - feat: clicking a change mark in the source editor's margin shows what those lines were in the last version, with Undo this change
-- feat: a new file's menu in Source Control adds it to .gitignore; a version's menu in History copies its ID or its full message
 - feat: Publish sends a project to a new GitHub repository, a remote it already has, or any repository by address
 - feat: Sync takes in versions saved elsewhere and sends yours, and undoes the attempt rather than leave a conflict behind
 - feat: git's sign-in questions (a password or token, an SSH key's passphrase, a server it has not seen) are asked in the window instead of failing
@@ -72,9 +70,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: the Source Control icon counts changed files, and with nothing to save the panel offers Sync or Publish as its main button
 - feat: combining highlights the words that differ between the two versions, goes from one marked place to the next, keeps one side everywhere at once, and marks the file's tab
 - feat: without a credential helper, sign-ins that worked are kept in the system keychain instead of being asked for on every upload; Forget saved Git sign-ins removes them
-- feat: an upload GitHub refuses because the repository is someone else's offers to fork it and upload there
-- feat: Publish to a new GitHub repository can upload over SSH
-- feat: milestones: name a version in History ("Sent to the committee"); Sync carries them to the remote, and removing one removes it there too
+- feat: an upload GitHub refuses because the repository is someone else's says to ask the owner to add you as a collaborator
 - feat: the source editor marks lines added, changed or removed since the last version in its margin; Alt+F5 and Shift+Alt+F5 go to the next and previous change
 - feat: the branch name in Source Control switches branches, starts a new one, or takes up one that exists only on a remote
 - feat: Clone repository, on the start screen and in the File menu, takes a repository's page, clone address or `git clone` command, shows its progress, and opens the folder
