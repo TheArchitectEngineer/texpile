@@ -78,7 +78,9 @@ describe("Sync's offer to combine", () => {
 		const { combine, deps } = make({ loaded: 'C:/project/main.tex', disk: { 'C:/project/main.tex': MARKED } });
 		await combine.offer('C:/project', CONFLICT);
 
-		expect((promptAsk.mock.calls[0][0] as { message: string }).message).toBe('You and origin both changed "main.tex".');
+		expect((promptAsk.mock.calls[0][0] as { message: string }).message).toBe(
+			'There are merge conflicts with "origin" in "main.tex". Would you like to merge and resolve them?'
+		);
 		// no message of its own: git writes the merge commit's, as under VS Code's Sync
 		expect(gitCombine).toHaveBeenCalledWith('C:/project');
 		// the open file is read again from disk, markers and all, before anyone is sent to it

@@ -3,6 +3,7 @@
 // different thing done, and only some of them are something Texpile could fix by trying again.
 import type { SyncFailure } from './git';
 import { basename } from './fileSystem';
+import { gitBranch } from './gitStore';
 import { m } from '$lib/paraglide/messages';
 
 type Failed = { failure?: SyncFailure | 'exists' | 'scope'; error?: string; remote?: string; files?: string[] };
@@ -14,7 +15,7 @@ export function uploadReason(res: Failed): string {
 	const blocking = (res.files ?? []).map((f) => basename(f)).join(', ');
 	switch (res.failure) {
 		case 'rejected':
-			return m.vcs_sync_rejected({ remote });
+			return m.vcs_sync_rejected();
 		case 'auth':
 			return sshReason(res.error) ?? m.vcs_upload_auth({ remote });
 		case 'forbidden':
@@ -28,7 +29,7 @@ export function uploadReason(res: Failed): string {
 		case 'network':
 			return m.vcs_upload_network({ remote });
 		case 'no-upstream':
-			return m.vcs_upload_no_upstream();
+			return m.vcs_upload_no_upstream({ branch: gitBranch.current ?? '' });
 		case 'conflict':
 			return m.vcs_sync_conflict({ remote, files });
 		case 'dirty':

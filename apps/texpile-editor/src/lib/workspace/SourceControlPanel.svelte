@@ -14,7 +14,7 @@
 	import { pathLabels } from './history/pathLabels';
 	import { isBuildArtifact } from '$lib/workspace/buildArtifacts';
 	// what is going on in git that only the display needs: not callbacks, so read here, not passed down
-	import { isConflicted, gitRunning, gitUnsafe, gitTruncated, gitHead } from '$lib/workspace/gitStore';
+	import { isConflicted, gitRunning, gitUnsafe, gitTruncated, gitHead, gitBranch } from '$lib/workspace/gitStore';
 	import { scmDraftFor } from '$lib/workspace/scmDraft.svelte';
 	import type { GitStatusEntry, GitLogEntry, GitFileChange, GitOperation } from '$lib/workspace/git';
 	import { combo } from '$lib/chrome/shortcutText';
@@ -232,7 +232,7 @@
 						</div>
 						{#if gitTruncated.current}
 							<p class="text-warning-ink px-3 py-1 text-xs" role="status">
-								{m.vcs_truncated({ shown: changes.length.toLocaleString(), count: gitTruncated.current.toLocaleString() })}
+								{m.vcs_truncated({ shown: changes.length.toLocaleString() })}
 							</p>
 						{/if}
 						<div class="px-1.5">
@@ -280,22 +280,23 @@
 							data-scm-message
 							class="textarea resize-none text-sm rounded-container"
 							rows="2"
-							placeholder={m.vcs_save_placeholder()}
-							use:tip={m.vcs_commit_placeholder({ combo: combo('Enter') })}
+							placeholder={gitBranch.current
+								? m.vcs_commit_placeholder({ combo: combo('Enter'), branch: gitBranch.current })
+								: m.vcs_commit_placeholder_nobranch({ combo: combo('Enter') })}
 							bind:value={draft.message}
 							onkeydown={onKeydown}></textarea>
 						<button
 							class="btn btn-xs preset-filled-primary-500 w-full gap-1.5"
 							onclick={save}
 							disabled={!canSave}
-							use:tip={m.vcs_save_version_tip()}
+							use:tip={gitBranch.current ? m.vcs_save_version_tip({ branch: gitBranch.current }) : m.vcs_save_version_tip_nobranch()}
 						>
 							{#if gitRunning.current === 'save'}
 								<LoaderCircle class="size-3.5 animate-spin" />
 								{m.vcs_running_save()}
 							{:else}
 								<Check class="size-3.5" />
-								{selected.length === 1 ? m.vcs_save_version_one() : m.vcs_save_version_count({ count: selected.length })}
+								{m.vcs_save_version_one()}
 							{/if}
 						</button>
 					</div>

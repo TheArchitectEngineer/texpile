@@ -25,15 +25,15 @@
 	};
 	let { place, tracking, ahead, behind, hasCommits, detached, branch, operation, busy, onSync, onPublish }: Props = $props();
 
-	// what Sync would do, naming versions and leaving out the side with nothing on it. `behind` is
-	// only as fresh as the last fetch, and its phrase says so.
-	const syncTip = $derived(
-		[
-			m.vcs_sync_tip({ tracking: tracking ?? '' }),
-			...(behind > 0 ? [behind === 1 ? m.vcs_sync_to_receive_one() : m.vcs_sync_to_receive_count({ count: behind })] : []),
-			...(ahead > 0 ? [ahead === 1 ? m.vcs_sync_to_send_one() : m.vcs_sync_to_send_count({ count: ahead })] : [])
-		].join(' · ')
-	);
+	// VS Code's tooltip for its Sync Changes button: one sentence for what it would do
+	const syncTip = $derived.by(() => {
+		const t = tracking ?? '';
+		if (behind > 0 && ahead > 0) return m.vcs_sync_tip_both({ behind, ahead, tracking: t });
+		if (behind > 0)
+			return behind === 1 ? m.vcs_sync_to_receive_one({ tracking: t }) : m.vcs_sync_to_receive_count({ count: behind, tracking: t });
+		if (ahead > 0) return ahead === 1 ? m.vcs_sync_to_send_one({ tracking: t }) : m.vcs_sync_to_send_count({ count: ahead, tracking: t });
+		return m.vcs_sync_tip();
+	});
 	const publishable = $derived(!tracking && hasCommits && !detached && !!branch);
 	// the header always has one or the other; the main button only when there is something to do
 	const showSync = $derived(!!tracking && (place === 'header' || (!operation && (ahead > 0 || behind > 0))));
@@ -86,9 +86,9 @@
 	</button>
 {:else if showPublish}
 	<div class="px-2">
-		<button class={ACTION} onclick={onPublish} disabled={busy}>
+		<button class={ACTION} use:tip={m.vcs_publish_dialog_title({ branch: branch ?? '' })} onclick={onPublish} disabled={busy}>
 			{#if publishing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<CloudUpload class="size-3.5" />{/if}
-			{publishing ? m.vcs_running_publish() : m.vcs_action_publish({ branch: branch ?? '' })}
+			{publishing ? m.vcs_running_publish() : m.vcs_action_publish()}
 		</button>
 	</div>
 {/if}

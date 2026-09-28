@@ -55,7 +55,7 @@ it('offers to save the work first, then switches', async () => {
 	await branches.switchTo('draft');
 	expect((promptAsk.mock.calls[0][0] as { message: string }).message).toContain('main.tex');
 	// everything the panel lists except build output, under a message that says why
-	expect(host.commit).toHaveBeenCalledWith('Unfinished work, saved before switching to draft', ['/p/main.tex', '/p/notes.tex']);
+	expect(host.commit).toHaveBeenCalledWith('WIP before checkout to draft', ['/p/main.tex', '/p/notes.tex']);
 	expect(gitSwitch).toHaveBeenCalledTimes(2);
 	expect(host.busy).toBe(false);
 	expect(success).toHaveBeenCalledWith({ title: 'Switched to branch "draft"' });
@@ -82,6 +82,10 @@ it('says why a switch did not happen, in a notice', async () => {
 	const { branches } = make();
 	gitSwitch.mockResolvedValueOnce({ ok: false, failure: 'busy' });
 	await branches.switchTo('draft');
-	expect(toastGitFailure).toHaveBeenCalledWith('Could not switch branches', 'Finish or cancel what Git is in the middle of first.', {});
+	expect(toastGitFailure).toHaveBeenCalledWith(
+		'Could not switch branches',
+		'A merge, rebase, cherry-pick or revert is in progress. Continue or abort it first.',
+		{}
+	);
 	expect(success).not.toHaveBeenCalled();
 });

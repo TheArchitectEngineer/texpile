@@ -60,7 +60,7 @@ export class ScmBranches {
 		};
 		return saveChangesFirst(host, {
 			title: m.vcs_branch_dirty_title(),
-			message: m.vcs_branch_dirty_message({ files: blocking.map((f) => basename(f)).join(', '), branch: name }),
+			message: m.vcs_branch_dirty_message({ files: blocking.map((f) => basename(f)).join(', ') }),
 			confirm: m.vcs_branch_save_and_switch(),
 			version: m.vcs_branch_autosave_message({ branch: name }),
 			blocking

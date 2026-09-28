@@ -157,7 +157,7 @@ describe('work that would be in the way', () => {
 	it('asks the plain question when there is nothing in the way', async () => {
 		await makeScm().restore(ENTRY);
 		// the question, and under it (the detail line) that it can be undone
-		expect(String(confirmAsk.mock.calls[0]?.[0] ?? '')).toMatch(/^Restore /);
+		expect(String(confirmAsk.mock.calls[0]?.[0] ?? '')).toMatch(/^Are you sure you want to restore /);
 		expect(String(confirmAsk.mock.calls[0]?.[1]?.detail ?? '')).toContain('undo');
 		expect(gitCommit).not.toHaveBeenCalled();
 	});

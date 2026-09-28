@@ -56,10 +56,10 @@ Settings apply to every folder you open. The compile command and its options are
 
 ### Git
 
-| Setting      | What it does                                                                                                                                                                                                |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Autofetch    | On by default. Runs git fetch every 3 minutes while Texpile is in front, so the Sync button shows how many commits there are to pull. Your files do not change until you Sync.                              |
-| Git Identity | The user.name and user.email git will use in the open folder. Comments fall back to that name while the display name under Collaboration is blank. Shown read-only: set them with git config in a terminal. |
+| Setting      | What it does                                                                                                                                                                                                                                                            |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Autofetch    | On by default. When enabled, commits will automatically be fetched from the default remote of the current Git repository every 3 minutes, while Texpile is in front, so Sync shows how many commits there are to pull. The working tree does not change until you Sync. |
+| Git Identity | The user.name and user.email git will use in the open folder. Comments fall back to that name while the display name under Collaboration is blank. Shown read-only: set them with git config in a terminal.                                                             |
 
 ### Local History
 

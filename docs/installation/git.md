@@ -8,7 +8,7 @@ order: 3
 
 # Git
 
-Version control in Texpile runs on the git installed on your computer. Editing works without it. The Source Control panel does not.
+Version control in Texpile runs on the git installed on your computer. Editing works without it. The Source Control panel does not: it says Git not found, with Download Git, which opens this page.
 
 ## Windows
 
@@ -44,7 +44,7 @@ On Fedora it is `sudo dnf install git`, and on Arch `sudo pacman -S git`.
 
 ## Tell git who you are
 
-A commit carries a name and an email address, git's user.name and user.email. Texpile asks for them the first time you commit if git does not know them yet, or set them once yourself:
+A commit carries a name and an email address, git's user.name and user.email. Texpile asks for them (Author identity unknown) the first time you commit if git does not know them yet, or set them once yourself:
 
 ```bash
 git config --global user.name "Your Name"

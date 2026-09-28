@@ -33,5 +33,5 @@ it('names both versions for a figure, and backing out keeps nothing', async () =
 	expect(await askWholeFile('plot.pdf', 'binary')).toBeNull();
 	expect(keepLabel('binary', 'theirs')).toBe('Keep Their Version');
 	// a text file both changed keeps its old menu wording
-	expect(keepLabel(undefined, 'mine')).toBe('Keep Ours (Whole File)');
+	expect(keepLabel(undefined, 'mine')).toBe('Keep Our Version');
 });

@@ -166,7 +166,7 @@ export class ScmDiscard {
 
 	#deleteOutright(paths: string[]): Promise<boolean> {
 		const one = paths.length === 1;
-		const msg = one ? m.vcs_confirm_no_trash_one({ name: basename(paths[0]) }) : m.vcs_confirm_no_trash_other({ count: paths.length });
+		const msg = one ? m.vcs_confirm_no_trash_one() : m.vcs_confirm_no_trash_other();
 		const detail = one ? m.vcs_confirm_no_trash_one_detail() : m.vcs_confirm_no_trash_other_detail();
 		return confirmAsk(msg, { detail, confirmLabel: m.vcs_delete_permanently(), danger: true });
 	}

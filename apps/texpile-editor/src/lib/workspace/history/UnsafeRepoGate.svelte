@@ -21,7 +21,7 @@
 			message: m.vcs_unsafe_confirm({ path: repo }),
 			detail: m.vcs_unsafe_confirm_detail(),
 			buttons: [
-				{ id: 'trust', label: m.vcs_unsafe_trust(), primary: true },
+				{ id: 'trust', label: m.vcs_unsafe_mark_safe(), primary: true },
 				{ id: 'cancel', label: m.vcs_cancel() }
 			],
 			cancelId: 'cancel'

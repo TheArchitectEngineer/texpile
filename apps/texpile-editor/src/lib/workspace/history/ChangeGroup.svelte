@@ -76,7 +76,7 @@
 		onchange={toggleGroup}
 		disabled={locked}
 		aria-label={label}
-		use:tip={m.vcs_tick_tip()}
+		use:tip={allOn ? m.vcs_select_none() : m.vcs_select_all()}
 	/>
 	<button class="flex min-w-0 flex-1 items-center gap-1.5 text-left" onclick={onToggleOpen}>
 		{#if open}<ChevronDown class="size-3.5 shrink-0" />{:else}<ChevronRight class="size-3.5 shrink-0" />{/if}

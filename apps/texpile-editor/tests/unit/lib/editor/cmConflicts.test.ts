@@ -34,8 +34,8 @@ it('offers the three choices above each place, and names both sides', () => {
 		'Accept Incoming Change',
 		'Accept Both Changes'
 	]);
-	expect(view.dom.querySelector('.cm-conflict-label-mine')?.textContent).toBe('Current Change');
-	expect(view.dom.querySelector('.cm-conflict-label-theirs')?.textContent).toBe('Incoming Change · origin/main');
+	expect(view.dom.querySelector('.cm-conflict-label-mine')?.textContent).toBe('(Current Change)');
+	expect(view.dom.querySelector('.cm-conflict-label-theirs')?.textContent).toBe('origin/main (Incoming Change)');
 	expect(view.dom.querySelectorAll('.cm-conflict-mine')).toHaveLength(1);
 	expect(view.dom.querySelectorAll('.cm-conflict-theirs')).toHaveLength(1);
 });

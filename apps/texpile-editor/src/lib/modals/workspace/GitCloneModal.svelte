@@ -35,9 +35,9 @@
 	const name = $derived(typedName ?? parsed?.name ?? '');
 	const ready = $derived(!!parsed && !!parent && !!name.trim() && !/[/\\:*?"<>|]/.test(name));
 
-	/** git's stages, in the words of someone watching a download */
+	/** git's stages, in git's words */
 	const stepText = $derived.by(() => {
-		if (!step) return m.vcs_clone_connecting();
+		if (!step) return m.vcs_clone_connecting({ url: parsed?.url ?? address.trim() });
 		const pct = `${Math.round(step.percent)}%`;
 		if (step.stage === 'receiving') return m.vcs_clone_receiving({ pct });
 		if (step.stage === 'resolving') return m.vcs_clone_resolving({ pct });

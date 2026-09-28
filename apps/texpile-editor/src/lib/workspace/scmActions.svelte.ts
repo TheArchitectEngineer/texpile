@@ -401,7 +401,7 @@ export class ScmActions {
 				);
 				return null;
 			}
-			if (res.failure === 'exists') return m.vcs_publish_exists({ name: choice.name });
+			if (res.failure === 'exists') return m.vcs_publish_exists();
 			if (res.failure === 'scope') return m.vcs_publish_scope();
 			if (res.failure === 'auth') return m.vcs_publish_github_auth();
 			return uploadReason({ ...res, failure: res.failure === 'network' ? 'network' : 'other', remote: 'GitHub' });

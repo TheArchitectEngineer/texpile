@@ -26,9 +26,12 @@
 	const github = $derived(question.host === 'github.com' || !!question.host?.endsWith('.github.com'));
 
 	const title = $derived.by(() => {
-		if (question.subject === 'host-key')
-			return question.host ? m.vcs_hostkey_title({ host: question.host }) : m.vcs_hostkey_title_generic();
-		if (question.subject === 'passphrase') return m.vcs_passphrase_title();
+		if (question.subject === 'host-key') return m.vcs_hostkey_title();
+		if (question.subject === 'passphrase') {
+			// ssh names the key it wants unlocked ("Enter passphrase for key '/home/me/.ssh/id_ed25519':")
+			const file = /for key '([^']+)'/.exec(question.prompt)?.[1];
+			return file ? m.vcs_passphrase_title({ file }) : m.vcs_passphrase();
+		}
 		return question.host ? m.vcs_signin_title({ host: question.host }) : m.vcs_signin_title_generic();
 	});
 

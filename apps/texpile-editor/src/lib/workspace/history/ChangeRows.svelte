@@ -61,7 +61,7 @@
 			onchange={() => onToggle(c.path)}
 			disabled={locked}
 			aria-label={relPath(c.path)}
-			use:tip={m.vcs_tick_tip()}
+			use:tip={selected.includes(c.path) ? m.vcs_untick_tip() : m.vcs_tick_tip()}
 		/>
 		<button
 			class="flex min-w-0 flex-1 items-center gap-1.5 text-left"
