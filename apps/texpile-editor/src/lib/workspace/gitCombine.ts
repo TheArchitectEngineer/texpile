@@ -17,7 +17,7 @@ export type GitCombineResult = GitOpResult & {
 
 /** Optional: an older preload predates it, and the panel then leaves merges to the terminal. */
 export type GitCombineBridge = {
-	gitCombine?: (root: string) => Promise<GitCombineResult>;
+	gitCombine?: (root: string, message?: string) => Promise<GitCombineResult>;
 	gitFinishCombine?: (root: string) => Promise<GitCombineResult>;
 	gitCancelCombine?: (root: string) => Promise<GitOpResult>;
 	gitKeepSide?: (root: string, path: string, side: 'mine' | 'theirs') => Promise<GitOpResult>;
@@ -32,9 +32,11 @@ async function call<R extends GitOpResult>(fn: ((root: string) => Promise<R>) | 
 	}
 }
 
-/** merge the upstream the last Sync fetched, leaving what both sides changed marked in the files */
-export function gitCombine(root: string): Promise<GitCombineResult> {
-	return call(nativeBridge()?.gitCombine, root);
+/** merge the upstream the last Sync fetched, leaving what both sides changed marked in the files;
+ *  `message` names the version it becomes (joinedMessage.ts) */
+export function gitCombine(root: string, message = ''): Promise<GitCombineResult> {
+	const fn = nativeBridge()?.gitCombine;
+	return call(fn ? (r) => fn(r, message) : undefined, root);
 }
 
 /** save the merge as a version, once no file holds a marked place */

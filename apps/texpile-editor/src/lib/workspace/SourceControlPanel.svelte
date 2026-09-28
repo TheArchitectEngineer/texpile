@@ -4,19 +4,17 @@
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { GitBranch, RefreshCw, Check, GitCommitHorizontal, PackageX, LoaderCircle } from '@lucide/svelte';
 	import ChangeList from './history/ChangeList.svelte';
-	import BranchPicker from './history/BranchPicker.svelte';
 	import OperationBanner from './history/OperationBanner.svelte';
 	import SyncControls from './history/SyncControls.svelte';
 	import ScmProgress from './history/ScmProgress.svelte';
 	import ParentRepoGate from './history/ParentRepoGate.svelte';
 	import NoRepoGate from './history/NoRepoGate.svelte';
 	import UnsafeRepoGate from './history/UnsafeRepoGate.svelte';
-	import type { BranchActions } from '$lib/workspace/gitBranches';
 	import HistoryTimeline from './history/HistoryTimeline.svelte';
 	import { pathLabels } from './history/pathLabels';
 	import { isBuildArtifact } from '$lib/workspace/buildArtifacts';
 	// what is going on in git that only the display needs: not callbacks, so read here, not passed down
-	import { isConflicted, gitRunning, gitUnsafe, gitTruncated } from '$lib/workspace/gitStore';
+	import { isConflicted, gitRunning, gitUnsafe, gitTruncated, gitHead } from '$lib/workspace/gitStore';
 	import { scmDraftFor } from '$lib/workspace/scmDraft.svelte';
 	import type { GitStatusEntry, GitLogEntry, GitFileChange, GitOperation } from '$lib/workspace/git';
 	import { combo } from '$lib/chrome/shortcutText';
@@ -33,8 +31,6 @@
 		/** the repository starts above this folder and the author has not said to use it */
 		parentRepo?: string | null;
 		onUseParentRepo?: () => void;
-		/** switching and starting branches; absent where the app cannot, and the name is a label */
-		branches?: BranchActions | null;
 		branch: string | null;
 		/** the upstream this branch tracks; null means there is nowhere to upload to yet */
 		tracking?: string | null;
@@ -85,7 +81,6 @@
 		operation = null,
 		parentRepo = null,
 		onUseParentRepo,
-		branches = null,
 		branch,
 		tracking = null,
 		ahead = 0,
@@ -198,11 +193,14 @@
 		<!-- refresh belongs beside the branch: both are the state of the repository, and parked above
 		     an unrelated heading it read as a stray duplicate of the file tree's own refresh -->
 		<div class="text-muted flex h-7 shrink-0 items-center gap-1.5 px-3 text-xs">
-			{#if branches}
-				<!-- the branch name is the way to another branch, as in VS Code's status bar -->
-				<BranchPicker {branch} {detached} busy={busy || !!operation} {...branches} />
+			<!-- a label, as on master: switching is Switch branch in the command palette. Detached, git
+			     calls the branch "HEAD", which says nothing; this says what it means and where the way back is -->
+			<GitBranch class="size-3.5 shrink-0" />
+			{#if detached}
+				<span class="truncate font-medium" use:tip={m.vcs_detached_tip()}
+					>{m.vcs_detached({ short: (gitHead.current ?? '').slice(0, 7) })}</span
+				>
 			{:else}
-				<GitBranch class="size-3.5 shrink-0" />
 				<span class="truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
 			{/if}
 			<div class="ml-auto flex shrink-0 items-center gap-1">

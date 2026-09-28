@@ -17,7 +17,7 @@ import {
 	wholeFileChoice,
 	type GitOpResult
 } from './gitService';
-import { OVERWRITE_RE, aheadBehind, mergeInProgress, outputOf, parseBlockingFiles } from './gitRemote';
+import { OVERWRITE_RE, aheadBehind, mergeInProgress, mergeMessage, outputOf, parseBlockingFiles } from './gitRemote';
 
 export type GitCombineResult = GitOpResult & {
 	/** 'busy': a merge, rebase or cherry-pick is already under way. 'dirty': work not saved as a
@@ -40,9 +40,10 @@ function absolute(root: string, paths: string[]): string[] {
 /**
  * Merge the upstream into this branch and leave whatever git cannot join marked in the files.
  * What Sync fetched a moment ago is what it merges: this is the answer to Sync's conflict, never a
- * fetch of its own. Only from a clean tree, so Cancel can always put everything back.
+ * fetch of its own. Only from a clean tree, so Cancel can always put everything back. `message`
+ * is what the merge version will be called, as in Sync; without one, git's own.
  */
-export async function gitCombine(workspaceRoot: string): Promise<GitCombineResult> {
+export async function gitCombine(workspaceRoot: string, message = ''): Promise<GitCombineResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const root = rr.root;
@@ -58,7 +59,7 @@ export async function gitCombine(workspaceRoot: string): Promise<GitCombineResul
 		// place, and "Their version · @{u}" means nothing to the person choosing.
 		// A conflict exits 1 with its report on stdout, which simple-git resolves rather than throws.
 		const tracking = status.tracking;
-		const msg = await outputOf(retryLocked(() => g.raw(['merge', '--no-edit', tracking])));
+		const msg = await outputOf(retryLocked(() => g.raw(['merge', '--no-edit', ...mergeMessage(message), tracking])));
 		if (await mergeInProgress(g)) return { ok: true, with: status.tracking, conflicts: absolute(root, (await g.status()).conflicted) };
 		if (OVERWRITE_RE.test(msg)) return { ok: false, failure: 'dirty', files: absolute(root, parseBlockingFiles(msg)) };
 		const [, behind] = await aheadBehind(g);

@@ -5,9 +5,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { mkdirSync, readFileSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
-import { gitStage, gitUnstage, gitCommit } from '../../../../../../electron/src/gitService';
+import { gitStage, gitUnstage, gitCommit, isLocked } from '../../../../../../electron/src/gitService';
 import { gitChangesSince, gitRestore } from '../../../../../../electron/src/gitHistory';
-import { gitCreateBranch } from '../../../../../../electron/src/gitBranches';
 import { gitClone } from '../../../../../../electron/src/gitClone';
 import { AVAILABLE, run, out, identify, commit, tempDir, removeTempDirs } from './gitLiveFixture';
 
@@ -119,13 +118,11 @@ describe.skipIf(!AVAILABLE)('a clone whose files could not be written', () => {
 	});
 });
 
-describe.skipIf(!AVAILABLE)('a branch name another branch is in the way of', () => {
-	it('is refused at once as a name git cannot use, not retried as a lock', async () => {
-		const root = makeRepo();
-		commit(root, 'a.tex', 'A.\n', 'A');
-		run(root, 'branch', 'draft');
-		const started = Date.now();
-		expect(await gitCreateBranch(root, 'draft/v2')).toMatchObject({ ok: false, failure: 'invalid' });
-		expect(Date.now() - started).toBeLessThan(3000);
+describe('a ref name another one is in the way of', () => {
+	// a fetch can meet it too: "draft/v2" on the remote beside a "draft" this copy still has
+	it('is not taken for a lock, so it is not retried for 19 seconds', () => {
+		expect(isLocked(new Error("error: cannot lock ref 'refs/remotes/origin/draft/v2': 'refs/remotes/origin/draft' exists"))).toBe(false);
+		expect(isLocked(new Error("fatal: Unable to create '/p/.git/index.lock': File exists."))).toBe(true);
+		expect(isLocked(new Error("error: cannot lock ref 'refs/heads/main': is at 1a2b but expected 3c4d"))).toBe(true);
 	});
 });

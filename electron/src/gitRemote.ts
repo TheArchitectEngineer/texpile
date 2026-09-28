@@ -276,10 +276,17 @@ export async function outputOf(run: Promise<string>): Promise<string> {
 	}
 }
 
+/** `-m` and the message for a merge, or nothing for git's own: what arrives over IPC is checked */
+export function mergeMessage(message: unknown): string[] {
+	const text = typeof message === 'string' ? message.trim() : '';
+	return text ? ['-m', text] : [];
+}
+
 type TakeIn = { ok: true } | { ok: false; failure: SyncFailure; error?: string; files?: string[] };
 
-/** Bring the upstream's versions into this branch, or leave everything exactly as it was. */
-async function takeIn(g: SimpleGit, diverged: boolean): Promise<TakeIn> {
+/** Bring the upstream's versions into this branch, or leave everything exactly as it was. A merge
+ *  version is saved with `message` rather than git's "Merge remote-tracking branch 'origin/main'". */
+async function takeIn(g: SimpleGit, diverged: boolean, message: string): Promise<TakeIn> {
 	if (!diverged) {
 		// nothing here the remote lacks: move forward to it. Git refuses, touching nothing, when a
 		// file it would change has unsaved work in it.
@@ -296,7 +303,7 @@ async function takeIn(g: SimpleGit, diverged: boolean): Promise<TakeIn> {
 	if (dirty.length) return { ok: false, failure: 'dirty', files: dirty };
 
 	// a conflict exits 1 with its report on stdout, which simple-git resolves rather than throws
-	const msg = await outputOf(retryLocked(() => g.raw(['merge', '--no-edit', '@{u}'])));
+	const msg = await outputOf(retryLocked(() => g.raw(['merge', '--no-edit', ...mergeMessage(message), '@{u}'])));
 	if (await mergeInProgress(g)) {
 		const conflicted = (await g.status()).conflicted;
 		await retryLocked(() => g.raw(['merge', '--abort']));
@@ -320,8 +327,10 @@ async function pushBranch(g: SimpleGit, remote: string, branch: string, target: 
  * does not. VS Code's Sync, with one difference that matters to someone who does not use git: it
  * never leaves the project half-combined. When both sides changed the same lines the merge is
  * undone and the conflicting files are named; when unsaved work is in the way nothing is tried.
+ * `message` names a version that joins the two ("Joined with the versions on GitHub"); without
+ * one, git's own is used.
  */
-export async function gitSync(workspaceRoot: string, auth: GitAuthEnv = {}): Promise<GitSyncResult> {
+export async function gitSync(workspaceRoot: string, message = '', auth: GitAuthEnv = {}): Promise<GitSyncResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const g = netGit(rr.root, auth);
@@ -343,7 +352,7 @@ export async function gitSync(workspaceRoot: string, auth: GitAuthEnv = {}): Pro
 		stage = 'merge';
 		const [ahead, behind] = await aheadBehind(g);
 		if (behind > 0) {
-			const took = await takeIn(g, ahead > 0);
+			const took = await takeIn(g, ahead > 0, message);
 			// files in the way as absolute paths, as a branch switch and Combine give them: the panel
 			// saves those very rows first (scmSaveFirst.ts)
 			if (!took.ok) return { ...took, ...(took.failure === 'dirty' && { files: took.files?.map((f) => resolve(rr.root!, f)) }), remote };

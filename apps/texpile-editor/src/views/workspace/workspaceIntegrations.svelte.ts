@@ -10,6 +10,7 @@ import { DocRegistries } from '$lib/workspace/docRegistries.svelte';
 import { ScmActions } from '$lib/workspace/scmActions.svelte';
 import { ChangeBaseline } from '$lib/workspace/changeBaseline.svelte';
 import { gitHead, gitHeldBack, gitOperation, gitTracking, isGitRepo } from '$lib/workspace/gitStore';
+import { canSwitchBranch } from '$lib/workspace/gitBranches';
 import { gitignoreLines } from '$lib/workspace/buildArtifacts';
 import { provideScmHandlers } from '$lib/workspace/scmHandlers.svelte';
 import { ScmFetch } from '$lib/workspace/scmFetch.svelte';
@@ -164,7 +165,10 @@ export class WorkspaceIntegrations {
 				compare: (path) => this.scm.openDiff(path),
 				hasUpstream: () => !!gitTracking.current,
 				keepSide: (path, side) => void this.scm.combine.keepSide(path, side),
-				chooseWhole: (path, choose) => void this.scm.combine.chooseWhole(path, choose)
+				chooseWhole: (path, choose) => void this.scm.combine.chooseWhole(path, choose),
+				canSwitchBranch: () => isGitRepo.current && canSwitchBranch(),
+				listBranches: () => this.scm.branches.list(),
+				switchBranch: (name) => void this.scm.branches.switchTo(name)
 			})
 		);
 

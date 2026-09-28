@@ -1,5 +1,6 @@
-// A switch refused over unsaved work: the author is offered to save it as a version on this branch
-// first, and the switch is tried again. Build output is left out, as Save version leaves it out.
+// Switch branch, from the command palette. A switch refused over unsaved work: the author is offered
+// to save it as a version on this branch first, and the switch is tried again. Build output is left
+// out, as Save version leaves it out. The palette has closed by then, so the outcome is a notice.
 import { it, expect, vi, beforeEach } from 'vitest';
 
 const gitSwitch = vi.fn(async (_root: string, _name: string) => ({ ok: true, branch: 'draft' }) as object);
@@ -12,19 +13,10 @@ const gitChanges = {
 	]
 };
 
-type Del = { ok: boolean; failure?: string; remote?: string; error?: string };
-const gitDeleteBranch = vi.fn(async (_root: string, _name: string, _force?: boolean): Promise<Del> => ({ ok: true }));
-const gitDeleteRemoteBranch = vi.fn(async (_root: string, _name: string): Promise<Del> => ({ ok: true, remote: 'origin' }));
-const confirmAsk = vi.fn(async (_msg: string, _o?: unknown) => true);
+const toastGitFailure = vi.fn();
+const success = vi.fn();
 
-vi.mock('$lib/workspace/gitBranches', () => ({
-	gitSwitch,
-	gitBranches: vi.fn(),
-	gitCreateBranch: vi.fn(),
-	gitTrackBranch: vi.fn(),
-	gitDeleteBranch,
-	gitDeleteRemoteBranch
-}));
+vi.mock('$lib/workspace/gitBranches', () => ({ gitSwitch, gitBranches: vi.fn() }));
 vi.mock('$lib/workspace/gitStore', () => ({
 	refreshGitStatus: vi.fn(),
 	refreshGitHistory: vi.fn(),
@@ -33,8 +25,9 @@ vi.mock('$lib/workspace/gitStore', () => ({
 	gitBranch: { current: 'main' }
 }));
 vi.mock('$lib/workspace/workspaceStore', () => ({ workspaceRoot: { current: '/p' } }));
-vi.mock('$lib/modals/confirm.svelte', () => ({ promptAsk, confirmAsk }));
-vi.mock('$lib/modals/toaster-svelte', () => ({ toaster: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('$lib/modals/confirm.svelte', () => ({ promptAsk }));
+vi.mock('$lib/modals/toaster-svelte', () => ({ toaster: { success, error: vi.fn() } }));
+vi.mock('$lib/workspace/gitFailureToast', () => ({ toastGitFailure }));
 
 const { ScmBranches } = await import('$lib/workspace/scmBranches.svelte');
 
@@ -59,55 +52,36 @@ beforeEach(() => vi.clearAllMocks());
 it('offers to save the work first, then switches', async () => {
 	gitSwitch.mockResolvedValueOnce({ ok: false, failure: 'dirty', files: ['/p/main.tex'] });
 	const { branches, host } = make();
-	expect(await branches.switchTo('draft')).toBeNull();
+	await branches.switchTo('draft');
 	expect((promptAsk.mock.calls[0][0] as { message: string }).message).toContain('main.tex');
 	// everything the panel lists except build output, under a message that says why
 	expect(host.commit).toHaveBeenCalledWith('Unfinished work, saved before switching to draft', ['/p/main.tex', '/p/notes.tex']);
 	expect(gitSwitch).toHaveBeenCalledTimes(2);
 	expect(host.busy).toBe(false);
+	expect(success).toHaveBeenCalledWith({ title: 'Switched to branch "draft"' });
+	expect(toastGitFailure).not.toHaveBeenCalled();
 });
 
 it('switches nothing when the author declines, or the save fails', async () => {
 	const { branches, host } = make();
 	gitSwitch.mockResolvedValueOnce({ ok: false, failure: 'dirty', files: ['/p/main.tex'] });
 	promptAsk.mockResolvedValueOnce('cancel');
-	expect(await branches.switchTo('draft')).toBe('');
+	await branches.switchTo('draft');
 	expect(host.commit).not.toHaveBeenCalled();
 
 	gitSwitch.mockResolvedValueOnce({ ok: false, failure: 'dirty', files: ['/p/main.tex'] });
 	host.commit.mockResolvedValueOnce(false);
-	expect(await branches.switchTo('draft')).toBe('');
+	await branches.switchTo('draft');
 	expect(gitSwitch).toHaveBeenCalledTimes(2);
+	// backing out is not a failure to report
+	expect(toastGitFailure).not.toHaveBeenCalled();
+	expect(success).not.toHaveBeenCalled();
 });
 
-it('deletes a branch at once when its versions are elsewhere too, and asks first when they are not', async () => {
+it('says why a switch did not happen, in a notice', async () => {
 	const { branches } = make();
-	expect(await branches.remove('merged-draft')).toBeNull();
-	expect(confirmAsk).not.toHaveBeenCalled();
-
-	gitDeleteBranch.mockResolvedValueOnce({ ok: false, failure: 'unmerged' });
-	expect(await branches.remove('camera-ready')).toBeNull();
-	expect(confirmAsk.mock.calls[0][0]).toContain('camera-ready');
-	expect(gitDeleteBranch).toHaveBeenLastCalledWith('/p', 'camera-ready', true);
-
-	// backing out keeps it
-	gitDeleteBranch.mockResolvedValueOnce({ ok: false, failure: 'unmerged' });
-	confirmAsk.mockResolvedValueOnce(false);
-	gitDeleteBranch.mockClear();
-	expect(await branches.remove('camera-ready')).toBe('');
-	expect(gitDeleteBranch).toHaveBeenCalledTimes(1);
-});
-
-it('asks before deleting a branch on the remote, and says why when the remote refuses', async () => {
-	const { branches } = make();
-	const b = { name: 'origin/old-draft', remote: 'origin', branch: 'old-draft', date: '' };
-	confirmAsk.mockResolvedValueOnce(false);
-	expect(await branches.removeRemote(b)).toBe('');
-	expect(gitDeleteRemoteBranch).not.toHaveBeenCalled();
-
-	expect(await branches.removeRemote(b)).toBeNull();
-	expect(gitDeleteRemoteBranch).toHaveBeenCalledWith('/p', 'origin/old-draft');
-
-	gitDeleteRemoteBranch.mockResolvedValueOnce({ ok: false, failure: 'network', remote: 'origin' });
-	expect(await branches.removeRemote(b)).toMatch(/origin/);
+	gitSwitch.mockResolvedValueOnce({ ok: false, failure: 'busy' });
+	await branches.switchTo('draft');
+	expect(toastGitFailure).toHaveBeenCalledWith('Could not switch branches', 'Finish or cancel what Git is in the middle of first.', {});
+	expect(success).not.toHaveBeenCalled();
 });

@@ -101,6 +101,17 @@ describe.skipIf(!AVAILABLE)('syncing with the remote', () => {
 		expect(out(remote, 'log', '-1', '--format=%P', branch).split(' ')).toHaveLength(2);
 	});
 
+	it("names the version that joins them as it is told, not with git's remote-tracking words", async () => {
+		const { root, other } = await makePublished();
+		commit(other, 'theirs.tex', 'Theirs.\n', 'Their version');
+		run(other, 'push', '-q');
+		commit(root, 'mine.tex', 'Mine.\n', 'My version');
+
+		expect((await gitSync(root, 'Joined with the versions on GitHub')).ok).toBe(true);
+		expect(out(root, 'log', '-1', '--format=%B').trim()).toBe('Joined with the versions on GitHub');
+		expect(out(root, 'log', '-1', '--format=%P').split(' ')).toHaveLength(2);
+	});
+
 	it('undoes the attempt when both sides changed the same lines, and names the file', async () => {
 		const { root, other } = await makePublished();
 		commit(other, 'main.tex', 'Their first line.\nSecond line.\n', 'Their edit');

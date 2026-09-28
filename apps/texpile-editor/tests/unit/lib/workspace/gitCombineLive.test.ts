@@ -48,6 +48,16 @@ describe.skipIf(!AVAILABLE)('combining two lines of work', () => {
 		expect(status.entries?.find((e) => e.path === join(root, 'notes.tex'))?.markers).toBeUndefined();
 	});
 
+	it('saves the merge under the name it was started with', async () => {
+		const { root } = await makeConflicted();
+		await gitCombine(root, 'Joined with the versions on GitHub');
+		writeFileSync(join(root, 'main.tex'), 'My first line.\nTheir first line.\nSecond line.\n');
+		expect(await gitFinishCombine(root)).toEqual({ ok: true });
+		expect(out(root, 'log', '-1', '--format=%s')).toBe('Joined with the versions on GitHub');
+		// git's list of the files both sides changed goes under it, as with its own message
+		expect(out(root, 'log', '-1', '--format=%B')).not.toMatch(/remote-tracking/);
+	});
+
 	it('will not finish while a place still holds both versions', async () => {
 		const { root, head } = await makeConflicted();
 		await gitCombine(root);

@@ -1,10 +1,11 @@
 <script lang="ts">
-	// Sync and Publish, in the two places the panel offers them: the small control beside the branch,
-	// and the main button when nothing is waiting to be saved (VS Code's action button). While one of
-	// them runs, the button says so rather than only greying out, which read as broken on a slow link.
+	// Sync and Publish, in the two places the panel offers them: the control beside the branch, named
+	// in words there as in the main button, and the main button when nothing is waiting to be saved
+	// (VS Code's action button). While one of them runs, the button says so rather than only greying
+	// out, which read as broken on a slow link. Check for new versions is in the command palette: the
+	// automatic check already puts what there is to receive on this button.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { ArrowUp, ArrowDown, ArrowDownUp, CloudUpload, CloudDownload, LoaderCircle } from '@lucide/svelte';
-	import { scmHandlers } from '$lib/workspace/scmHandlers.svelte';
+	import { ArrowUp, ArrowDown, ArrowDownUp, CloudUpload, LoaderCircle } from '@lucide/svelte';
 	import { gitRunning } from '$lib/workspace/gitStore';
 	import type { GitOperation } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
@@ -39,8 +40,7 @@
 	const showPublish = $derived(publishable && (place === 'header' || !operation));
 	const syncing = $derived(gitRunning.current === 'sync');
 	const publishing = $derived(gitRunning.current === 'publish');
-	const fetching = $derived(gitRunning.current === 'fetch');
-	// the Fetch and Refresh buttons' own box, widened to its contents, so the row's hovers are one height
+	// the Refresh button's own box, widened to its contents, so the row's hovers are one height
 	const HEADER = 'btn-icon btn-icon-xs w-auto gap-1 px-1 hover:preset-tonal';
 	const ACTION = 'btn btn-xs preset-filled-primary-500 w-full gap-1.5';
 </script>
@@ -50,18 +50,6 @@
 	{#if ahead > 0}<span class="flex items-center tabular-nums"><ArrowUp class={size} />{ahead}</span>{/if}
 {/snippet}
 
-{#if showSync && place === 'header' && scmHandlers.current}
-	<!-- looks without taking anything in: whether a co-author uploaded, before deciding to Sync -->
-	<button
-		class="btn-icon btn-icon-xs hover:preset-tonal"
-		use:tip={fetching ? m.vcs_running_fetch() : m.vcs_fetch_tip({ remote: (tracking ?? '').split('/')[0] })}
-		aria-label={m.vcs_fetch()}
-		onclick={() => scmHandlers.current?.checkForNew()}
-		disabled={busy}
-	>
-		{#if fetching}<LoaderCircle class="size-3.5 animate-spin" />{:else}<CloudDownload class="size-3.5" />{/if}
-	</button>
-{/if}
 {#if showSync && place === 'header'}
 	<!-- VS Code's two states. With an upstream: Sync, carrying what it would take in and send.
 	     `ahead` is counted from local refs and is exact; `behind` is as of the last fetch, which Sync
@@ -74,12 +62,9 @@
 		onclick={onSync}
 		disabled={busy || !!operation}
 	>
-		{#if syncing}
-			<LoaderCircle class="size-3.5 animate-spin" />
-		{:else}
-			{@render counts('size-3.5')}
-			{#if !behind && !ahead}<ArrowDownUp class="size-3.5" />{/if}
-		{/if}
+		{#if syncing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ArrowDownUp class="size-3.5" />{/if}
+		<span>{m.vcs_sync_button()}</span>
+		{#if !syncing}{@render counts('size-3')}{/if}
 	</button>
 {:else if showSync}
 	<div class="px-2">

@@ -34,10 +34,7 @@ const OPS: Record<string, string> = {
 	'git:cancelCombine': 'gitCancelCombine',
 	'git:keepSide': 'gitKeepSide',
 	'git:branches': 'gitBranches',
-	'git:switch': 'gitSwitch',
-	'git:createBranch': 'gitCreateBranch',
-	'git:trackBranch': 'gitTrackBranch',
-	'git:deleteBranch': 'gitDeleteBranch'
+	'git:switch': 'gitSwitch'
 };
 
 // The calls that reach a remote, and so may have to ask someone to sign in: channel -> [gitService
@@ -46,9 +43,8 @@ const OPS: Record<string, string> = {
 const NET_OPS: Record<string, [string, number]> = {
 	'git:push': ['gitPush', 1],
 	'git:publish': ['gitPublish', 2],
-	'git:sync': ['gitSync', 1],
-	'git:fetch': ['gitFetch', 1],
-	'git:deleteRemoteBranch': ['gitDeleteRemoteBranch', 2]
+	'git:sync': ['gitSync', 2],
+	'git:fetch': ['gitFetch', 1]
 };
 
 export function registerGitIpc(): void {

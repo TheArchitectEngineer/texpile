@@ -19,11 +19,9 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: Publish to GitHub from a plain folder includes big folders you kept; Save a version and sync includes new build output git says is in the way; opening another folder during a Sync no longer shows the old folder's changes
 - fix: Compare with Previous on a Timeline version compares with the version it was made from, as VS Code does; Local History never gives a new copy an older one's name, which overwrote it on macOS and Windows
 - feat: on Linux without a keyring, a sign-in that worked is remembered until you quit Texpile (never written to disk) instead of being asked for on every Sync
-- feat: delete branches from the branch list, as VS Code does: a branch whose versions are elsewhere goes at once, one with versions nowhere else asks first, and a branch on the remote is deleted there after asking
 - feat: Publish to GitHub from a folder with no .gitignore asks which files and folders to include, as VS Code does; unticked ones are added to .gitignore
 - fix: a repository in a folder above the project colours nothing, counts nothing and marks nothing until you choose to use it, as in VS Code
 - fix: a leftover `=======` line also keeps a file from counting as settled, as in VS Code; a file being combined shows no change marks in the margin
-- fix: a new branch name with spaces is made into one with dashes instead of being refused
 - fix: a repository locked by another git is retried up to ten times, for every change Texpile makes, as VS Code does; Restore no longer drops a file when the lock outlasts that
 - fix: the Source Control progress bar appears at once and stays a moment after git finishes, so steps run back to back read as one
 - feat: a git version's menu in the Timeline copies its message
@@ -50,7 +48,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: a file both sides changed can be kept whole from its menu, mine or theirs, for figures, PDFs and files one side deleted
 - feat: folders with changes inside are tinted and dotted in the file tree; a file still being combined shows a !, and deleted files are struck through in Source Control
 - feat: Publish to GitHub from a folder that is not a repository yet: it initialises, ignores build output, saves a first version and opens Publish
-- feat: Check for new versions beside Sync fetches without taking anything in; Sync blocked by unsaved work offers Save a version and sync
+- feat: Check for new versions in the command palette fetches without taking anything in; Sync blocked by unsaved work offers Save a version and sync
 - feat: Ctrl+Shift+G (⌃⇧G on macOS) and Show Source Control in the palette open the panel with the keyboard in the message box
 - feat: a Compare with the last version button in the editor's top bar while the open file has changes
 - fix: the branch name says Not on a branch (at …) after checking out an earlier version, instead of "HEAD"
@@ -63,16 +61,16 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: an edit waiting for autosave in a file that was not changed on disk yet is included in the version being saved
 - feat: clicking a change mark in the source editor's margin shows what those lines were in the last version, with Undo this change
 - feat: Publish sends a project to a new GitHub repository, a remote it already has, or any repository by address
-- feat: Sync takes in versions saved elsewhere and sends yours, and undoes the attempt rather than leave a conflict behind
+- feat: Sync takes in versions saved elsewhere and sends yours, and undoes the attempt rather than leave a conflict behind; a version that joins the two is called Joined with the versions on GitHub (or wherever the remote is), not git's Merge remote-tracking branch
 - feat: git's sign-in questions (a password or token, an SSH key's passphrase, a server it has not seen) are asked in the window instead of failing
 - feat: the first version saved on a computer asks for the name and email git records, once
 - feat: switching branches over changes that would be overwritten offers to save them as a version first, then switch
-- feat: the Source Control icon counts changed files, and with nothing to save the panel offers Sync or Publish as its main button
+- feat: the Source Control icon counts changed files, Sync is named in words at the top of the panel with the counts each way, and with nothing to save the panel offers Sync or Publish as its main button
 - feat: combining highlights the words that differ between the two versions, goes from one marked place to the next, keeps one side everywhere at once, and marks the file's tab
 - feat: without a credential helper, sign-ins that worked are kept in the system keychain instead of being asked for on every upload; Forget saved Git sign-ins removes them
 - feat: an upload GitHub refuses because the repository is someone else's says to ask the owner to add you as a collaborator
 - feat: the source editor marks lines added, changed or removed since the last version in its margin; Alt+F5 and Shift+Alt+F5 go to the next and previous change
-- feat: the branch name in Source Control switches branches, starts a new one, or takes up one that exists only on a remote
+- feat: Switch branch… in the command palette goes back to another local branch; Source Control shows the branch name as a label, and Texpile does not start or delete branches, which it could not join again
 - feat: Clone repository, on the start screen and in the File menu, takes a repository's page, clone address or `git clone` command, shows its progress, and opens the folder
 - feat: Show changes in this version, in a History row's menu, lists what that version changed and each file's difference from the version before
 - fix: a folder inside a larger repository asks before its versions are saved into that repository

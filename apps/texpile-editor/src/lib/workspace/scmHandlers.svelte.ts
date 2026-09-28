@@ -3,6 +3,7 @@
 // rather than props, as versionChanges.svelte.ts: the rows are four components below the workspace,
 // and the palette is not below it at all.
 import type { WholeFileChoice } from './wholeFileChoice';
+import type { GitBranchesResult } from './gitBranches';
 import { tick } from 'svelte';
 export type ScmHandlers = {
 	/** add new folders (a trailing slash) to the project's .gitignore */
@@ -19,6 +20,12 @@ export type ScmHandlers = {
 	keepSide(path: string, side: 'mine' | 'theirs'): void;
 	/** ask which side of a deleted or non-text file to keep (wholeFileChoice.ts), then keep it */
 	chooseWhole(path: string, choose: WholeFileChoice): void;
+	/** the project is a repository and the app can switch its branch: Switch branch is offered */
+	canSwitchBranch(): boolean;
+	/** the local branches, for the palette's Switch branch */
+	listBranches(): Promise<GitBranchesResult>;
+	/** check one out, saving unsaved changes first if the switch would overwrite them */
+	switchBranch(name: string): void;
 };
 
 let current = $state<ScmHandlers | null>(null);

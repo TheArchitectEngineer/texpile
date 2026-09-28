@@ -66,8 +66,9 @@ export type PaletteActions = {
 	insertZoteroCitation?(): void;
 };
 
-/** 'files' is the picker: files only, listed before anything is typed */
-export type PaletteMode = 'all' | 'files';
+/** 'files' is the picker: files only, listed before anything is typed. 'branches' is Switch
+ *  branch's list of local branches. */
+export type PaletteMode = 'all' | 'files' | 'branches';
 
 class CommandPaletteState {
 	open = $state(false);

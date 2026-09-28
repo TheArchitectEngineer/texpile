@@ -337,12 +337,13 @@ export type GitSyncResult = {
 	files?: string[];
 };
 
-/** fetch, take in the upstream's versions, send this branch's */
-export async function gitSync(root: string): Promise<GitSyncResult> {
+/** fetch, take in the upstream's versions, send this branch's. `message` names a version that
+ *  joins the two (joinedMessage.ts) */
+export async function gitSync(root: string, message = ''): Promise<GitSyncResult> {
 	const n = nativeBridge();
 	if (!n?.gitSync) return { ok: false, error: NO_BRIDGE };
 	try {
-		return await n.gitSync(root);
+		return await n.gitSync(root, message);
 	} catch (e) {
 		return { ok: false, failure: 'other', error: errMsg(e) };
 	}
@@ -382,7 +383,7 @@ export type GitRemoteBridge = {
 	gitRemotes?: (root: string) => Promise<GitRemotesResult>;
 	gitAddRemote?: (root: string, name: string, url: string) => Promise<GitOpResult>;
 	gitPublish?: (root: string, remote: string) => Promise<GitPushResult>;
-	gitSync?: (root: string) => Promise<GitSyncResult>;
+	gitSync?: (root: string, message?: string) => Promise<GitSyncResult>;
 	githubPublish?: (root: string, opts: { name: string; isPrivate: boolean; remote: string }) => Promise<GithubPublishResult>;
 	onGitAskpass?: (cb: (req: GitAskpassRequest) => void) => () => void;
 	onGitAskpassClosed?: (cb: (ids: number[]) => void) => () => void;

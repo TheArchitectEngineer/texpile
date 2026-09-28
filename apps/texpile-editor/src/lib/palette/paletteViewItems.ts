@@ -1,6 +1,7 @@
 import { CloudDownload, Columns2, Eye, GitBranch, GitCompare, PanelLeft, Search } from '@lucide/svelte';
 import { isMac } from '$lib/platform';
 import { scmHandlers } from '$lib/workspace/scmHandlers.svelte';
+import { commandPalette } from '$lib/workspace/commandPalette.svelte';
 import { combo } from '$lib/chrome/shortcutText';
 import type { PaletteActions } from '$lib/workspace/commandPalette.svelte';
 import type { PaletteItem } from './paletteCommands';
@@ -77,6 +78,17 @@ export function viewItems(a: PaletteActions): PaletteItem[] {
 			keywords: 'git fetch remote co-author upstream github new versions',
 			icon: CloudDownload,
 			run: () => scmHandlers.current?.checkForNew()
+		});
+	// the one way to another branch: not in the panel, where a writer would meet it without needing
+	// it, but here for whoever landed on another branch and wants to go back
+	if (a.canGit() && scmHandlers.current?.canSwitchBranch())
+		items.push({
+			id: 'view.switchBranch',
+			label: m.vcs_branch_switch(),
+			group,
+			keywords: 'git branch checkout switch',
+			icon: GitBranch,
+			run: () => commandPalette.show('branches')
 		});
 	return items;
 }

@@ -283,28 +283,22 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	/** push this branch to `remote` and make it the upstream (push -u) -> { ok, failure?, remote? }. */
 	gitPublish: (root: string, remote: string) => invokeFs('git:publish', root, remote),
 	/** fetch, take in the upstream's versions, send ours -> { ok, failure?, pulled?, pushed?, files? }. */
-	gitSync: (root: string) => invokeFs('git:sync', root),
+	gitSync: (root: string, message?: string) => invokeFs('git:sync', root, message ?? ''),
 	/** fetch the upstream's remote and count, taking nothing in -> { ok, remote?, ahead?, behind?, failure? }. */
 	gitFetch: (root: string) => invokeFs('git:fetch', root),
 	gitFetchQuiet: (root: string) => invokeFs('git:fetchQuiet', root),
 	/** merge the upstream Sync just fetched, leaving what both sides changed marked -> { ok, failure?, conflicts? }. */
-	gitCombine: (root: string) => invokeFs('git:combine', root),
+	gitCombine: (root: string, message?: string) => invokeFs('git:combine', root, message ?? ''),
 	/** commit the merge once no file holds a marked place -> { ok, failure?, files? }. */
 	gitFinishCombine: (root: string) => invokeFs('git:finishCombine', root),
 	/** merge --abort -> { ok }. */
 	gitCancelCombine: (root: string) => invokeFs('git:cancelCombine', root),
 	/** one side's whole file for a file both sides changed (checkout --ours/--theirs) -> { ok }. */
 	gitKeepSide: (root: string, path: string, side: 'mine' | 'theirs') => invokeFs('git:keepSide', root, path, side),
-	/** local branches, and remote ones nothing tracks yet -> { ok, current?, local?, remote? }. */
+	/** local branches -> { ok, current?, local? }. */
 	gitBranches: (root: string) => invokeFs('git:branches', root),
 	/** check out a local branch -> { ok, branch?, failure?, files? }. */
 	gitSwitch: (root: string, name: string) => invokeFs('git:switch', root, name),
-	/** start a branch here and switch to it -> { ok, branch?, failure? }. */
-	gitCreateBranch: (root: string, name: string) => invokeFs('git:createBranch', root, name),
-	/** a local branch tracking 'origin/name' -> { ok, branch?, failure? }. */
-	gitTrackBranch: (root: string, remoteName: string) => invokeFs('git:trackBranch', root, remoteName),
-	gitDeleteBranch: (root: string, name: string, force?: boolean) => invokeFs('git:deleteBranch', root, name, !!force),
-	gitDeleteRemoteBranch: (root: string, remoteName: string) => invokeFs('git:deleteRemoteBranch', root, remoteName),
 	/** Local History (localHistory.ts): a copy per save, kept in the app's data -> the entry, or null. */
 	localHistoryAdd: (path: string, content: string, source?: string) => invokeFs('history:add', path, content, source),
 	localHistoryList: (path: string) => invokeFs('history:list', path),

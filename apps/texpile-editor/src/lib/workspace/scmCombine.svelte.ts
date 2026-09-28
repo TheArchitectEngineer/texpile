@@ -3,7 +3,8 @@
 // in the source editor (lib/editor/source/cmConflicts.ts).
 import { askWholeFile, type WholeFileChoice } from './wholeFileChoice';
 import { workspaceRoot } from './workspaceStore';
-import { refreshGitStatus, refreshGitHistory, gitChanges, isConflicted } from './gitStore';
+import { refreshGitStatus, refreshGitHistory, gitChanges, isConflicted, gitTracking } from './gitStore';
+import { joinedMessage } from './joinedMessage';
 import { gitCombine, gitFinishCombine, gitCancelCombine, gitKeepSide, type GitCombineResult } from './gitCombine';
 import type { GitSyncResult, GitStatusEntry } from './git';
 import { firstConflictLine } from './conflictMarkers';
@@ -78,7 +79,7 @@ export class ScmCombine {
 		});
 		if (choice !== 'combine') return;
 
-		const combined = await gitCombine(root);
+		const combined = await gitCombine(root, await joinedMessage(root, gitTracking.current));
 		if (!combined.ok) {
 			toastGitFailure(m.vcs_toast_combine_failed(), combineReason(combined), combined);
 			await refreshGitStatus(root);
