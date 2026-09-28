@@ -1,7 +1,8 @@
 <script lang="ts">
-	// The folder is not a repository yet. Initialize is the git step; Publish to GitHub is what most
+	// The folder is not a repository yet. Initialize is the git step; Publish is what most
 	// people who open this panel came for, and used to take three: initialise, save a first version,
-	// find Publish. It does those in order and ends in the same Publish dialog.
+	// find Publish. It does those in order and ends in the same Publish dialog, which offers GitHub
+	// and any other host: not everyone keeps their work on GitHub, so the button does not name it.
 	import { FolderGit2, CloudUpload } from '@lucide/svelte';
 	import { scmHandlers } from '$lib/workspace/scmHandlers.svelte';
 	import { m } from '$lib/paraglide/messages';

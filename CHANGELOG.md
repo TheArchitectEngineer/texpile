@@ -18,10 +18,10 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: an SSH key the server refused, or a server whose key changed, is said as such instead of advice about passwords and tokens
 - fix: in a project that is one folder of a larger repository, Save version no longer unstages what was staged outside it; a failing hook is reported in its own words instead of "Git is not installed"
 - fix: Combine now opens the text with places to choose rather than a figure; Keep mine or theirs, and deleting a folder, drop the open file's unsaved edit so it cannot land on the result
-- fix: Publish to GitHub from a plain folder includes big folders you kept; Save a version and sync includes new build output git says is in the way; opening another folder during a Sync no longer shows the old folder's changes
+- fix: Publish from a plain folder includes big folders you kept; Save a version and sync includes new build output git says is in the way; opening another folder during a Sync no longer shows the old folder's changes
 - fix: Compare with Previous on a Timeline version compares with the version it was made from, as VS Code does; Local History never gives a new copy an older one's name, which overwrote it on macOS and Windows
 - feat: on Linux without a keyring, a sign-in that worked is remembered until you quit Texpile (never written to disk) instead of being asked for on every Sync
-- feat: Publish to GitHub from a folder with no .gitignore asks which files and folders to include, as VS Code does; unticked ones are added to .gitignore
+- feat: Publish from a folder with no .gitignore asks which files and folders to include, as VS Code does; unticked ones are added to .gitignore
 - fix: a repository in a folder above the project colours nothing, counts nothing and marks nothing until you choose to use it, as in VS Code
 - fix: a leftover `=======` line also keeps a file from counting as settled, as in VS Code; a file being combined shows no change marks in the margin
 - fix: a repository locked by another git is retried up to ten times, for every change Texpile makes, as VS Code does; Restore no longer drops a file when the lock outlasts that
@@ -49,7 +49,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: comparisons have previous and next change buttons (Alt+F5 and Shift+Alt+F5 in the source comparison) and Put back beside each change
 - feat: a file both sides changed can be kept whole from its menu, mine or theirs, for figures, PDFs and files one side deleted
 - feat: folders with changes inside are tinted and dotted in the file tree; a file still being combined shows a !, and deleted files are struck through in Source Control
-- feat: Publish to GitHub from a folder that is not a repository yet: it initialises, ignores build output, saves a first version and opens Publish
+- feat: Publish from a folder that is not a repository yet (to GitHub or any other host): it initialises, ignores build output, saves a first version and opens Publish
 - feat: Check for new versions in the command palette fetches without taking anything in; Sync blocked by unsaved work offers Save a version and sync
 - feat: Ctrl+Shift+G (⌃⇧G on macOS) and Show Source Control in the palette open the panel with the keyboard in the message box
 - feat: a Compare with the last version button in the editor's top bar while the open file has changes

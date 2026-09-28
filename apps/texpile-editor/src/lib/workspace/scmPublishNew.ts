@@ -1,4 +1,4 @@
-// Publish to GitHub from a folder that is not a repository yet: VS Code's Publish to GitHub on a
+// Publish from a folder that is not a repository yet: VS Code's Publish to GitHub on a
 // plain folder. Initialise, keep build output out, save everything else as a first version, and
 // open the Publish dialog that a repository with a version gets. Each step stops the rest when it
 // fails or is cancelled, having said why.

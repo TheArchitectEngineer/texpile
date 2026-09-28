@@ -1,4 +1,4 @@
-// Publish to GitHub from a folder that is not a repository yet, as VS Code does it: with no
+// Publish from a folder that is not a repository yet, as VS Code does it: with no
 // .gitignore, ask which of the folder's files and folders go in, all ticked, and add what is
 // unticked to .gitignore before the first version is saved.
 import { it, expect, vi, beforeEach } from 'vitest';

@@ -1,4 +1,4 @@
-// Publish to GitHub from a plain folder: a folder of many new files is one row in the panel, and it
+// Publish from a plain folder: a folder of many new files is one row in the panel, and it
 // was left out of the first version even though the which-files question kept it.
 import { it, expect, vi } from 'vitest';
 

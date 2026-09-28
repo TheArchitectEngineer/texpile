@@ -14,7 +14,7 @@ Ctrl+Shift+G (⌃⇧G on a Mac, as in VS Code) opens Source Control with the key
 
 The Source Control icon shows how many files have changed, not counting build output. With nothing to save, the panel's main button is the next thing to do: Sync Changes, with the counts each way, or Publish for a branch that has nowhere to go yet.
 
-If the folder is not a repository yet, Source Control offers Initialize Repository and Publish to GitHub. Publish to GitHub starts the repository and adds the build output patterns to .gitignore. When the folder had no .gitignore of its own, it then lists the folder's files and folders, all ticked, as VS Code does: untick anything that should stay on this computer (a private draft, a data file) and it is added to .gitignore. It then saves the rest as the first version and opens the Publish dialog.
+If the folder is not a repository yet, Source Control offers Initialize Repository and Publish…. Publish… starts the repository and adds the build output patterns to .gitignore. When the folder had no .gitignore of its own, it then lists the folder's files and folders, all ticked, as VS Code does: untick anything that should stay on this computer (a private draft, a data file) and it is added to .gitignore. It then saves the rest as the first version and opens the Publish dialog, where you choose GitHub or any other host.
 
 If the folder sits inside a larger repository, such as a home folder kept in git or a research repository with the paper in one subfolder, Source Control asks before using it: versions saved there are recorded in that repository with everything else in it. Use that repository, or start one for this folder only. Until you answer, Texpile leaves that repository alone, as VS Code does: no colours in the file tree, no count on the Source Control icon and no marks in the margin. The answer is remembered for the folder.
 
@@ -56,7 +56,7 @@ The branch name at the top of Source Control says which branch you are on. Texpi
 
 ## Publish and sync
 
-Once the project has a version, Publish appears beside the branch name. It sends the project somewhere else: a new GitHub repository, private or public, created for it; a remote the repository already has; or any other repository by its address. With exactly one remote already set up, Publish goes straight there.
+Once the project has a version, Publish appears beside the branch name. It sends the project somewhere else: a new GitHub repository, private or public, created for it; a remote the repository already has; or, under Publish to another host, any other repository by its address, such as an empty one on GitLab, Bitbucket, Codeberg or your university's server. With exactly one remote already set up, Publish goes straight there.
 
 After that the button becomes Sync. Sync fetches, takes in versions saved elsewhere, and sends yours, and it shows how many versions go each way. When both sides saved versions, Sync joins them in a version of its own, named after where the remote is: Joined with the versions on GitHub. When both sides changed the same lines of a file, Sync undoes the attempt, names the file, and offers to combine them now; nothing changes unless you say yes. When a change that is not saved as a version would be overwritten, Sync stops before anything changes and offers Save and Sync, which saves everything you changed as a version and then syncs.
 
