@@ -1832,5 +1832,9 @@
 	"prefs_local_history_space": "已保存的副本",
 	"prefs_local_history_used": "已使用 {size}",
 	"prefs_local_history_clear": "清除本地历史记录…",
+	"prefs_group_history": "版本历史",
+	"prefs_group_local_history": "本地历史记录",
+	"prefs_local_history_clear_note": "删除所有文件的全部已存副本。此操作无法撤销。",
+	"history_named_tip": "你为这份副本起的名字",
 	"history_same_as_now": "此副本与文件当前内容相同。"
 }

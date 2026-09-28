@@ -230,7 +230,6 @@ const theme = EditorView.baseTheme({
 	'.cm-change-peek': {
 		margin: '2px 0 4px',
 		border: '1px solid color-mix(in srgb, currentColor 18%, transparent)',
-		borderLeft: '3px solid var(--color-primary-500)',
 		borderRadius: '4px',
 		overflow: 'hidden'
 	},
@@ -263,15 +262,16 @@ const theme = EditorView.baseTheme({
 		fontSize: '12px',
 		color: 'color-mix(in srgb, currentColor 70%, transparent)'
 	},
-	'.cm-change-added': { backgroundColor: 'var(--color-success-500)' },
-	'.cm-change-modified': { backgroundColor: 'var(--color-primary-500)' },
+	// the colours Source Control and the file tree give an added, changed and deleted file
+	'.cm-change-added': { backgroundColor: 'var(--git-added)' },
+	'.cm-change-modified': { backgroundColor: 'var(--git-modified)' },
 	// removed lines leave no line to colour: a wedge at the top of the line they were above
 	'.cm-change-removed': {
 		width: '0',
 		height: '0',
 		borderTop: '4px solid transparent',
 		borderBottom: '4px solid transparent',
-		borderLeft: '5px solid var(--color-error-500)',
+		borderLeft: '5px solid var(--git-deleted)',
 		transform: 'translateY(-4px)'
 	}
 });

@@ -30,7 +30,7 @@ If the folder sits inside a larger repository, such as a home folder kept in git
 
 A changed file opens in a diff against the last version. In the visual editor the changes are marked in the formatted text, word by word. In the source editor they are marked line by line.
 
-In the source editor, the margin beside the line numbers marks what changed since the last version as you type: green for added lines, blue for changed ones, and a red wedge where lines were removed. Alt+F5 and Shift+Alt+F5 (also in the command palette) go to the next and previous change. Click a mark to see those lines as they were in the last version, with Undo this change to put back just that change and keep every other edit. Escape closes it. The command palette has the same undo for the change at the cursor.
+In the source editor, the margin beside the line numbers marks what changed since the last version as you type: green for added lines, orange for changed ones, and a red wedge where lines were removed: the colors the file list gives an added, changed or deleted file. Alt+F5 and Shift+Alt+F5 (also in the command palette) go to the next and previous change. Click a mark to see those lines as they were in the last version, with Undo this change to put back just that change and keep every other edit. Escape closes it. The command palette has the same undo for the change at the cursor.
 
 In a comparison, the arrows in its bar (or Alt+F5 and Shift+Alt+F5 in the source comparison) go to the next and previous change, and Put back beside a change replaces those lines with the version's, leaving the rest of your edits alone.
 
@@ -44,15 +44,15 @@ A version in History opens to what differs between it and your files now. To see
 
 Every time you save a file, Texpile keeps a copy of it, as VS Code's local history does. It also keeps one just before anything replaces text no other copy holds: discarding changes in Source Control, restoring a copy, and reloading a file that changed outside Texpile over edits you had not saved. This happens in every project, including one that has never used git, and the copies stay on your computer in Texpile's own data, not in the project. Git versions are a separate history, in Source Control.
 
-| Where to find it | Path                                         | Note                                   |
-| ---------------- | -------------------------------------------- | -------------------------------------- |
-| Menu             | File › Local History…                        | The open file's copies.                |
-| Menu             | File › Restore Deleted File…                 | Files deleted from the project.        |
-| File explorer    | Right-click a file › Local History…          |                                        |
-| File explorer    | Right-click a folder › Restore Deleted File… | Only files deleted from that folder.   |
-| Tabs             | Right-click a tab › Local History…           |                                        |
-| Palette          | Local History…, Restore Deleted File…        | Ctrl+K, then type the name.            |
-| Setting          | Preferences › Editor › Keep local history    | Off records nothing; kept copies stay. |
+| Where to find it | Path                                               | Note                                   |
+| ---------------- | -------------------------------------------------- | -------------------------------------- |
+| Menu             | File › Local History…                              | The open file's copies.                |
+| Menu             | File › Restore Deleted File…                       | Files deleted from the project.        |
+| File explorer    | Right-click a file › Local History…                |                                        |
+| File explorer    | Right-click a folder › Restore Deleted File…       | Only files deleted from that folder.   |
+| Tabs             | Right-click a tab › Local History…                 |                                        |
+| Palette          | Local History…, Restore Deleted File…              | Ctrl+K, then type the name.            |
+| Setting          | Preferences › Version History › Keep local history | Off records nothing; kept copies stay. |
 
 The dialog lists the copies by day, newest first. A copy that gathered several saves shows the span it covers, a copy you named shows its name, and one taken before something replaced the text says what (Before discard, Before restore, Before reload). Pick a copy to see it against the file as it is now, or against the copy before it. Restore This Copy asks first, keeps what the file holds now as a copy of its own, and the notice after it offers Undo. Copy puts the copy's text on the clipboard. Save a Copy Now… keeps the file as it is under a name you choose, and a copy's … menu renames or deletes it.
 
@@ -60,7 +60,7 @@ Restore Deleted File lists the files that are gone and still have copies; pick o
 
 Discarding changes in Source Control keeps each file first, and the notice after offers Undo.
 
-Saves go into the same copy until it is 5 minutes old, so an hour of writing makes about twelve copies however often you pause. Every copy is kept for 7 days, then the last one of each day for 30 days; a copy you named, and the newest copy of each file, are kept until you delete them. Files over 1 MB are not kept, and when all copies together pass 300 MB the oldest go first. Renaming or moving a file takes its copies with it. Preferences › Editor shows how much space they take, and Clear Local History… deletes them all.
+Saves go into the same copy until it is 5 minutes old, so an hour of writing makes about twelve copies however often you pause. Every copy is kept for 7 days, then the last one of each day for 30 days; a copy you named, and the newest copy of each file, are kept until you delete them. Files over 1 MB are not kept, and when all copies together pass 300 MB the oldest go first. Renaming or moving a file takes its copies with it. Preferences › Version History shows how much space they take under Saved copies, which opens to Clear Local History… to delete them all.
 
 The copies are in a History folder in Texpile's data: `%APPDATA%\texpile-desktop` on Windows, `~/Library/Application Support/texpile-desktop` on macOS, `~/.config/texpile-desktop` on Linux. The portable build keeps them in `data` next to `Texpile.exe` and files a project on the same drive by its path from there, so they follow the drive to another computer whatever letter it gets. In a shared session the host keeps them, guests' edits included; a guest keeps none.
 

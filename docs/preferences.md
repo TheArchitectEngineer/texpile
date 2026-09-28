@@ -1,6 +1,6 @@
 ---
 nav: Preferences
-description: Every setting in Texpile's Preferences dialog, tab by tab: appearance, editor, collaboration, toolchain, integrations, startup, and the AI assistant.
+description: Every setting in Texpile's Preferences dialog, tab by tab: appearance, editor, version history, collaboration, toolchain, integrations, startup, and the AI assistant.
 blurb: Every setting in the Preferences dialog, tab by tab.
 icon: settings
 order: 15
@@ -28,15 +28,13 @@ Settings apply to every folder you open. The compile command and its options are
 
 ## Editor
 
-| Setting                            | What it does                                                                                                                                                                        |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Autosave                           | On by default. Off, changes save only when you press Save, and you are warned before switching files. Live preview and hosting a shared session keep it on.                         |
-| Keep local history                 | On by default. A copy of each file as you save it, kept on this computer for 30 days ([Local history](version-control.md#local-history)). Off records nothing; what was kept stays. |
-| Saved copies                       | How much space Local History takes. Clear Local History… deletes every copy of every file.                                                                                          |
-| Spell check                        | Off by default. See [Spell check](spell-check.md).                                                                                                                                  |
-| Toolbar on selection               | Buttons over selected text for commenting, and for Refine when an agent is set up. In both editors.                                                                                 |
-| Open terminal panel when compiling | Also opens Problems when a compile reports errors. Off, the badge next to Compile is the only signal.                                                                               |
-| Keybindings                        | Default, Vim, or Emacs, for the source editor. The mode line appears under the editor.                                                                                              |
+| Setting                            | What it does                                                                                                                                                |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Autosave                           | On by default. Off, changes save only when you press Save, and you are warned before switching files. Live preview and hosting a shared session keep it on. |
+| Spell check                        | Off by default. See [Spell check](spell-check.md).                                                                                                          |
+| Toolbar on selection               | Buttons over selected text for commenting, and for Refine when an agent is set up. In both editors.                                                         |
+| Open terminal panel when compiling | Also opens Problems when a compile reports errors. Off, the badge next to Compile is the only signal.                                                       |
+| Keybindings                        | Default, Vim, or Emacs, for the source editor. The mode line appears under the editor.                                                                      |
 
 ### Source editor
 
@@ -53,6 +51,14 @@ Settings apply to every folder you open. The compile command and its options are
 | Justify text      | On by default. Paragraphs run from edge to edge. This changes how the editor looks and does not change the compiled document.                                   |
 | Hyphenate words   | On by default, and shown while Justify text is on. Long words can split at line ends. The hyphens are only drawn in the editor and are not written to the file. |
 | Image resize step | Dragging an image snaps its width to multiples of this fraction of the text width: 10%, 25%, or 50%.                                                            |
+
+## Version History
+
+| Setting                            | What it does                                                                                                                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Check for co-authors' new versions | On by default. Every few minutes, while Texpile is in front, it looks for versions co-authors have synced. Nothing changes in your files until you Sync.                            |
+| Keep local history                 | On by default. A copy of each file as you save it, kept on this computer for 30 days ([Local history](version-control.md#local-history)). Off records nothing; what was kept stays. |
+| Saved copies                       | How much space Local History takes. Open it for Clear Local History…, which deletes every copy of every file.                                                                       |
 
 ## Collaboration
 

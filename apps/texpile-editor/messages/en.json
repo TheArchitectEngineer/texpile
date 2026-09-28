@@ -1832,5 +1832,9 @@
 	"prefs_local_history_space": "Saved copies",
 	"prefs_local_history_used": "{size} used",
 	"prefs_local_history_clear": "Clear Local History…",
+	"prefs_group_history": "Version History",
+	"prefs_group_local_history": "Local History",
+	"prefs_local_history_clear_note": "Deletes every saved copy of every file. This can't be undone.",
+	"history_named_tip": "A name you gave this copy",
 	"history_same_as_now": "This copy is the same as the file now."
 }

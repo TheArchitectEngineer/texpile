@@ -213,9 +213,7 @@
 				<li class="text-muted px-2 pt-2 pb-0.5 text-[11px] font-semibold tracking-wide uppercase">{g.day}</li>
 				{#each g.items as e (e.id)}
 					<li
-						class="group hover:bg-surface-200-800 relative flex items-center rounded-base {selected?.id === e.id
-							? 'bg-surface-200-800'
-							: ''}"
+						class="group relative flex items-center rounded-base {selected?.id === e.id ? 'bg-primary-tint' : 'hover:bg-surface-200-800'}"
 					>
 						{#if renaming === e.id}
 							<input
@@ -236,8 +234,9 @@
 							<button class="flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left text-sm" onclick={() => pick(e)}>
 								<span class="shrink-0 tabular-nums">{when(e)}</span>
 								{#if isNamed(e)}
-									<span class="text-primary-ink flex min-w-0 items-center gap-1 font-medium">
-										<Bookmark class="size-3 shrink-0" /><span class="truncate">{e.source}</span>
+									<!-- the name the writer gave it: plain text, not a colour that reads as a link -->
+									<span class="flex min-w-0 items-center gap-1 font-medium" use:tip={m.history_named_tip()}>
+										<Bookmark class="text-muted size-3 shrink-0" /><span class="truncate">{e.source}</span>
 									</span>
 								{:else if e.source}
 									<span class="text-muted min-w-0 truncate text-xs">{sourceLabel(e.source)}</span>
@@ -320,10 +319,9 @@
 							{#each shownDeleted as f (f.resource)}
 								<li>
 									<button
-										class="hover:bg-surface-200-800 flex w-full items-center gap-1.5 rounded-base px-2 py-1 text-left text-sm {path ===
-										f.resource
-											? 'bg-surface-200-800'
-											: ''}"
+										class="flex w-full items-center gap-1.5 rounded-base px-2 py-1 text-left text-sm {path === f.resource
+											? 'bg-primary-tint'
+											: 'hover:bg-surface-200-800'}"
 										onclick={() => pickFile(f)}
 										use:tip={labels.relPath(f.resource)}
 									>

@@ -231,8 +231,8 @@ const theme = EditorView.baseTheme({
 	'.cm-conflict-marker-mine': { backgroundColor: `color-mix(in srgb, ${mineTint} 22%, transparent)` },
 	'.cm-conflict-marker-theirs, .cm-conflict-marker-end': { backgroundColor: `color-mix(in srgb, ${theirsTint} 22%, transparent)` },
 	'.cm-conflict-marker-base': { backgroundColor: 'color-mix(in srgb, currentColor 10%, transparent)' },
-	// the sides are told apart by their tint and a coloured edge, never by coloured words: a pale
-	// theme colour as text on a light ground does not read
+	// the sides are told apart by the tint of the line the label sits on, never by coloured words: a
+	// pale theme colour as text on a light ground does not read
 	'.cm-conflict-label': {
 		marginLeft: '1.5ch',
 		paddingLeft: '0.6ch',
@@ -240,8 +240,6 @@ const theme = EditorView.baseTheme({
 		fontSize: '0.85em',
 		fontWeight: '600'
 	},
-	'.cm-conflict-label-mine': { borderLeft: `3px solid ${mineTint}` },
-	'.cm-conflict-label-theirs': { borderLeft: `3px solid ${theirsTint}` },
 	'.cm-conflict-bar': {
 		display: 'flex',
 		gap: '4px',
@@ -259,9 +257,7 @@ const theme = EditorView.baseTheme({
 		font: 'inherit'
 	},
 	'.cm-conflict-choice:hover': { backgroundColor: 'color-mix(in srgb, currentColor 10%, transparent)' },
-	'.cm-conflict-choice:focus-visible': { outline: '2px solid var(--color-primary-500)', outlineOffset: '1px' },
-	'.cm-conflict-choice-mine': { borderLeft: `3px solid ${mineTint}` },
-	'.cm-conflict-choice-theirs': { borderLeft: `3px solid ${theirsTint}` }
+	'.cm-conflict-choice:focus-visible': { outline: '2px solid var(--color-primary-500)', outlineOffset: '1px' }
 });
 
 export function cmConflicts(): Extension {

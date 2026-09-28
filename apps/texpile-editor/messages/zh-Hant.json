@@ -1832,5 +1832,9 @@
 	"prefs_local_history_space": "已儲存的副本",
 	"prefs_local_history_used": "已使用 {size}",
 	"prefs_local_history_clear": "清除本機歷程記錄…",
+	"prefs_group_history": "版本歷史",
+	"prefs_group_local_history": "本機歷程記錄",
+	"prefs_local_history_clear_note": "刪除所有檔案的全部已存副本。此操作無法復原。",
+	"history_named_tip": "你為這份副本取的名稱",
 	"history_same_as_now": "此副本與檔案目前的內容相同。"
 }

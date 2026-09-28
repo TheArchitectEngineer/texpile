@@ -1832,5 +1832,9 @@
 	"prefs_local_history_space": "Gespeicherte Kopien",
 	"prefs_local_history_used": "{size} belegt",
 	"prefs_local_history_clear": "Lokalen Verlauf löschen…",
+	"prefs_group_history": "Versionsverlauf",
+	"prefs_group_local_history": "Lokaler Verlauf",
+	"prefs_local_history_clear_note": "Löscht jede gespeicherte Kopie aller Dateien. Das lässt sich nicht rückgängig machen.",
+	"history_named_tip": "Ein Name, den Sie dieser Kopie gegeben haben",
 	"history_same_as_now": "Diese Kopie entspricht der Datei, wie sie jetzt ist."
 }

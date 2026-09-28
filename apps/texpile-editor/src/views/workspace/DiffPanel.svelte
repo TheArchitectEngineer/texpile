@@ -180,7 +180,8 @@
 				orientation: 'a-b',
 				// the version's lines into the working copy, where there is one to write to
 				...(editable() ? { revertControls: 'a-to-b' as const, renderRevertControl: () => putBack() } : {}),
-				gutter: true,
+				// no coloured bar down the left edge: the line tint already says which lines changed
+				gutter: false,
 				highlightChanges: true,
 				collapseUnchanged: COLLAPSE
 			});
@@ -196,7 +197,7 @@
 						unifiedMergeView({
 							original: o,
 							mergeControls: editable() ? (type, action) => (type === 'reject' ? putBack(action) : document.createElement('span')) : false,
-							gutter: true,
+							gutter: false,
 							collapseUnchanged: COLLAPSE
 						})
 					]
@@ -279,12 +280,5 @@
 	}
 	.diff-panel :global(.cm-merge-b .cm-changedText) {
 		background: color-mix(in srgb, var(--color-success-500) 30%, transparent) !important;
-	}
-	.diff-panel :global(.cm-deletedLineGutter),
-	.diff-panel :global(.cm-merge-a .cm-changedLineGutter) {
-		background: var(--color-error-500) !important;
-	}
-	.diff-panel :global(.cm-merge-b .cm-changedLineGutter) {
-		background: var(--color-success-500) !important;
 	}
 </style>

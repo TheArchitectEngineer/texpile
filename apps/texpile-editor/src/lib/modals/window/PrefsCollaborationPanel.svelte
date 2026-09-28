@@ -1,8 +1,6 @@
 <script lang="ts">
 	// The Collaboration category: the name the other people in a session see.
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { Switch } from '@skeletonlabs/skeleton-svelte';
-	import { settings, updateSettings } from '$lib/settings';
 	import { userData, updateUserData } from '$lib/storage/userData';
 	import { collabHost } from '$lib/collab/hostStore.svelte';
 	import { collabGuest } from '$lib/collab/guestStore.svelte';
@@ -51,18 +49,7 @@
 </div>
 
 {#if gitId}
-	<!-- a row of its own: under the Git identity heading it read as part of the name and email that
-	     heading says to set in a terminal -->
-	<div class={ROW}>
-		{@render label(m.prefs_check_new_versions(), m.prefs_check_new_versions_note())}
-		<Switch
-			checked={settings.current.checkForNewVersions !== false}
-			onCheckedChange={(d) => updateSettings({ checkForNewVersions: d.checked })}
-		>
-			<Switch.Control><Switch.Thumb /></Switch.Control>
-			<Switch.HiddenInput />
-		</Switch>
-	</div>
+	<!-- Check for co-authors' new versions lives in Version History, with the rest of what is kept -->
 	<h3 class="text-muted pt-5 text-xs font-semibold tracking-wide uppercase">{m.prefs_collab_git()}</h3>
 	<p class="text-muted pt-1 pb-1 text-xs leading-relaxed">{m.prefs_collab_git_note()}</p>
 	<div class="{ROW} pl-4">

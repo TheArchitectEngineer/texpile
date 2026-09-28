@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tip } from '$lib/components/tooltip.svelte';
-	import { X, Languages } from '@lucide/svelte';
+	import { X, Languages, ChevronRight } from '@lucide/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import Modal from '../Modal.svelte';
 	import { settings, updateSettings, type AppSettings } from '$lib/settings';
@@ -21,6 +21,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { windowGlass } from '$lib/chrome/windowGlass.svelte';
 	import { canKeepLocalHistory, localHistoryUsage, removeAllLocalHistory } from '$lib/workspace/localHistory.svelte';
+	import { isDesktop } from '$lib/workspace/fileSystem';
 	import { promptAsk } from '$lib/modals/confirm.svelte';
 
 	// autosave is forced on (shown disabled) while live mode or a hosted session is active
@@ -32,11 +33,11 @@
 	// One category on screen at a time, rather than every setting in one scroll. The list had grown
 	// past the point where "wrap long lines" and "editor width" could be told apart at a glance -
 	// which editor, and which of them, was only answerable by reading the hint under each.
-	type Category = 'appearance' | 'editor' | 'collaboration' | 'toolchain' | 'integrations' | 'startup' | 'ai';
+	type Category = 'appearance' | 'editor' | 'history' | 'collaboration' | 'toolchain' | 'integrations' | 'startup' | 'ai';
 	let category = $state<Category>('appearance');
-	// the browser guest has no local toolchain, no Zotero, no MCP server and no folder to reopen:
-	// four tabs that could only ever report nothing
-	const DESKTOP_ONLY_TABS: Category[] = ['toolchain', 'integrations', 'startup', 'ai'];
+	// the browser guest has no local toolchain, no Zotero, no MCP server, no folder to reopen and no
+	// copies or versions of its own: five tabs that could only ever report nothing
+	const DESKTOP_ONLY_TABS: Category[] = ['history', 'toolchain', 'integrations', 'startup', 'ai'];
 	const ALL_TABS: { id: Category; label: string }[] = [
 		{ id: 'appearance', label: m.prefs_appearance() },
 		// Editing, Source editor and Visual editor were three tabs holding three, two and two rows.
@@ -44,6 +45,8 @@
 		// editor, and which of them - and a heading inside one tab answers that just as well as a
 		// sidebar entry did, without making the reader guess which of three tabs a setting is in.
 		{ id: 'editor', label: m.prefs_group_editor() },
+		// what is kept of the writing: co-authors' versions checked for, and Local History's copies
+		{ id: 'history', label: m.prefs_group_history() },
 		{ id: 'collaboration', label: m.prefs_group_collaboration() },
 		// LaTeX, Typst and Version control used to be three tabs. Every one of them was the same
 		// thing - a list of external programs and whether they were found - so three sidebar entries
@@ -70,10 +73,13 @@
 		preferencesTab.current = null;
 	});
 
-	// how much Local History takes, said beside Clear: on a portable copy it is space on the drive
+	// how much Local History takes, said on the fold that holds Clear: on a portable copy it is
+	// space on the drive
 	let historyBytes = $state<number | null>(null);
+	// Clear sits folded away: it is rarely wanted and cannot be undone
+	let copiesOpen = $state(false);
 	$effect(() => {
-		if (!open || category !== 'editor' || !canKeepLocalHistory()) return;
+		if (!open || category !== 'history' || !canKeepLocalHistory()) return;
 		void localHistoryUsage().then((n) => (historyBytes = n));
 	});
 	function sizeText(bytes: number): string {
@@ -239,20 +245,6 @@
 					autosaveForced,
 					autosaveForced ? m.prefs_autosave_hint_forced() : ''
 				)}
-				{#if canKeepLocalHistory()}
-					{@render toggleRow(m.prefs_local_history(), m.prefs_local_history_note(), settings.current.localHistory !== false, (v) =>
-						updateSettings({ localHistory: v })
-					)}
-					<div class={ROW}>
-						{@render label(
-							m.prefs_local_history_space(),
-							historyBytes === null ? '' : m.prefs_local_history_used({ size: sizeText(historyBytes) })
-						)}
-						<button class="btn btn-sm preset-outlined-surface-200-800 hover:preset-tonal text-error-ink shrink-0" onclick={clearHistory}>
-							{m.prefs_local_history_clear()}
-						</button>
-					</div>
-				{/if}
 				{@render toggleRow(m.prefs_spellcheck(), '', settings.current.spellcheck, (v) => setSpellcheckEnabled(v))}
 				{@render toggleRow(m.prefs_comment_pill(), m.prefs_comment_pill_note(), settings.current.commentPill !== false, (v) =>
 					updateSettings({ commentPill: v })
@@ -297,6 +289,43 @@
 						)}
 					{/if}
 				</div>
+			{:else if category === 'history'}
+				{#if isDesktop()}
+					{@render toggleRow(
+						m.prefs_check_new_versions(),
+						m.prefs_check_new_versions_note(),
+						settings.current.checkForNewVersions !== false,
+						(v) => updateSettings({ checkForNewVersions: v })
+					)}
+				{/if}
+				{#if canKeepLocalHistory()}
+					{@render sectionHeading(m.prefs_group_local_history())}
+					<div class={SUB}>
+						{@render toggleRow(m.prefs_local_history(), m.prefs_local_history_note(), settings.current.localHistory !== false, (v) =>
+							updateSettings({ localHistory: v })
+						)}
+						<div class="border-surface-200-800 border-b last:border-b-0">
+							<button
+								type="button"
+								class="flex w-full items-center gap-1.5 py-4 text-left text-sm font-medium"
+								aria-expanded={copiesOpen}
+								onclick={() => (copiesOpen = !copiesOpen)}
+							>
+								<ChevronRight class="text-muted size-4 shrink-0 transition-transform {copiesOpen ? 'rotate-90' : ''}" />
+								<span class="flex-1">{m.prefs_local_history_space()}</span>
+								{#if historyBytes !== null}
+									<span class="text-muted text-xs font-normal">{m.prefs_local_history_used({ size: sizeText(historyBytes) })}</span>
+								{/if}
+							</button>
+							{#if copiesOpen}
+								<div class="flex items-center justify-between gap-6 pb-4 pl-5.5">
+									<p class="text-muted text-xs leading-relaxed">{m.prefs_local_history_clear_note()}</p>
+									<button class="btn btn-sm preset-tonal shrink-0" onclick={clearHistory}>{m.prefs_local_history_clear()}</button>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
 			{:else if category === 'collaboration'}
 				<PrefsCollaborationPanel />
 			{:else if category === 'toolchain'}

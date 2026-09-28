@@ -6,10 +6,12 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 ## [Unreleased]
 
 - feat: Local History opens from File › Local History… and a file's or tab's right-click menu, showing a file's copies by day, beside the file with what changed since, with Restore This Copy, Copy and Save a Copy Now…; File › Restore Deleted File… and a folder's right-click menu bring back a deleted file
-- feat: Local History is kept for writing with autosave: saves gather into one copy for up to 5 minutes, copies are kept 7 days and then one a day for 30, named copies and each file's newest stay, files up to 1 MB, 300 MB in all. Preferences › Editor turns it off, shows its size and clears it
+- feat: Local History is kept for writing with autosave: saves gather into one copy for up to 5 minutes, copies are kept 7 days and then one a day for 30, named copies and each file's newest stay, files up to 1 MB, 300 MB in all. Preferences › Version History turns it off, shows its size and clears it
 - feat: a copy is kept before a discard, a restore, or a reload over unsaved edits, and discard and restore offer Undo; in a shared session the host keeps guests' edits too
 - feat: the portable build files a project on its own drive by its path from Texpile's folder, so Local History follows the drive to another computer
 - fix: Escape closes a menu open over a dialog, not the dialog too
+- feat: Preferences has a Version History tab: Check for co-authors' new versions, Keep local history, and Saved copies, which opens to Clear Local History…
+- change: comparisons no longer draw a colored bar down the left of changed lines, and the source editor's margin marks changed lines orange, as the file list does, instead of blue
 - change: Source Control explains less and lets the buttons speak: the Publish dialog has no intro, sign-in prompts no longer describe how the answer is kept, confirmations drop the extra paragraph, and a folder inside another repository or owned by another account says so in one line, with the rest in the buttons' tooltips
 - fix: rows in History and the changes list use the panel's full width: the "…" button takes room only while you hover the row, and in History a version's message keeps its room before the author and time
 - change: a folder with no version history says so in one line instead of two paragraphs, and offers Start Version History (Initialize Repository before); publishing comes after a first version, from the panel's main button
@@ -35,7 +37,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: the Source Control progress bar appears at once and stays a moment after git finishes, so steps run back to back read as one
 
 - feat: while combining, a file one side deleted or a figure both sides changed asks which version to keep (Keep my version, Keep their version, Delete the file), and Finish combining waits for the answer
-- feat: Texpile checks for co-authors' new versions every three minutes while in front and says when some arrive, without ever asking for a sign-in; Preferences > Collaboration turns it off
+- feat: Texpile checks for co-authors' new versions every three minutes while in front and says when some arrive, without ever asking for a sign-in; Preferences > Version History turns it off
 
 - fix: Save version keeps a rename whole, takes in a file whose conflicts are all chosen after a stash, and waits while a place is still marked
 - fix: Discard puts back changes staged in a terminal; a file staged as new, or the new name of a rename, goes to the Trash; where there is no Trash it asks before deleting outright
