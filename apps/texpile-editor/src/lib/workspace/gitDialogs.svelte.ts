@@ -49,9 +49,6 @@ let identity = $state<Pending<Identity, Identity | null> | null>(null);
 let publish = $state<Pending<PublishAsk, boolean> | null>(null);
 let questions = $state<GitAskpassRequest[]>([]);
 let clone = $state<Pending<CloneAsk, CloneChoice | null> | null>(null);
-/** the project's top level, for VS Code's which-files question before a first publish */
-export type PublishFilesAsk = { entries: { name: string; folder: boolean }[] };
-let publishFiles = $state<Pending<PublishFilesAsk, string[] | null> | null>(null);
 
 export const gitDialogs = {
 	get identity() {
@@ -62,9 +59,6 @@ export const gitDialogs = {
 	},
 	get clone() {
 		return clone;
-	},
-	get publishFiles() {
-		return publishFiles;
 	},
 	/** the question on screen; any others wait behind it */
 	get question() {
@@ -99,20 +93,6 @@ export function closePublish(done: boolean): void {
 	const c = publish;
 	publish = null;
 	c?.resolve(done);
-}
-
-/** the names kept ticked; null when the author backs out */
-export function askPublishFiles(ask: PublishFilesAsk): Promise<string[] | null> {
-	publishFiles?.resolve(null);
-	return new Promise((resolve) => {
-		publishFiles = { ...ask, resolve };
-	});
-}
-
-export function answerPublishFiles(kept: string[] | null): void {
-	const c = publishFiles;
-	publishFiles = null;
-	c?.resolve(kept);
 }
 
 /** what was cloned, once it is on disk; null when the author backs out */

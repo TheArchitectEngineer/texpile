@@ -10,8 +10,6 @@ export type ScmHandlers = {
 	ignore(paths: string[]): void;
 	/** fetch the upstream's remote, so the counts beside Sync are current, and take nothing in */
 	checkForNew(): void;
-	/** a folder that is not a repository yet, onto GitHub: initialise, a first version, Publish */
-	publishNew(): void;
 	/** this file against its last version, in its own tab */
 	compare(path: string): void;
 	/** the branch syncs with a remote, so there is somewhere to check for new versions */

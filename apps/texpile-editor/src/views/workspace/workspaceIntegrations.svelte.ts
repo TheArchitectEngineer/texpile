@@ -16,7 +16,6 @@ import { provideScmHandlers } from '$lib/workspace/scmHandlers.svelte';
 import { ScmFetch } from '$lib/workspace/scmFetch.svelte';
 import { AutoCheck } from '$lib/workspace/scmAutoCheck.svelte';
 import { LocalHistoryActions, provideLocalHistoryActions } from '$lib/workspace/localHistoryActions.svelte';
-import { ScmPublishNew } from '$lib/workspace/scmPublishNew';
 import { refreshProjectIntel } from '$lib/workspace/projectIntel';
 import { projectIntelStore } from '$lib/stores/projectIntel';
 import { trailingDebounce } from '$lib/trailingDebounce';
@@ -158,12 +157,10 @@ export class WorkspaceIntegrations {
 			autoCheck.start();
 			return autoCheck.stop;
 		});
-		const publisher = new ScmPublishNew(this.scm);
 		$effect(() =>
 			provideScmHandlers({
 				ignore: (paths) => void this.scm.ignoreFiles(paths),
 				checkForNew: () => void fetcher.checkForNew(),
-				publishNew: () => void publisher.run(),
 				compare: (path) => this.scm.openDiff(path),
 				hasUpstream: () => !!gitTracking.current,
 				keepSide: (path, side) => void this.scm.combine.keepSide(path, side),

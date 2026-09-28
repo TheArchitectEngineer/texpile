@@ -8,7 +8,6 @@
 	import GitPublishModal from './GitPublishModal.svelte';
 	import GitQuestionModal from './GitQuestionModal.svelte';
 	import GitCloneModal from './GitCloneModal.svelte';
-	import GitPublishFilesModal from './GitPublishFilesModal.svelte';
 	import { gitDialogs, listenForGitQuestions } from '$lib/workspace/gitDialogs.svelte';
 
 	$effect(() => listenForGitQuestions());
@@ -25,9 +24,6 @@
 {/if}
 {#if gitDialogs.publish}
 	<GitPublishModal ask={gitDialogs.publish} />
-{/if}
-{#if gitDialogs.publishFiles}
-	<GitPublishFilesModal ask={gitDialogs.publishFiles} />
 {/if}
 {#if gitDialogs.clone}
 	<GitCloneModal ask={gitDialogs.clone} />

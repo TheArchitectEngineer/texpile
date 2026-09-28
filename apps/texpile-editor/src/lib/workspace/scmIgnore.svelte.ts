@@ -1,7 +1,6 @@
 // Lines added to the project folder's .gitignore: the build output patterns for its compile format,
-// a big new folder from its row's menu, and what is left out when a folder is first published.
-// Appended, never rewritten, and a line already there is not added again: the file may be
-// hand-written.
+// and a big new folder from its row's menu. Appended, never rewritten, and a line already there is
+// not added again: the file may be hand-written.
 import { workspaceRoot } from './workspaceStore';
 import { refreshGitStatus } from './gitStore';
 import { basename, joinPath, relativeTo } from './fileSystem';
@@ -18,13 +17,12 @@ export class ScmIgnore {
 		private deps: IgnoreDeps
 	) {}
 
-	/** the output PDF is deliberately not among the patterns. `quiet` for a step inside a larger
-	 *  action, which says what happened itself */
-	artifacts = (quiet = false): Promise<void> => this.#append(this.deps.ignoreLines(), quiet ? null : m.vcs_toast_ignored());
+	/** the output PDF is deliberately not among the patterns */
+	artifacts = (): Promise<void> => this.#append(this.deps.ignoreLines(), m.vcs_toast_ignored());
 
 	/** The project folder's own .gitignore, which git reads for everything below it wherever the
 	 *  repository starts. A folder's path ends in a slash, and so does its line. */
-	files = (paths: string[], quiet = false): Promise<void> => {
+	files = (paths: string[]): Promise<void> => {
 		const root = workspaceRoot.current;
 		if (!root || !paths.length) return Promise.resolve();
 		const lines = paths.map((p) => ignoreLineFor(relativeTo(root, p)));
@@ -32,16 +30,10 @@ export class ScmIgnore {
 			paths.length === 1
 				? m.vcs_toast_ignored_file({ name: basename(paths[0].replace(/[\\/]+$/, '')) })
 				: m.vcs_toast_ignored_files({ count: paths.length });
-		return this.#append(lines, quiet ? null : title);
+		return this.#append(lines, title);
 	};
 
-	/** whether the project folder has a .gitignore of its own yet */
-	exists = async (): Promise<boolean> => {
-		const root = workspaceRoot.current;
-		return !!root && (await this.deps.readTextIfPresent(joinPath(root, '.gitignore'))) !== null;
-	};
-
-	async #append(lines: string[], done: string | null): Promise<void> {
+	async #append(lines: string[], done: string): Promise<void> {
 		const root = workspaceRoot.current;
 		if (!root || this.host.busy) return;
 		const path = joinPath(root, '.gitignore');
@@ -58,6 +50,6 @@ export class ScmIgnore {
 		}
 		await this.deps.refreshTree();
 		await refreshGitStatus(root);
-		if (done) toaster.success({ title: done });
+		toaster.success({ title: done });
 	}
 }

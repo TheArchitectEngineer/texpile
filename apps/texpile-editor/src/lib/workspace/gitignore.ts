@@ -1,6 +1,5 @@
-// Lines added to a .gitignore: the build output patterns (ScmActions.ignoreArtifacts), a big new
-// folder from its row's menu, and the files left out when a folder is first published. Always
-// appended, never rewritten: the file may be hand-written.
+// Lines added to a .gitignore: the build output patterns (ScmActions.ignoreArtifacts) and a big new
+// folder from its row's menu. Always appended, never rewritten: the file may be hand-written.
 
 /** the line that matches this one file and nothing else, for a .gitignore in the folder it is
  *  relative to. Anchored with a leading slash, since `notes.txt` alone would also ignore every
