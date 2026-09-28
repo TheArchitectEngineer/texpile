@@ -107,3 +107,20 @@ it('marks the words that differ between the two sides, and not the ones they sha
 	expect(mine).not.toContain('engine');
 	expect(theirs).not.toContain('flowers');
 });
+
+// a place settled by hand with one marker line missed: Complete Merge refuses the file, so the
+// line left behind is marked where it is
+it('marks a marker line left behind when a place is settled by hand', () => {
+	// a line of seven = in a file that never held a conflict is the author's text
+	const plain = mount(['Title', '=======', 'Text.', ''].join('\n'));
+	expect(plain.dom.querySelectorAll('.cm-conflict-stray')).toHaveLength(0);
+
+	const view = mount();
+	expect(view.dom.querySelectorAll('.cm-conflict-stray')).toHaveLength(0); // a whole place's lines are its own
+	// the author deletes the <<<<<<< line by hand and misses the other two
+	const open = view.state.doc.line(2);
+	view.dispatch({ changes: { from: open.from, to: open.to + 1 } });
+	expect(view.state.field(conflictBlocks)).toHaveLength(0);
+	const stray = [...view.dom.querySelectorAll('.cm-conflict-stray')].map((l) => l.textContent);
+	expect(stray).toEqual(['=======', '>>>>>>> origin/main']);
+});

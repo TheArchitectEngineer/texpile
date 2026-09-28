@@ -11,7 +11,7 @@ import { createServer, type Server } from 'node:net';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describePrompt, writeAskpassScripts, askpassEnv } from '../../../../../../electron/src/gitAskpassClient';
+import { describePrompt, isGithubHttpsPrompt, writeAskpassScripts, askpassEnv } from '../../../../../../electron/src/gitAskpassClient';
 import { gitCredentialFill } from '../../../../../../electron/src/gitRemote';
 
 function hasGitAndSh(): boolean {
@@ -37,6 +37,19 @@ describe('reading what git and ssh ask', () => {
 			subject: 'password',
 			host: 'gitlab.example.org'
 		});
+	});
+
+	it('lets the GitHub account answer only https://github.com itself', () => {
+		expect(isGithubHttpsPrompt("Username for 'https://github.com': ")).toBe(true);
+		expect(isGithubHttpsPrompt("Password for 'https://ada@github.com': ")).toBe(true);
+		// plain http would carry the token in the clear; another port is another server
+		expect(isGithubHttpsPrompt("Password for 'http://ada@github.com': ")).toBe(false);
+		expect(isGithubHttpsPrompt("Password for 'https://ada@github.com:8443': ")).toBe(false);
+		expect(isGithubHttpsPrompt("Password for 'https://ada@github.com.example.org': ")).toBe(false);
+		// a quote in the username (git without prompt sanitising) must not pass another host off as github.com
+		const forged = "Password for 'https://github.com'@evil.example.org': ";
+		expect(isGithubHttpsPrompt(forged)).toBe(false);
+		expect(describePrompt('https', forged)).toMatchObject({ subject: 'password', host: null });
 	});
 
 	it("reads ssh's passphrase, password and new-host questions", () => {

@@ -60,7 +60,8 @@ export async function createGithubRepo(
 				'User-Agent': 'Texpile',
 				'X-GitHub-Api-Version': '2022-11-28'
 			},
-			body: JSON.stringify({ name, private: opts.isPrivate })
+			// private unless told otherwise: a missing flag would drop out of the JSON and GitHub's default is public
+			body: JSON.stringify({ name, private: opts.isPrivate !== false })
 		});
 	} catch (e) {
 		return { ok: false, failure: 'network', error: e instanceof Error ? e.message : String(e) };

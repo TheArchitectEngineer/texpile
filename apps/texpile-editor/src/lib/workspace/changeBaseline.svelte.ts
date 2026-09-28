@@ -9,9 +9,15 @@ export class ChangeBaseline {
 	/** null: no markers, which is right for a file with no saved version (every line would be new) */
 	text = $state<string | null>(null);
 	private seq = 0;
+	/** the file `text` belongs to */
+	private path: string | null = null;
 
 	async load(path: string | null): Promise<void> {
 		const mine = ++this.seq;
+		// another file: the one before's version must not be what its bars are drawn against while git
+		// is asked. The same file again (HEAD moved) keeps its bars until the new version is in
+		if (this.path === null || path === null || !samePath(this.path, path)) this.text = null;
+		this.path = path;
 		// a file being combined has no marks, as VS Code's quick diff leaves one alone: its conflict
 		// colours already say what differs, and bars against the last version would only double them
 		const combining = !!path && gitChanges.current.some((c) => isConflicted(c.x, c.y) && samePath(c.path, path));

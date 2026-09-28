@@ -8,7 +8,7 @@ import { Decoration, EditorView, WidgetType, type Command, type DecorationSet } 
 import { EditorSelection, StateField, type EditorState, type Extension, type Range, type TransactionSpec } from '@codemirror/state';
 import { isolateHistory } from '@codemirror/commands';
 import { presentableDiff } from '@codemirror/merge';
-import { scanConflicts, resolveConflict, type ConflictBlock, type ConflictChoice } from '$lib/workspace/conflictMarkers';
+import { scanConflicts, resolveConflict, MARKER_LINE, type ConflictBlock, type ConflictChoice } from '$lib/workspace/conflictMarkers';
 import { m } from '$lib/paraglide/messages';
 
 /** the marked places in the document, rescanned on every change: a file holds a handful at most,
@@ -16,6 +16,13 @@ import { m } from '$lib/paraglide/messages';
 export const conflictBlocks = StateField.define<ConflictBlock[]>({
 	create: (state) => scanConflicts(state.doc.iterLines()),
 	update: (blocks, tr) => (tr.docChanged ? scanConflicts(tr.state.doc.iterLines()) : blocks)
+});
+
+/** Whether the file has held a whole conflict in this editor. Only then is a lone marker line one
+ *  git left, the rest of a place settled by hand: elsewhere `=======` is the author's text. */
+const mergeFile = StateField.define<boolean>({
+	create: (state) => state.field(conflictBlocks).length > 0,
+	update: (was, tr) => was || tr.state.field(conflictBlocks).length > 0
 });
 
 /** the change that settles one place: the whole block, markers and all, becomes the chosen lines */
@@ -199,7 +206,24 @@ function build(state: EditorState): DecorationSet {
 		lineClasses(state, b.theirs, 'cm-conflict-theirs', out);
 		markerLine(close, 'end', null, out);
 	}
+	if (state.field(mergeFile)) strayMarkers(state, out);
 	return Decoration.set(out, true);
+}
+
+const strayLine = Decoration.line({ class: 'cm-conflict-stray' });
+
+/** marker lines outside any whole place: what is left of one settled by hand. Complete Merge
+ *  refuses the file while one is there, so it is marked where it is */
+function strayMarkers(state: EditorState, out: Range<Decoration>[]): void {
+	const text = state.doc.toString();
+	if (!text.includes('<<<<<<<') && !text.includes('=======') && !text.includes('>>>>>>>')) return;
+	const blocks = state.field(conflictBlocks);
+	for (let n = 1; n <= state.doc.lines; n++) {
+		const line = state.doc.line(n);
+		if (!MARKER_LINE.test(line.text)) continue;
+		if (blocks.some((b) => b.from <= line.from && line.from < b.to)) continue;
+		out.push(strayLine.range(line.from));
+	}
 }
 
 // block widgets have to come from a state field, not a view plugin
@@ -231,6 +255,7 @@ const theme = EditorView.baseTheme({
 	'.cm-conflict-marker-mine': { backgroundColor: `color-mix(in srgb, ${mineTint} 22%, transparent)` },
 	'.cm-conflict-marker-theirs, .cm-conflict-marker-end': { backgroundColor: `color-mix(in srgb, ${theirsTint} 22%, transparent)` },
 	'.cm-conflict-marker-base': { backgroundColor: 'color-mix(in srgb, currentColor 10%, transparent)' },
+	'.cm-conflict-stray': { backgroundColor: 'color-mix(in srgb, var(--color-error-500) 18%, transparent)' },
 	// the sides are told apart by the tint of the line the label sits on, never by coloured words: a
 	// pale theme colour as text on a light ground does not read
 	'.cm-conflict-label': {
@@ -261,7 +286,7 @@ const theme = EditorView.baseTheme({
 });
 
 export function cmConflicts(): Extension {
-	// no keys of its own: VS Code leaves these unbound too, Alt+F5 already reaches every change,
-	// and the obvious Alt+[ and Alt+] type quotation marks on a Mac keyboard
-	return [conflictBlocks, decorations, theme];
+	// no keys of its own, as VS Code leaves its Next and Previous Conflict unbound: the notice over
+	// the file has them, and the obvious Alt+[ and Alt+] type quotation marks on a Mac keyboard
+	return [conflictBlocks, mergeFile, decorations, theme];
 }

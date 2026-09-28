@@ -4,7 +4,17 @@ import type { GitBadge } from '$lib/workspace/git';
 import { m } from '$lib/paraglide/messages';
 
 export function gitBadgeOf(gitStatus: Record<string, GitBadge>, e: TreeEntry): GitBadge | undefined {
-	return e.type === 'file' ? gitStatus[gitKey(e.path)] : gitFolderStatus.current[gitKey(e.path)];
+	const key = gitKey(e.path);
+	const own = e.type === 'file' ? gitStatus[key] : (gitFolderStatus.current[key] ?? gitStatus[key]);
+	return own ?? inNewFolder(gitStatus, key);
+}
+
+/** A big new folder is one row in Source Control, keyed by the folder (gitStatusLimit.ts), so
+ *  nothing inside it has a status of its own: the folder's row speaks for all of it. */
+function inNewFolder(gitStatus: Record<string, GitBadge>, key: string): GitBadge | undefined {
+	for (let dir = key.slice(0, key.lastIndexOf('/')); dir.includes('/'); dir = dir.slice(0, dir.lastIndexOf('/')))
+		if (gitStatus[dir] === 'U') return 'U';
+	return undefined;
 }
 
 // Status is carried by the file name's colour rather than a letter, so it costs the row no width.

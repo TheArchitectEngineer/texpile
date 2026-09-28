@@ -125,3 +125,11 @@ it('says a new line was not there before, and closes when the file is back as it
 	view.dispatch({ changes: { from: 0, to: 6 } });
 	expect(view.state.field(changePeek)).toBeNull();
 });
+
+// a read-only editor is set up without the change marks, and the palette's change commands still
+// ask it for its changes
+it('answers "no changes" for an editor without the change marks', () => {
+	const state = EditorState.create({ doc: 'Read only.\n' });
+	expect(changedLines(state)).toEqual([]);
+	expect(revertChangeAt(state, 0)).toBeNull();
+});

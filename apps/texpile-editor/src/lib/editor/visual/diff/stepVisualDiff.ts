@@ -22,11 +22,17 @@ export function changeRanges(view: EditorView): { from: number; to: number }[] {
 export function stepVisualDiff(view: EditorView, dir: 1 | -1): boolean {
 	const ranges = changeRanges(view);
 	if (!ranges.length) return false;
+	const doc = view.state.doc;
 	const head = view.state.selection.head;
+	// where the caret lands for a change, which is not always its start: a deleted paragraph's mark
+	// sits between blocks, and the caret goes into the next one. Compared by that too, or the caret
+	// already there would be sent back to it on every press
+	const land = (r: { from: number }) => TextSelection.near(doc.resolve(Math.min(r.from, doc.content.size))).head;
 	const target =
-		dir === 1 ? (ranges.find((r) => r.from > head) ?? ranges[0]) : ([...ranges].reverse().find((r) => r.to < head) ?? ranges.at(-1)!);
-	const pos = Math.min(target.from, view.state.doc.content.size);
-	view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(pos))).scrollIntoView());
+		dir === 1
+			? (ranges.find((r) => r.from > head && land(r) > head) ?? ranges[0])
+			: ([...ranges].reverse().find((r) => r.to < head && land(r) < head) ?? ranges.at(-1)!);
+	view.dispatch(view.state.tr.setSelection(TextSelection.near(doc.resolve(Math.min(target.from, doc.content.size)))).scrollIntoView());
 	view.focus();
 	return true;
 }

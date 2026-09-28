@@ -11,7 +11,7 @@
 	import { MENU_CARD, MENU_ITEM, MENU_ICON } from '$lib/workspace/history/rowMenu';
 	import { m } from '$lib/paraglide/messages';
 
-	let { left, onLeave }: { left: number; onLeave?: () => void } = $props();
+	let { left, stray = false, onLeave }: { left: number; stray?: boolean; onLeave?: () => void } = $props();
 
 	let allOpen = $state(false);
 
@@ -76,6 +76,12 @@
 				</Popover.Positioner>
 			</Portal>
 		</Popover>
+	{:else if stray}
+		<!-- every place chosen, but a marker line was left behind: Complete Merge would refuse it -->
+		<p class="min-w-0 truncate">
+			<span class="font-medium">{m.vcs_conflict_notice_title()}.</span>
+			{m.vcs_conflict_notice_stray()}
+		</p>
 	{:else}
 		<p class="min-w-0 truncate">
 			<span class="font-medium">{m.vcs_conflict_notice_done_title()}.</span>

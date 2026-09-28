@@ -54,6 +54,7 @@
 		encodingIssue = null,
 		conflicted = false,
 		conflictsLeft = 0,
+		conflictStray = false,
 		changeBaseline = null,
 		onLeaveConflicts,
 		binaryWarning = null,
@@ -251,7 +252,7 @@
 		</div>
 	{/if}
 	{#if loadedPath && conflicted && !comparing}
-		<ConflictNotice left={conflictsLeft} onLeave={structured ? onLeaveConflicts : undefined} />
+		<ConflictNotice left={conflictsLeft} stray={conflictStray} onLeave={structured ? onLeaveConflicts : undefined} />
 	{/if}
 	<!-- the buffer is now the only copy, so it stays on screen; what a save will do is spelled out
 	     because it recreates the old name rather than following the rename -->

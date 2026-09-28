@@ -39,6 +39,8 @@ export type EditorPaneProps = {
 	changeBaseline?: string | null;
 	/** how many marked places are still waiting for a choice */
 	conflictsLeft?: number;
+	/** none left, but a marker line is: the file is not done */
+	conflictStray?: boolean;
 	/** every place is chosen and the author wants the visual editor back */
 	onLeaveConflicts?: () => void;
 	/** the file looks binary: nothing was read, the pane warns and offers to open it as text */

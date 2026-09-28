@@ -2,8 +2,8 @@
 	// Sync and Publish, in the two places the panel offers them: the control beside the branch, named
 	// in words there as in the main button, and the main button when nothing is waiting to be saved
 	// (VS Code's action button). While one of them runs, the button says so rather than only greying
-	// out, which read as broken on a slow link. Check for new versions is in the command palette: the
-	// automatic check already puts what there is to receive on this button.
+	// out, which read as broken on a slow link. Fetch is in the command palette: Autofetch already puts
+	// what there is to pull on this button.
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { ArrowUp, ArrowDown, ArrowDownUp, CloudUpload, LoaderCircle } from '@lucide/svelte';
 	import { gitRunning } from '$lib/workspace/gitStore';

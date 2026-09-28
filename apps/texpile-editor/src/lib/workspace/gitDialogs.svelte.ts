@@ -49,6 +49,8 @@ let identity = $state<Pending<Identity, Identity | null> | null>(null);
 let publish = $state<Pending<PublishAsk, boolean> | null>(null);
 let questions = $state<GitAskpassRequest[]>([]);
 let clone = $state<Pending<CloneAsk, CloneChoice | null> | null>(null);
+/** questions off screen while their author signs in to GitHub: true while git still waits on one */
+const signingIn = new Map<number, boolean>();
 
 export const gitDialogs = {
 	get identity() {
@@ -120,6 +122,7 @@ export function listenForGitQuestions(): () => void {
 	// the operation ended (or its window went away) with the question still up
 	const offClosed = n.onGitAskpassClosed?.((ids) => {
 		questions = questions.filter((q) => !ids.includes(q.id));
+		for (const id of ids) if (signingIn.has(id)) signingIn.set(id, false);
 	});
 	return () => {
 		offAsk();
@@ -137,5 +140,13 @@ export function answerQuestion(id: number, answer: string | null): void {
  *  while the author signs in, and comes back if they do not */
 export async function answerWithGithubSignIn(question: GitAskpassRequest): Promise<void> {
 	questions = questions.filter((q) => q.id !== question.id);
-	if (!(await answerWithGithub(question.id))) questions = [...questions, question];
+	signingIn.set(question.id, true);
+	try {
+		if (await answerWithGithub(question.id)) return;
+		// not if the operation that asked ended meanwhile: a question back on screen for it would
+		// answer nothing
+		if (signingIn.get(question.id)) questions = [...questions, question];
+	} finally {
+		signingIn.delete(question.id);
+	}
 }

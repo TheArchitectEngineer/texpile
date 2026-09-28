@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { findConflicts, hasConflictMarkers, firstConflictLine, resolveConflict, type ConflictChoice } from '$lib/workspace/conflictMarkers';
+import {
+	findConflicts,
+	hasConflictMarkers,
+	hasMarkerLines,
+	firstConflictLine,
+	resolveConflict,
+	type ConflictChoice
+} from '$lib/workspace/conflictMarkers';
+import { hasConflictMarkers as mainHasMarkers } from '../../../../../../electron/src/conflictMarkers';
 
 const TWO_SIDES = ['Intro.', '<<<<<<< HEAD', 'My line.', '=======', 'Their line.', '>>>>>>> origin/main', 'Outro.', ''].join('\n');
 
@@ -96,5 +104,17 @@ describe('settling a place', () => {
 		const once = settle(text, 'theirs', 1);
 		expect(findConflicts(once)).toHaveLength(1);
 		expect(once.endsWith('Outro.\nB\n')).toBe(true);
+	});
+});
+
+// the editor and Complete Merge have to agree on when a file is done
+describe('marker lines left behind', () => {
+	it('counts a stray marker line as Complete Merge does', () => {
+		const handSettled = 'Intro.\n=======\nTheir line.\n>>>>>>> origin/main\nOutro.\n';
+		expect(findConflicts(handSettled)).toHaveLength(0);
+		expect(hasMarkerLines(handSettled)).toBe(true);
+		expect(mainHasMarkers(handSettled)).toBe(true);
+		for (const text of [TWO_SIDES, 'Plain.\r\n=======\r\n', 'No markers. ======== eight is not one.\n', '<<<<<<<< eight\n'])
+			expect(hasMarkerLines(text)).toBe(mainHasMarkers(text));
 	});
 });

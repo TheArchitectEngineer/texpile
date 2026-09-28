@@ -15,13 +15,27 @@ export type AskpassRequest = {
 	host: string | null;
 };
 
-/** the host inside git's "Username for 'https://user@example.com:8443':" */
-function hostOfUrl(quoted: string): string | null {
+/** git's own two https questions, whole. Only these name a host: a username with a quote in it
+ *  (git before its prompt sanitising, or with it turned off) could otherwise make the first quoted
+ *  part of `Password for 'https://<user>@<host>':` read as a host it is not. */
+const GIT_HTTPS_PROMPT = /^(?:Username|Password) for '([^']*)':$/i;
+
+/** the address inside git's "Username for 'https://user@example.com:8443':" */
+function urlOfPrompt(text: string): URL | null {
+	const quoted = GIT_HTTPS_PROMPT.exec(text)?.[1];
+	if (!quoted) return null;
 	try {
-		return new URL(quoted).hostname || null;
+		return new URL(quoted);
 	} catch {
 		return null;
 	}
+}
+
+/** git asking about https://github.com itself, the one place the GitHub account may answer: not
+ *  plain http (the token would cross the network in the clear) and not another port */
+export function isGithubHttpsPrompt(prompt: string): boolean {
+	const url = urlOfPrompt(prompt.trim());
+	return !!url && url.protocol === 'https:' && url.hostname === 'github.com' && url.port === '';
 }
 
 /**
@@ -35,7 +49,7 @@ export function describePrompt(kind: 'https' | 'ssh', prompt: string, promptType
 	const quoted = /'([^']+)'/.exec(text)?.[1] ?? null;
 
 	if (kind === 'https') {
-		const host = quoted ? hostOfUrl(quoted) : null;
+		const host = urlOfPrompt(text)?.hostname || null;
 		if (/^username/i.test(text)) return { input: 'text', subject: 'username', prompt: text, host };
 		if (/^password/i.test(text)) return { input: 'secret', subject: 'password', prompt: text, host };
 		return { input: 'secret', subject: 'other', prompt: text, host };

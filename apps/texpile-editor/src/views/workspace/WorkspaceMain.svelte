@@ -144,6 +144,7 @@
 			encodingIssue={doc.encodingIssue}
 			conflicted={doc.conflicted}
 			conflictsLeft={doc.conflictsLeft}
+			conflictStray={doc.strayMarkers}
 			changeBaseline={panes.changeBaseline}
 			onLeaveConflicts={actions.leaveConflicts}
 			binaryWarning={doc.binaryWarning}

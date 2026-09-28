@@ -13,7 +13,7 @@ import { randomBytes } from 'node:crypto';
 import { chmodSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { describePrompt, writeAskpassScripts, askpassEnv } from './gitAskpassClient';
+import { describePrompt, isGithubHttpsPrompt, writeAskpassScripts, askpassEnv } from './gitAskpassClient';
 import type { GitAuthEnv } from './gitRemote';
 import { SignIns, keepable, keychainVault, memoryVault, refusedPassword, settle } from './gitSignIns';
 import { forgetGithubSession, githubSession, registerGithubAuthIpc } from './githubSession';
@@ -126,7 +126,7 @@ async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; 
 	const request = describePrompt(req.kind === 'ssh' ? 'ssh' : 'https', req.prompt, promptType);
 	const keep = req.kind !== 'ssh' && keepable(request.subject);
 	// VS Code's GitHub credential provider: the signed-in account answers github.com's questions
-	const forGithub = keep && request.host === 'github.com';
+	const forGithub = keep && isGithubHttpsPrompt(req.prompt);
 	const signedIn = forGithub ? githubAnswer(request.subject) : null;
 	if (signedIn !== null) {
 		session.usedGithub = true;
@@ -195,8 +195,11 @@ export async function withAskpass<T extends { ok: boolean; failure?: string; err
 	op: (env: GitAuthEnv) => Promise<T>,
 	opts: { quiet?: boolean } = {}
 ): Promise<T> {
+	// the automatic check asks no one, a credential helper with windows of its own included: Git
+	// Credential Manager (Git for Windows' default) opens its sign-in unless told not to
+	const quietEnv: GitAuthEnv = opts.quiet ? { GCM_INTERACTIVE: 'never' } : {};
 	const b = await ensureBridge();
-	if (!b) return op({});
+	if (!b) return op(quietEnv);
 	const token = randomBytes(24).toString('hex');
 	const session: Session = {
 		sender,
@@ -213,7 +216,7 @@ export async function withAskpass<T extends { ok: boolean; failure?: string; err
 	}
 	sender.once('destroyed', onGone);
 	try {
-		const result = await op(askpassEnv(b.dir, b.handle, token, process.execPath));
+		const result = await op({ ...askpassEnv(b.dir, b.handle, token, process.execPath), ...quietEnv });
 		// kept only once they worked; a kept one that was refused is dropped, so the next try asks.
 		// A question left unanswered says nothing about the answers before it.
 		if (!session.cancelled) settle(signInStore(), result, session.typed, session.recalled);

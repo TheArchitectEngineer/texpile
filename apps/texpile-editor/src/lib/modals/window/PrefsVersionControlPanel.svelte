@@ -31,7 +31,8 @@
 	if (canKeepLocalHistory()) void localHistoryUsage().then((n) => (historyBytes = n));
 
 	function sizeText(bytes: number): string {
-		if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+		// a few bytes still read as 1 KB, but nothing left after Clear reads as nothing
+		if (bytes < 1024 * 1024) return `${bytes === 0 ? 0 : Math.max(1, Math.round(bytes / 1024))} KB`;
 		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 	}
 

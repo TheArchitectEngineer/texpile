@@ -101,3 +101,24 @@ describe('a file that came in with marked places', () => {
 		expect(rebuildVisual).toHaveBeenCalledTimes(1);
 	});
 });
+
+// settled by hand with one marker line missed: Complete Merge refuses the file, so the editor must not
+// call it done, nor offer the visual editor, where the line would print as a paragraph
+describe('a marker line left behind', () => {
+	const LEFT = 'Intro.\nMine.\n=======\nOutro.\n';
+
+	it('keeps the file in merge mode while git still counts it as unmerged', async () => {
+		const { gitChanges } = await import('$lib/workspace/gitStore');
+		const { doc } = setup();
+		gitChanges.current = [{ path: '/p/a.tex', x: 'U', y: 'U' } as (typeof gitChanges.current)[number]];
+		doc.openTex('/p/a.tex', LEFT, '\n');
+		expect(doc.conflicted).toBe(true);
+		expect(doc.conflictsLeft).toBe(0);
+		expect(doc.strayMarkers).toBe(true);
+		expect(doc.leaveConflicts()).toBe(false);
+		// not being merged: a line of seven = is the author's text
+		gitChanges.current = [];
+		doc.openTex('/p/a.tex', LEFT, '\n');
+		expect(doc.conflicted).toBe(false);
+	});
+});

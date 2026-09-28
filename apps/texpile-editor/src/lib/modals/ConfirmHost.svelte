@@ -10,8 +10,11 @@
 </script>
 
 {#if prompt}
+	<!-- above every other dialog: a prompt is asked from inside one (Preferences, Local History) and
+	     drawn on the same layer it would sit behind it -->
 	<Modal
 		title={prompt.title}
+		z="z-1500"
 		card="max-h-full max-w-sm overflow-y-auto p-5"
 		alert
 		dismissable={prompt.cancelId !== undefined}

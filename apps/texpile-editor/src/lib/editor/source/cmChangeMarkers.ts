@@ -44,10 +44,17 @@ export const changeDiff = StateField.define<Diff>({
 
 export type ChangeKind = 'added' | 'modified' | 'removed';
 
+const NO_DIFF: Diff = { base: null, chunks: [] };
+/** the diff, or none where the extension is left out (a read-only editor): the palette's change
+ *  commands still reach that editor */
+function diffOf(state: EditorState): Diff {
+	return state.field(changeDiff, false) ?? NO_DIFF;
+}
+
 /** each chunk as the lines it marks in the editor's document: exported for the tests */
 export function changedLines(state: EditorState): { kind: ChangeKind; from: number; to: number }[] {
 	const doc = state.doc;
-	return state.field(changeDiff).chunks.map((c) => {
+	return diffOf(state).chunks.map((c) => {
 		const kind: ChangeKind = c.fromB === c.toB ? 'removed' : c.fromA === c.toA ? 'added' : 'modified';
 		const from = doc.lineAt(Math.min(c.fromB, doc.length)).number;
 		const to = kind === 'removed' ? from : doc.lineAt(Math.min(Math.max(c.fromB, c.endB), doc.length)).number;
@@ -103,14 +110,14 @@ export const previousChange = jump(-1);
 
 /** the change a position is in, or at the edge of */
 function chunkAt(state: EditorState, pos: number): Chunk | undefined {
-	return state.field(changeDiff).chunks.find((c) => c.fromB <= pos && c.endB >= pos);
+	return diffOf(state).chunks.find((c) => c.fromB <= pos && c.endB >= pos);
 }
 
 /** Put the lines of the change at `pos` back as they were in the last version, as one undo step
  *  of its own; null when there is no change there. @codemirror/merge's rejectChunk, which works
  *  on the same chunks. */
 export function revertChangeAt(state: EditorState, pos: number): TransactionSpec | null {
-	const { base } = state.field(changeDiff);
+	const { base } = diffOf(state);
 	const c = chunkAt(state, pos);
 	if (!base || !c) return null;
 	let insert = base.sliceString(c.fromA, Math.max(c.fromA, c.toA - 1));

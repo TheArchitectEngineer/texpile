@@ -84,6 +84,13 @@ it('stops on a declined or expired code, and when cancelled', async () => {
 	expect(
 		await pollForToken(scripted([]).fetchImpl, { ...code, expiresAt: Date.now() - 1 }, new AbortController().signal, 'x', noSleep)
 	).toEqual({ failure: 'expired' });
+	// Cancel while a request is out: the token that comes back with it is not kept
+	const late = new AbortController();
+	const inFlight = async () => {
+		late.abort();
+		return { ok: true, status: 200, json: async () => ({ access_token: 'gho_late' }), text: async () => '' };
+	};
+	expect(await pollForToken(inFlight, code, late.signal, 'x', noSleep)).toEqual({ failure: 'cancelled' });
 });
 
 it('learns whose token it is, and is not offered without a client ID', async () => {

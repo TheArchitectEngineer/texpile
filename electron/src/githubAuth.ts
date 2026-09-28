@@ -110,6 +110,8 @@ export async function pollForToken(
 		}
 		// an app set to expire its tokens says when; without its client secret the token cannot be
 		// renewed, so an expired one simply means signing in again
+		// cancelled while that request was out: a token that arrives after Cancel is not a sign-in
+		if (signal.aborted) return { failure: 'cancelled' };
 		if (json.access_token) return { token: json.access_token, ...(json.expires_in ? { expiresIn: json.expires_in } : {}) };
 		if (json.error === 'authorization_pending') continue;
 		if (json.error === 'slow_down') {

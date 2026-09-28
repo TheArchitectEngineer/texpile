@@ -46,15 +46,15 @@ A commit in Graph opens to what differs between it and the working tree. To see 
 
 Every time you save a file, Texpile keeps a copy of it, as VS Code's local history does. It also keeps one just before anything replaces text no other copy holds: discarding changes in Source Control, restoring a copy, and reloading a file that changed outside Texpile over edits you had not saved. This happens in every project, including one that has never used git, and the copies stay on your computer in Texpile's own data, not in the project. Git commits are a separate history, in Source Control's Graph.
 
-| Where to find it | Path                                               | Note                                   |
-| ---------------- | -------------------------------------------------- | -------------------------------------- |
-| Menu             | File › Local History…                              | The open file's copies.                |
-| Menu             | File › Restore Deleted File…                       | Files deleted from the project.        |
-| File explorer    | Right-click a file › Local History…                |                                        |
-| File explorer    | Right-click a folder › Restore Deleted File…       | Only files deleted from that folder.   |
-| Tabs             | Right-click a tab › Local History…                 |                                        |
-| Palette          | Local History…, Restore Deleted File…              | Ctrl+K, then type the name.            |
-| Setting          | Preferences › Version Control › Keep local history | Off records nothing; kept copies stay. |
+| Where to find it | Path                                                               | Note                                   |
+| ---------------- | ------------------------------------------------------------------ | -------------------------------------- |
+| Menu             | File › Local History…                                              | The open file's copies.                |
+| Menu             | File › Restore Deleted File…                                       | Files deleted from the project.        |
+| File explorer    | Right-click a file › Local History…                                |                                        |
+| File explorer    | Right-click a folder › Restore Deleted File…                       | Only files deleted from that folder.   |
+| Tabs             | Right-click a tab › Local History…                                 |                                        |
+| Palette          | Local History…, Restore Deleted File…                              | Ctrl+K, then type the name.            |
+| Setting          | Preferences › Version Control › Local History › Keep local history | Off records nothing; kept copies stay. |
 
 The dialog lists the copies by day, newest first. A copy that gathered several saves shows the span it covers, a copy you named shows its name, and one taken before something replaced the text says what (Before discard, Before restore, Before reload). Pick a copy to see it against the file as it is now, or against the copy before it. Restore This Copy asks first, keeps what the file holds now as a copy of its own, and the notice after it offers Undo. Copy puts the copy's text on the clipboard. Save a Copy Now… keeps the file as it is under a name you choose, and a copy's … menu renames or deletes it.
 
