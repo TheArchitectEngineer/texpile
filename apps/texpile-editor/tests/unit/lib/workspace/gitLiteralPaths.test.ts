@@ -1,13 +1,14 @@
 // A file name is that file, never a pattern. To git, "a[1].tex" after `--` is a wildcard that also
 // matches a1.tex: discarding the one threw away the other's changes, and the Timeline mixed their
-// histories. The helper process runs every git with GIT_LITERAL_PATHSPECS (gitProcessEnv.ts); these
-// run the same way, against real repositories (gitLiveFixture.ts).
+// histories. Each name is passed as a literal pathspec (literal() in gitProcessEnv.ts), and the hooks
+// git runs keep patterns of their own. These run in the helper process's environment
+// (gitProcessEnv.ts), against real repositories (gitLiveFixture.ts).
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, chmodSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { GIT_PROCESS_ENV } from '../../../../../../electron/src/gitProcessEnv';
-import { gitDiscard, gitStage, gitCommit, gitUnstage } from '../../../../../../electron/src/gitService';
-import { gitFileLog, gitRestore } from '../../../../../../electron/src/gitHistory';
+import { gitDiscard, gitStage, gitUnstage } from '../../../../../../electron/src/gitService';
+import { gitCommit, gitFileLog, gitLog, gitRestore } from '../../../../../../electron/src/gitHistory';
 import { AVAILABLE, run, out, identify, commit, tempDir, removeTempDirs } from './gitLiveFixture';
 
 const saved: Record<string, string | undefined> = {};
@@ -61,11 +62,50 @@ describe.skipIf(!AVAILABLE)('file names with [ ] in them', () => {
 		expect(log.entries?.map((e) => e.subject)).toEqual(['Add the bracketed one']);
 	});
 
+	it('unstages only the file named', async () => {
+		const root = makeRepo();
+		writeFileSync(join(root, 'a1.tex'), 'one, staged\n');
+		writeFileSync(join(root, 'a[1].tex'), 'bracket, staged\n');
+		run(root, 'add', '-A');
+		expect((await gitUnstage(root, [join(root, 'a[1].tex')])).ok).toBe(true);
+		expect(out(root, 'diff', '--cached', '--name-only')).toBe('a1.tex');
+	});
+
+	it("lists only that folder's versions in the History", async () => {
+		const root = makeRepo();
+		mkdirSync(join(root, 'ch1'));
+		mkdirSync(join(root, 'ch[1]'));
+		commit(root, 'ch1/one.tex', 'one\n', 'Chapter one');
+		commit(root, 'ch[1]/draft.tex', 'draft\n', 'The bracketed chapter');
+		expect((await gitLog(join(root, 'ch[1]'))).entries?.map((e) => e.subject)).toEqual(['The bracketed chapter']);
+	});
+
 	it('restores a version from before the bracketed file existed by removing it', async () => {
 		const root = makeRepo();
 		const before = out(root, 'rev-parse', 'HEAD~1');
 		expect((await gitRestore(root, before, 'Back to a1 only')).ok).toBe(true);
 		expect(existsSync(join(root, 'a[1].tex'))).toBe(false);
 		expect(existsSync(join(root, 'a1.tex'))).toBe(true);
+	});
+});
+
+describe.skipIf(!AVAILABLE || process.platform === 'win32')("a hook's own patterns", () => {
+	it('still match in a hook run by Save version', async () => {
+		const root = tempDir('texpile-hook-');
+		run(root, 'init', '-q');
+		identify(root);
+		commit(root, 'README', 'readme\n', 'First');
+		const hook = join(root, '.git', 'hooks', 'pre-commit');
+		writeFileSync(
+			hook,
+			`#!/bin/sh\nif git diff --cached --name-only -- '*.tex' | grep -q .; then echo "no .tex files here" >&2; exit 1; fi\n`
+		);
+		chmodSync(hook, 0o755);
+		writeFileSync(join(root, 'main.tex'), 'main\n');
+		await gitStage(root, [join(root, 'main.tex')]);
+
+		const res = await gitCommit(root, 'A .tex file');
+		expect(res.ok).toBe(false);
+		expect(res.error).toMatch(/no \.tex files here/);
 	});
 });

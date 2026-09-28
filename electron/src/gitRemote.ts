@@ -97,11 +97,18 @@ export function netEnv(auth: GitAuthEnv): Record<string, string> {
 
 /** Talking to a remote waits on things nothing else here does: a sign-in someone has to type, and
  *  a transfer over their connection. The shared factory kills a command after 20s of silence, which
- *  is exactly what a password prompt looks like from the outside, so this one has no block timeout. */
-export function netGit(baseDir: string, auth: GitAuthEnv = {}): SimpleGit {
-	return simpleGit({ baseDir, binary: 'git', maxConcurrentProcesses: 1, config: ['core.quotePath=false'], unsafe: OWN_ENVIRONMENT }).env(
-		netEnv(auth)
-	);
+ *  is exactly what a password prompt looks like from the outside, so this one has no block timeout.
+ *  `stall`, for a git nobody is waiting to sign in to (the automatic check): how long it may go
+ *  without a word before it is stopped. */
+export function netGit(baseDir: string, auth: GitAuthEnv = {}, stall = 0): SimpleGit {
+	return simpleGit({
+		baseDir,
+		binary: 'git',
+		maxConcurrentProcesses: 1,
+		config: ['core.quotePath=false'],
+		unsafe: OWN_ENVIRONMENT,
+		...(stall > 0 && { timeout: { block: stall } })
+	}).env(netEnv(auth));
 }
 
 /** A remote's name ends up in refs and config keys; git's own rules are looser, these are the ones

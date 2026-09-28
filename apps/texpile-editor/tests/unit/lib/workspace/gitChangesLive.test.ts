@@ -5,7 +5,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { gitStatus, gitDiscard, gitUnstage, gitStage, gitCommit } from '../../../../../../electron/src/gitService';
+import { gitStatus, gitDiscard, gitUnstage, gitStage } from '../../../../../../electron/src/gitService';
+import { gitCommit } from '../../../../../../electron/src/gitHistory';
 import { AVAILABLE, run, out, identify, commit, tempDir, removeTempDirs } from './gitLiveFixture';
 
 afterEach(removeTempDirs);

@@ -10,13 +10,20 @@
 // Save version or Sync running at the same moment fail; it would also make the watcher's own
 // refresh rewrite the index it watches.
 //
-// GIT_LITERAL_PATHSPECS=1: a file name is that file, never a pattern. Otherwise "figure[1].tex"
-// also names figure1.tex, so discarding the one threw away the other's changes, Save version took
-// both, and the Timeline mixed their histories. Nothing here passes a pattern on purpose.
+// Not GIT_LITERAL_PATHSPECS, which every hook inherits: a pre-commit hook's own
+// `git diff --cached -- '*.tex'` matched nothing and passed everything. A file name is made literal
+// where it is passed instead (literal() below).
 export const GIT_PROCESS_ENV = {
 	LANGUAGE: 'en',
 	LC_ALL: 'en_US.UTF-8',
 	LANG: 'en_US.UTF-8',
-	GIT_OPTIONAL_LOCKS: '0',
-	GIT_LITERAL_PATHSPECS: '1'
+	GIT_OPTIONAL_LOCKS: '0'
 } as const;
+
+/** Repo-relative paths as pathspecs that name those files and nothing else: to git, "figure[1].tex"
+ *  alone is a pattern that also matches figure1.tex, so discarding the one threw away the other's
+ *  changes, Save version took both, and the Timeline mixed their histories. Never for `HEAD:path`,
+ *  which is not a pathspec. */
+export function literal(rel: string[]): string[] {
+	return rel.map((p) => `:(literal)${p}`);
+}

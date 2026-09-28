@@ -27,7 +27,9 @@ export function stepVisualDiff(view: EditorView, dir: 1 | -1): boolean {
 	// where the caret lands for a change, which is not always its start: a deleted paragraph's mark
 	// sits between blocks, and the caret goes into the next one. Compared by that too, or the caret
 	// already there would be sent back to it on every press
-	const land = (r: { from: number }) => TextSelection.near(doc.resolve(Math.min(r.from, doc.content.size))).head;
+	function land(r: { from: number }): number {
+		return TextSelection.near(doc.resolve(Math.min(r.from, doc.content.size))).head;
+	}
 	const target =
 		dir === 1
 			? (ranges.find((r) => r.from > head && land(r) > head) ?? ranges[0])

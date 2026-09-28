@@ -1,6 +1,6 @@
 // What one version changed, and a project inside a larger repository, against real repos
 // (gitLiveFixture.ts).
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gitChangesIn, gitFileAt, gitFileLog, gitShowAt } from '../../../../../../electron/src/gitHistory';
@@ -100,5 +100,27 @@ describe.skipIf(!AVAILABLE)('a project inside a larger repository', () => {
 		// only this folder's files are listed, never the rest of that repository
 		expect(status.entries?.map((e) => e.path)).toEqual([join(paper, 'main.tex')]);
 		expect((await gitStatus(home)).repoRoot).toBe(home);
+	});
+
+	// the repository found above the folder was kept for the session: its rows all landed outside
+	// the folder and were dropped, and a save committed nothing
+	it('notices when the folder becomes a repository of its own', async () => {
+		const home = makeRepo();
+		commit(home, '.bashrc', 'alias ll=ls\n', 'Dotfiles');
+		const paper = join(home, 'papers', 'thesis');
+		mkdirSync(paper, { recursive: true });
+		writeFileSync(join(paper, 'main.tex'), 'Hello.\n');
+		expect((await gitStatus(paper)).repoRoot).toBe(home);
+
+		run(paper, 'init', '-q');
+		vi.useFakeTimers({ toFake: ['Date'] });
+		try {
+			vi.setSystemTime(Date.now() + 60_000);
+			const status = await gitStatus(paper);
+			expect(status.repoRoot).toBe(paper);
+			expect(status.entries?.map((e) => e.path)).toEqual([join(paper, 'main.tex')]);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

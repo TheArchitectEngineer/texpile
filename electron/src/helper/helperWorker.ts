@@ -18,8 +18,8 @@ import { GIT_PROCESS_ENV } from '../gitProcessEnv';
 
 type Call = { id: number; op: string; args: unknown[] };
 
-// Every git here inherits this process's environment: English, no optional locks, literal file
-// names (gitProcessEnv.ts says why each).
+// Every git here inherits this process's environment: English and no optional locks
+// (gitProcessEnv.ts says why each).
 Object.assign(process.env, GIT_PROCESS_ENV);
 
 const port = process.parentPort;

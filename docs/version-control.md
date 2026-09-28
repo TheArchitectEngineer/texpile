@@ -10,7 +10,7 @@ section: Editor
 
 Texpile runs git from the Source Control panel. Changes in the working tree are listed by file: stage the ones to commit with their checkboxes, write a message, and Commit. Graph lists every commit, and any of them can be restored. If the folder is not a repository yet, the panel offers Initialize Repository, and Publish Branch pushes it to GitHub or any other remote.
 
-A file's checkbox reads Stage Changes, or Unstage Changes once staged; a group's reads Stage All Changes or Unstage All Changes. The message box names the branch the commit goes to: Message (Ctrl+Enter to commit on "main"). Discard Changes, in a file's menu, reverts it to HEAD; on an untracked file it asks Are you sure you want to DELETE the following untracked file: '…'? and moves the file to the Trash.
+A file's checkbox reads Stage Changes, or Unstage Changes once staged; a group's reads Stage All Changes or Unstage All Changes. What you unstage stays unstaged after a commit and after Texpile restarts, until the file has no changes left. The message box names the branch the commit goes to: Message (Ctrl+Enter to commit on "main"). Discard Changes, in a file's menu, reverts it to HEAD; on an untracked file it asks Are you sure you want to DELETE the following untracked file: '…'? and moves the file to the Trash.
 
 Ctrl+Shift+G (⌃⇧G on a Mac, as in VS Code) opens Source Control with the keyboard in the message box; Show Source Control in the command palette does the same. While the open file has uncommitted changes, Open Changes, the button beside Visual and Source in the editor's top bar, compares it with HEAD.
 

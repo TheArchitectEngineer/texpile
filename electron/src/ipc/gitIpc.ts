@@ -47,6 +47,9 @@ const NET_OPS: Record<string, [string, number]> = {
 	'git:fetch': ['gitFetch', 1]
 };
 
+/** how long the automatic check may go without a word from git (gitFetch.ts `stall`) */
+const QUIET_FETCH_STALL_MS = 3 * 60_000;
+
 export function registerGitIpc(): void {
 	for (const [channel, op] of Object.entries(OPS)) {
 		handleFs(channel, (...args: unknown[]) => timeSpan(channel, helperCall(`git.${op}`, args)));
@@ -60,11 +63,16 @@ export function registerGitIpc(): void {
 			);
 		});
 	}
-	// the automatic check for new versions (VS Code's autofetch): the same fetch, with no one asked
+	// the automatic check for new versions (VS Code's autofetch): the same fetch, with no one asked,
+	// and so given up after a while without a word from git rather than left waiting for ever
 	handleFsE('git:fetchQuiet', (e, root: unknown) =>
 		timeSpan(
 			'git:fetchQuiet',
-			withAskpass(e.sender, (env) => helperCall('git.gitFetch', [root, env]) as Promise<{ ok: boolean; failure?: string }>, { quiet: true })
+			withAskpass(
+				e.sender,
+				(env) => helperCall('git.gitFetch', [root, env, QUIET_FETCH_STALL_MS]) as Promise<{ ok: boolean; failure?: string }>,
+				{ quiet: true }
+			)
 		)
 	);
 	// a clone reports its progress as it goes, to the window that asked for it, and only that

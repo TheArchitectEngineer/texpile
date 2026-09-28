@@ -16,10 +16,13 @@ export type GitFetchResult = {
 	ahead?: number;
 };
 
-export async function gitFetch(workspaceRoot: string, auth: GitAuthEnv = {}): Promise<GitFetchResult> {
+/** `stall`: for the automatic check only, which asks nobody to sign in, how long git may go without
+ *  a word before it is stopped. A connection that stalled kept it pending for good, and a Sync waits
+ *  for it to finish first. 0 (none) for a check the author asked for, which may be waiting on them. */
+export async function gitFetch(workspaceRoot: string, auth: GitAuthEnv = {}, stall = 0): Promise<GitFetchResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
-	const g = netGit(rr.root, auth);
+	const g = netGit(rr.root, auth, stall);
 	let remote: string | undefined;
 	try {
 		const status = await g.status();
@@ -28,8 +31,9 @@ export async function gitFetch(workspaceRoot: string, auth: GitAuthEnv = {}): Pr
 		if (!up) return { ok: false, failure: 'no-upstream' };
 		remote = up.remote;
 		// --prune: a branch deleted there is dropped here too, or it would look alive for ever and a
-		// Sync would publish it again
-		await g.raw(['fetch', '--prune', '--', up.remote]);
+		// Sync would publish it again. --progress: with no terminal git reports nothing until it is
+		// done, and a long download would look stalled.
+		await g.raw(['fetch', ...(stall > 0 ? ['--progress'] : []), '--prune', '--', up.remote]);
 		// the branch was deleted there (and pruned by this fetch): nothing to compare with
 		if (!(await upstreamExists(g))) return { ok: false, failure: 'no-upstream', remote };
 		const [ahead, behind] = await aheadBehind(g);

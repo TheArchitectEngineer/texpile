@@ -2,7 +2,7 @@
 // of a conflict, Combine starts that merge for real and leaves the marked places, Finish refuses
 // while one is left and saves the merge once none is, and Cancel puts everything back.
 import { describe, it, expect, afterEach } from 'vitest';
-import { writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync, rmSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { gitStatus } from '../../../../../../electron/src/gitService';
 import { gitSync } from '../../../../../../electron/src/gitRemote';
@@ -63,6 +63,18 @@ describe.skipIf(!AVAILABLE)('combining two lines of work', () => {
 		await gitCombine(root);
 		const res = await gitFinishCombine(root);
 		expect(res).toMatchObject({ ok: false, failure: 'markers', files: [join(root, 'main.tex')] });
+		expect(out(root, 'rev-parse', 'HEAD')).toBe(head);
+		expect(existsSync(join(root, '.git', 'MERGE_HEAD'))).toBe(true);
+	});
+
+	it.skipIf(process.platform === 'win32')('does not say the merge was saved when a hook refused it without a word', async () => {
+		const { root, head } = await makeConflicted();
+		await gitCombine(root);
+		writeFileSync(join(root, 'main.tex'), 'My first line.\nTheir first line.\nSecond line.\n');
+		const hook = join(root, '.git', 'hooks', 'pre-commit');
+		writeFileSync(hook, '#!/bin/sh\nexit 1\n');
+		chmodSync(hook, 0o755);
+		expect((await gitFinishCombine(root)).ok).toBe(false);
 		expect(out(root, 'rev-parse', 'HEAD')).toBe(head);
 		expect(existsSync(join(root, '.git', 'MERGE_HEAD'))).toBe(true);
 	});

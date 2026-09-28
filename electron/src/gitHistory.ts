@@ -1,11 +1,14 @@
 // The Source Control panel's history half: the version list, what differs from a version now, a
-// file as it was in one, and Restore. Split from gitService.ts, whose repo-root resolution and
-// command factory it shares; the helper process serves both (helper/helperWorker.ts).
-import { dirname, resolve, relative, isAbsolute } from 'node:path';
+// file as it was in one, and the two ways a version is written, Save version and Restore. Split
+// from gitService.ts, whose repo-root resolution and command factory it shares; the helper process
+// serves both (helper/helperWorker.ts).
+import { dirname, resolve, relative } from 'node:path';
+import type { SimpleGit } from 'simple-git';
 import {
 	git,
-	isLocked,
+	patientGit,
 	isMissingGit,
+	isOutside,
 	errMsg,
 	resolveRepoRoot,
 	retryLocked,
@@ -14,6 +17,7 @@ import {
 	type GitShowResult,
 	type GitOpResult
 } from './gitService';
+import { literal } from './gitProcessEnv';
 
 // ── history ────────────────────────────────────────────────────────────────────
 
@@ -121,7 +125,7 @@ export async function gitLog(workspaceRoot: string, limit = 100): Promise<GitLog
 			'log',
 			`--max-count=${want + 1}`,
 			`--format=${REC_FMT}%H${FIELD_FMT}%h${FIELD_FMT}%an${FIELD_FMT}%aI${FIELD_FMT}%P${FIELD_FMT}%s${BODY_FMT}%b`,
-			...(rel ? ['--', rel] : [])
+			...(rel ? ['--', ...literal([rel])] : [])
 		]);
 		const all = parseGitLog(raw);
 		return { ok: true, entries: all.slice(0, want), hasMore: all.length > want };
@@ -158,7 +162,8 @@ export async function gitFileLog(workspaceRoot: string, path: string, limit = 50
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const root = rr.root;
 	const [rel] = toRepoRel(root, [path]);
-	if (!rel || rel.startsWith('..')) return { ok: true, entries: [] };
+	if (!rel || isOutside(rel)) return { ok: true, entries: [] };
+	const [spec] = literal([rel]);
 	// the Timeline asks a page at a time, and again with a larger limit for Load more
 	const max = `--max-count=${Math.max(1, Math.min(limit, 2000))}`;
 	try {
@@ -168,11 +173,11 @@ export async function gitFileLog(workspaceRoot: string, path: string, limit = 50
 			max,
 			`--format=${REC_FMT}%H${FIELD_FMT}%h${FIELD_FMT}%an${FIELD_FMT}%aI${FIELD_FMT}%P${FIELD_FMT}%s${BODY_FMT}%b`,
 			'--',
-			rel
+			spec
 		]);
 		// --follow reaches back past renames, where the file had another name: each version carries
 		// the name it had then, or a comparison would look up a path that version never held
-		const nameAt = parseFileNames(await git(root).raw(['log', '--follow', '-z', max, '--format=%x01%H', '--name-only', '--', rel]));
+		const nameAt = parseFileNames(await git(root).raw(['log', '--follow', '-z', max, '--format=%x01%H', '--name-only', '--', spec]));
 		return { ok: true, entries: withNamesThen(parseGitLog(raw), nameAt, rel, root) };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -210,7 +215,7 @@ export async function gitChangesSince(workspaceRoot: string, hash: string): Prom
 		const [rel] = toRepoRel(rr.root, [workspaceRoot]);
 		// `diff <commit>` is commit -> working tree, so the letters read as "since that version":
 		// A is a file that did not exist then, D one that has gone since
-		const raw = await git(rr.root).raw(['diff', '--name-status', '-z', hash, ...(rel ? ['--', rel] : [])]);
+		const raw = await git(rr.root).raw(['diff', '--name-status', '-z', hash, ...(rel ? ['--', ...literal([rel])] : [])]);
 		// git prints from the REPO root; the renderer deals only in absolute paths inside the folder
 		return { ok: true, entries: insideFolder(rr.root, workspaceRoot, parseNameStatus(raw)) };
 	} catch (e) {
@@ -264,7 +269,7 @@ function insideFolder(repoRoot: string, workspaceRoot: string, changes: GitFileC
 		.map((f) => ({ ...f, path: resolve(repoRoot, f.path), ...(f.from ? { from: resolve(repoRoot, f.from) } : {}) }))
 		.filter((f) => {
 			const inside = relative(wsAbs, f.path);
-			return inside !== '' && !inside.startsWith('..') && !isAbsolute(inside);
+			return inside !== '' && !isOutside(inside);
 		});
 }
 
@@ -285,7 +290,7 @@ export async function gitChangesIn(workspaceRoot: string, hash: string): Promise
 	try {
 		const g = git(rr.root);
 		const [rel] = toRepoRel(rr.root, [workspaceRoot]);
-		const scope = rel ? ['--', rel] : [];
+		const scope = rel ? ['--', ...literal([rel])] : [];
 		// with -q a missing parent prints nothing and exits 1, which simple-git resolves as ''
 		const parent = (await g.raw(['rev-parse', '--verify', '-q', `${hash}^1`])).trim() || null;
 		const raw = parent
@@ -311,6 +316,49 @@ export async function gitFileAt(workspaceRoot: string, absPath: string, ref: str
 	return showFile(rr.root, absPath, ref);
 }
 
+/** `git commit` with `args`, failing when HEAD did not move. Nothing to commit exits 1 with its
+ *  reason on stdout and nothing on stderr, as does a hook that fails without a word, and simple-git
+ *  resolves both as though they had worked: the panel said the version was saved. */
+export async function commitOrFail(g: SimpleGit, args: string[]): Promise<void> {
+	const before = await g.raw(['rev-parse', '--verify', '-q', 'HEAD']);
+	const said = await retryLocked(() => g.raw(['commit', ...args]));
+	if ((await g.raw(['rev-parse', '--verify', '-q', 'HEAD'])) === before) throw new Error(said.trim() || 'git did not commit');
+}
+
+/**
+ * What a folder of a larger repository commits: what is staged in the folder and nothing else. A
+ * file staged outside it in a terminal is in no row of the panel, and went into the version all the
+ * same; `--only` leaves it staged, as it was. Only when there is such a file: `--only` takes each
+ * file as it is on disk rather than as staged, and git refuses it part-way through a merge.
+ */
+async function onlyInFolder(g: SimpleGit, root: string, workspaceRoot: string): Promise<string[]> {
+	const ws = resolve(workspaceRoot);
+	if (!relative(root, ws)) return [];
+	// --no-renames: a rename is otherwise listed by its new name only, and the old one stayed staged
+	const staged = (await g.raw(['diff', '--cached', '--name-only', '--no-renames', '-z'])).split('\0').filter(Boolean);
+	// told apart as the status rows are (gitStatus), so the version holds what the panel listed
+	const inside = staged.filter((p) => !isOutside(relative(ws, resolve(root, p))));
+	if (inside.length === staged.length) return [];
+	if (!inside.length) throw new Error('nothing to commit in this folder');
+	return ['--only', '--', ...literal(inside)];
+}
+
+/** commit the staged changes. Fails if nothing is staged or no author identity is configured. */
+export async function gitCommit(workspaceRoot: string, message: string): Promise<GitOpResult> {
+	if (!message || !message.trim()) return { ok: false, error: 'A commit message is required' };
+	const rr = await resolveRepoRoot(workspaceRoot);
+	if (!rr.root) return { ok: false, reason: rr.reason };
+	const root = rr.root;
+	try {
+		const g = patientGit(root);
+		await commitOrFail(g, ['-m', message, ...(await onlyInFolder(g, root, workspaceRoot))]);
+		return { ok: true };
+	} catch (e) {
+		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
+		return { ok: false, error: errMsg(e) };
+	}
+}
+
 /**
  * Roll the workspace back to `hash` by writing that version FORWARD as a new commit, so the
  * restore is itself an ordinary history entry and can be undone by restoring the one above it.
@@ -320,8 +368,9 @@ export async function gitFileAt(workspaceRoot: string, absPath: string, ref: str
  * something git could not give back, so the caller saves a version first.
  */
 export type GitRestoreResult = GitOpResult & {
-	/** new files, never in a version, that the restore would have replaced with that version's
-	 *  copies: absolute paths. Refused rather than overwritten, since git could not give them back */
+	/** files no version has now (new ones, or ones .gitignore leaves out) that the restore would
+	 *  have replaced with that version's copies: absolute paths. Refused rather than overwritten,
+	 *  since git could not give them back */
 	untracked?: string[];
 	/** 'same': the files already are as that version has them, so there is nothing to restore */
 	failure?: 'same';
@@ -334,7 +383,7 @@ export async function gitRestore(workspaceRoot: string, hash: string, message: s
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const repoRoot = rr.root;
 	try {
-		const g = git(repoRoot);
+		const g = patientGit(repoRoot);
 		const dirty = await g.status(['--untracked-files=no']);
 		if (dirty.files.length) return { ok: false, error: 'Save a version first: there are unsaved changes.' };
 
@@ -348,14 +397,18 @@ export async function gitRestore(workspaceRoot: string, hash: string, message: s
 		// new file and never brought back the old one, and the file was simply gone
 		// -z: a name with a quote or a backslash in it is otherwise printed quoted, matches nothing,
 		// and the restore "succeeds" leaving that file as it is now
-		const where = scope ? ['--', scope] : [];
-		const changed = (await g.raw(['diff', '--name-only', '--no-renames', '-z', hash, 'HEAD', ...where])).split('\0').filter(Boolean);
+		const where = scope ? ['--', ...literal([scope])] : [];
+		const changed = parseNameStatus(await g.raw(['diff', '--name-status', '--no-renames', '-z', hash, 'HEAD', ...where]));
 		if (!changed.length) return { ok: false, failure: 'same', error: 'That version matches the current one.' };
 
-		// a new file the author has not saved in any version, at a name that version has: checkout
-		// would replace it without a word. The dirty check above leaves new files out on purpose.
-		const untracked = new Set((await g.raw(['ls-files', '--others', '--exclude-standard', '-z', ...where])).split('\0'));
-		const inTheWay = changed.filter((rel) => untracked.has(rel));
+		// a file git does not track now, at a name that version has: checkout would replace it without
+		// a word. The dirty check above leaves new files out on purpose; ignored ones are the author's
+		// too (notes.txt, once in a version and now in .gitignore), and git lists them apart.
+		const listed = await Promise.all(
+			[[], ['--ignored']].map((opt) => g.raw(['ls-files', '--others', ...opt, '--exclude-standard', '-z', ...where]))
+		);
+		const untracked = new Set(listed.join('').split('\0'));
+		const inTheWay = changed.map((c) => c.path).filter((rel) => untracked.has(rel));
 		if (inTheWay.length) {
 			return {
 				ok: false,
@@ -364,20 +417,39 @@ export async function gitRestore(workspaceRoot: string, hash: string, message: s
 			};
 		}
 
-		for (const rel of changed) {
-			try {
-				await retryLocked(() => g.raw(['checkout', hash, '--', rel]));
-			} catch (e) {
-				// a lock that outlasted the retries is a failure, not a file to remove
-				if (isLocked(e)) throw e;
-				// absent at the target revision: it was added afterwards, so restoring means removing it
-				await retryLocked(() => g.raw(['rm', '-f', '--ignore-unmatch', '--', rel]));
+		const done: GitFileChange[] = [];
+		try {
+			for (const c of changed) {
+				done.push(c);
+				// A (diffed from the target to now): added since, so restoring means removing it. Read from
+				// the two versions, never from why a checkout failed: a filter that could not run (a Git LFS
+				// download) or a name too long for Windows was taken for "not in that version", and the
+				// file was deleted and the deletion saved as the restore.
+				const [spec] = literal([c.path]);
+				if (c.status === 'A') await retryLocked(() => g.raw(['rm', '-q', '-f', '--ignore-unmatch', '--', spec]));
+				else await retryLocked(() => g.raw(['checkout', hash, '--', spec]));
 			}
+		} catch (e) {
+			await undoRestore(g, done);
+			throw e;
 		}
-		await retryLocked(() => g.commit(message));
+		await commitOrFail(g, ['-m', message]);
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
 		return { ok: false, error: errMsg(e) };
+	}
+}
+
+/** A restore that failed part-way, put back as the last version has it: half of one version and
+ *  half of another is a version that never existed. As far as git can; what it cannot is left for
+ *  the panel to show as changes. */
+async function undoRestore(g: SimpleGit, done: GitFileChange[]): Promise<void> {
+	// one at a time: a checkout stops at the first file it cannot write, and would leave the rest
+	for (const c of done) {
+		const [spec] = literal([c.path]);
+		// D: in the target and not now, so it was brought in, where nothing was before (see inTheWay)
+		const undo = c.status === 'D' ? ['rm', '-q', '-f', '--ignore-unmatch', '--', spec] : ['checkout', 'HEAD', '--', spec];
+		await g.raw(undo).catch(() => undefined);
 	}
 }

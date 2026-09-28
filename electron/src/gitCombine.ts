@@ -4,9 +4,10 @@
 // marked in its file, then finish it once every place is chosen, or cancel it.
 import { resolve } from 'node:path';
 import {
-	git,
+	patientGit,
 	errMsg,
 	isMissingGit,
+	isOutside,
 	isUnmerged,
 	resolveRepoRoot,
 	retryLocked,
@@ -17,6 +18,8 @@ import {
 	wholeFileChoice,
 	type GitOpResult
 } from './gitService';
+import { literal } from './gitProcessEnv';
+import { commitOrFail } from './gitHistory';
 import { OVERWRITE_RE, aheadBehind, mergeInProgress, mergeMessage, outputOf, parseBlockingFiles } from './gitRemote';
 
 export type GitCombineResult = GitOpResult & {
@@ -47,7 +50,8 @@ export async function gitCombine(workspaceRoot: string, message = ''): Promise<G
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const root = rr.root;
-	const g = git(root);
+	// patient (gitService.ts): a merge runs hooks and filters, and may wait on a signing prompt
+	const g = patientGit(root);
 	try {
 		if (operationIn((await gitDirsOf(root)).gitDir)) return { ok: false, failure: 'busy' };
 		const status = await g.status(['--untracked-files=no']);
@@ -81,7 +85,7 @@ export async function gitFinishCombine(workspaceRoot: string): Promise<GitCombin
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const root = rr.root;
-	const g = git(root);
+	const g = patientGit(root);
 	try {
 		if (!(await mergeInProgress(g))) return { ok: false, failure: 'not-combining' };
 		const conflicted = (await g.status()).files.filter((f) => isUnmerged(f.index, f.working_dir));
@@ -94,10 +98,10 @@ export async function gitFinishCombine(workspaceRoot: string): Promise<GitCombin
 		}
 		if (marked.length) return { ok: false, failure: 'markers', files: marked };
 		// -A: a file one side deleted is settled by its absence as much as by its presence
-		if (unmerged.length) await retryLocked(() => g.raw(['add', '-A', '--', ...unmerged]));
+		if (unmerged.length) await retryLocked(() => g.raw(['add', '-A', '--', ...literal(unmerged)]));
 		// strip: git's "# Conflicts:" list is a comment for an editor, which --no-edit alone would keep
 		// in the message
-		await retryLocked(() => g.raw(['commit', '--no-edit', '--cleanup=strip']));
+		await commitOrFail(g, ['--no-edit', '--cleanup=strip']);
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -109,7 +113,7 @@ export async function gitFinishCombine(workspaceRoot: string): Promise<GitCombin
 export async function gitCancelCombine(workspaceRoot: string): Promise<GitOpResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
-	const g = git(rr.root);
+	const g = patientGit(rr.root);
 	try {
 		if (await mergeInProgress(g)) await retryLocked(() => g.raw(['merge', '--abort']));
 		return { ok: true };
@@ -128,22 +132,23 @@ export async function gitCancelCombine(workspaceRoot: string): Promise<GitOpResu
 export async function gitKeepSide(workspaceRoot: string, path: string, side: 'mine' | 'theirs'): Promise<GitOpResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
-	const g = git(rr.root);
+	const g = patientGit(rr.root);
 	const [rel] = toRepoRel(rr.root, [path]);
-	if (!rel || rel.startsWith('..') || (side !== 'mine' && side !== 'theirs')) return { ok: false, error: 'Not a file in this repository' };
+	if (!rel || isOutside(rel) || (side !== 'mine' && side !== 'theirs')) return { ok: false, error: 'Not a file in this repository' };
+	const [spec] = literal([rel]);
 	try {
 		if (!(await mergeInProgress(g))) return { ok: false, error: 'Nothing is being combined' };
 		const f = (await g.status()).files.find((e) => e.path === rel && isUnmerged(e.index, e.working_dir));
 		if (!f) return { ok: false, error: 'This file is not being combined' };
 		const whole = await wholeFileChoice(f.index, f.working_dir, resolve(rr.root, rel));
 		try {
-			await retryLocked(() => g.raw(['checkout', side === 'mine' ? '--ours' : '--theirs', '--', rel]));
+			await retryLocked(() => g.raw(['checkout', side === 'mine' ? '--ours' : '--theirs', '--', spec]));
 			// nothing in a figure or a kept file shows the choice was made: recording it is what does,
 			// as VS Code's Keep Our Version stages it (a deletion is recorded by the rm below)
-			if (whole) await retryLocked(() => g.raw(['add', '--', rel]));
+			if (whole) await retryLocked(() => g.raw(['add', '--', spec]));
 		} catch (e) {
 			if (!/does not have (our|their) version/i.test(errMsg(e))) throw e;
-			await retryLocked(() => g.raw(['rm', '-q', '--', rel]));
+			await retryLocked(() => g.raw(['rm', '-q', '--', spec]));
 		}
 		return { ok: true };
 	} catch (e) {

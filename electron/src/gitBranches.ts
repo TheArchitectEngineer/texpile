@@ -2,7 +2,7 @@
 // one. VS Code's Git: Checkout to..., with the refusals said in words: git will not switch over
 // unsaved work it would overwrite. Creating and deleting branches is left to git itself: Texpile
 // cannot join two branches, so it does not start them.
-import { git, errMsg, isMissingGit, resolveRepoRoot, retryLocked, gitDirsOf, operationIn } from './gitService';
+import { git, patientGit, errMsg, isMissingGit, resolveRepoRoot, retryLocked, gitDirsOf, operationIn } from './gitService';
 import type { GitOpResult } from './gitService';
 import { OVERWRITE_RE, parseBlockingFiles } from './gitRemote';
 import { resolve } from 'node:path';
@@ -75,7 +75,9 @@ export async function gitSwitch(workspaceRoot: string, name: string): Promise<Gi
 	const rr = await resolveRepoRoot(workspaceRoot);
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const root = rr.root;
-	const g = git(root);
+	// patient (gitService.ts): a switch rewrites files through their filters, a Git LFS download
+	// among them, and runs the post-checkout hook
+	const g = patientGit(root);
 	try {
 		if (operationIn((await gitDirsOf(root)).gitDir)) return { ok: false, failure: 'busy' };
 		const known = (await g.raw(['for-each-ref', '--format=%(refname:lstrip=2)', 'refs/heads'])).split('\n');

@@ -7,15 +7,18 @@ import { open, readFile, type FileHandle } from 'node:fs/promises';
 import { unsafeRepoFrom } from './unsafeRepo';
 import { FOLDER_ROW_AT, capRows, collapseUntracked } from './gitStatusLimit';
 import { hasConflictMarkers } from './conflictMarkers';
+import { literal } from './gitProcessEnv';
 
 // once git is confirmed missing (ENOENT), stop retrying
 let gitBinaryMissing = false;
 
-// A repo root stays a repo root, so a hit is cached for good. A MISS is not: `git init` in a
-// terminal made a folder a repo and the cached "no" kept the panel saying it was not under source
-// control for the rest of the session. Short enough to self-heal, long enough that the status
-// polling does not spawn a checkIsRepo every time.
-const MISS_TTL_MS = 5000;
+// A folder that is its own repo root stays one, so that hit is cached for good. A MISS is not:
+// `git init` in a terminal made a folder a repo and the cached "no" kept the panel saying it was
+// not under source control for the rest of the session. Nor is a root ABOVE the folder: a `git init`
+// or a clone in the folder itself makes it a repository of its own, and the cached parent put every
+// row outside the folder, where it was dropped, and every save committed nothing. Short enough to
+// self-heal, long enough that the status polling does not spawn a checkIsRepo every time.
+const RECHECK_MS = 5000;
 const repoRootCache = new Map<string, { root: string | null; at: number }>();
 
 // a repository's git directory, by repo root: where MERGE_HEAD and friends live (not always
@@ -90,17 +93,28 @@ export type GitOpResult = {
 	error?: string;
 };
 
-/** exported for gitRemote.ts, like the three below */
-export function git(baseDir: string): SimpleGit {
+/** exported for gitRemote.ts, like the three below. `block`: how long a command may say nothing
+ *  before it is taken for hung and killed; 0 for never (patientGit) */
+export function git(baseDir: string, block = 20000): SimpleGit {
 	return simpleGit({
 		baseDir,
 		binary: 'git',
 		maxConcurrentProcesses: 4,
-		timeout: { block: 20000 },
+		...(block > 0 && { timeout: { block } }),
 		// git octal-escapes any non-ASCII path it prints, which then matches no file on disk. On the
 		// factory, so it covers the output simple-git parses itself too.
-		config: ['core.quotePath=false']
+		// log.showSignature: an author's `true` puts gpg's words ("No signature") in the log's output,
+		// where they parsed as a version of their own
+		config: ['core.quotePath=false', 'log.showSignature=false']
 	});
+}
+
+/** For a command that may run the author's own programs and wait on them: a hook, a signing prompt
+ *  (gpg's pinentry), a filter such as Git LFS's download. 20 seconds of that silence was taken for
+ *  a hang and the commit, merge or checkout killed part-way, so this has no block timeout, as
+ *  netGit in gitRemote.ts has none. */
+export function patientGit(baseDir: string): SimpleGit {
+	return git(baseDir, 0);
 }
 
 // another git holds the lock: a terminal, another editor's own status poll. Texpile's own status
@@ -158,8 +172,8 @@ export async function resolveRepoRoot(
 	const abs = resolve(dir);
 	const key = process.platform === 'win32' || process.platform === 'darwin' ? abs.toLowerCase() : abs;
 	const cached = repoRootCache.get(key);
-	if (cached?.root) return { root: cached.root };
-	if (cached && Date.now() - cached.at < MISS_TTL_MS) return { root: null, reason: 'not-a-repo' };
+	if (cached && (cached.root === abs || Date.now() - cached.at < RECHECK_MS))
+		return cached.root ? { root: cached.root } : { root: null, reason: 'not-a-repo' };
 	try {
 		const g = git(dir);
 		// checkIsRepo returns false for a non-repo; it throws ENOENT if git is absent
@@ -190,6 +204,12 @@ export async function resolveRepoRoot(
 /** absolute paths to repo-root-relative, forward-slashed (what git's pathspecs want). */
 export function toRepoRel(repoRoot: string, absPaths: string[]): string[] {
 	return absPaths.map((p) => relative(repoRoot, resolve(p)).split(/[\\/]/).join('/'));
+}
+
+/** A relative path that leaves the folder it was taken from: above it ('..', '../x'), or on another
+ *  drive. A file whose name starts with two dots, '..notes.tex', is inside. */
+export function isOutside(rel: string): boolean {
+	return rel === '..' || rel.startsWith('../') || rel.startsWith(`..${sep}`) || isAbsolute(rel);
 }
 
 /** The repository's git directory, and the common one a worktree shares its refs with. Exported
@@ -315,7 +335,8 @@ export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult>
 	const repoRoot = rr.root;
 	try {
 		const g = git(workspaceRoot);
-		const status = await g.status(['--untracked-files=all']);
+		// `.`, the folder: in a larger repository, the rest of it is scanned for nothing
+		const status = await g.status(['--untracked-files=all', '--', '.']);
 		// with -q, an unborn HEAD exits non-zero and prints nothing, which simple-git resolves as ''
 		const head = (await g.raw(['rev-parse', '--verify', '-q', 'HEAD'])).trim();
 		const operation = operationIn((await gitDirsOf(repoRoot)).gitDir);
@@ -326,9 +347,9 @@ export async function gitStatus(workspaceRoot: string): Promise<GitStatusResult>
 			// project's, and one git cannot save as a version without making it a submodule
 			if (f.path.endsWith('/')) continue;
 			const absFromRepo = resolve(repoRoot, f.path);
-			// '' = the workspace root itself; '..'-prefixed = above it; absolute = a different drive
+			// '' = the workspace root itself
 			const rel = relative(wsAbs, absFromRepo);
-			if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) continue;
+			if (rel === '' || isOutside(rel)) continue;
 			const entry: GitStatusEntry = { path: join(workspaceRoot, rel), x: f.index, y: f.working_dir };
 			if (f.from && f.index === 'R') entry.from = resolve(repoRoot, f.from);
 			if (isUnmerged(f.index, f.working_dir)) {
@@ -414,7 +435,7 @@ export async function gitInit(dir: string): Promise<GitOpResult> {
  *  unstaging what someone staged there by hand. */
 function workspaceScope(root: string, workspaceRoot: string): string {
 	const [scope] = toRepoRel(root, [workspaceRoot]);
-	return scope && !scope.startsWith('..') ? scope : '.';
+	return scope && !isOutside(scope) ? scope : '.';
 }
 
 /** stage files (git add). Empty `paths` stages everything under the workspace. */
@@ -424,7 +445,9 @@ export async function gitStage(workspaceRoot: string, paths: string[]): Promise<
 	const root = rr.root;
 	try {
 		const rel = toRepoRel(rr.root, paths);
-		await retryLocked(() => git(root).add(rel.length ? rel : [workspaceScope(root, workspaceRoot)]));
+		// `--`: simple-git's add() put none, so "-draft.tex" was an unknown option and a file named -n
+		// made the add a dry run. Patient: a filter (Git LFS) reads every byte of a large file first.
+		await retryLocked(() => patientGit(root).raw(['add', '--', ...literal(rel.length ? rel : [workspaceScope(root, workspaceRoot)])]));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -439,7 +462,7 @@ export async function gitUnstage(workspaceRoot: string, paths: string[]): Promis
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const g = git(rr.root);
 	const rel = toRepoRel(rr.root, paths);
-	const all = rel.length ? rel : [workspaceScope(rr.root, workspaceRoot)];
+	const all = literal(rel.length ? rel : [workspaceScope(rr.root, workspaceRoot)]);
 	try {
 		await retryLocked(() => g.raw(['reset', '-q', 'HEAD', '--', ...all]));
 		return { ok: true };
@@ -471,9 +494,9 @@ export async function gitDiscard(workspaceRoot: string, paths: string[]): Promis
 	if (!rr.root) return { ok: false, reason: rr.reason };
 	const root = rr.root;
 	try {
-		const rel = toRepoRel(rr.root, paths);
+		const rel = literal(toRepoRel(rr.root, paths));
 		const head = (await git(root).raw(['rev-parse', '--verify', '-q', 'HEAD'])).trim();
-		await retryLocked(() => git(root).raw(['checkout', '-q', ...(head ? ['HEAD'] : []), '--', ...rel]));
+		await retryLocked(() => patientGit(root).raw(['checkout', '-q', ...(head ? ['HEAD'] : []), '--', ...rel]));
 		return { ok: true };
 	} catch (e) {
 		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
@@ -523,21 +546,6 @@ export async function gitSetIdentity(workspaceRoot: string, name: string, email:
 			gitBinaryMissing = true;
 			return { ok: false, reason: 'no-git' };
 		}
-		return { ok: false, error: errMsg(e) };
-	}
-}
-
-/** commit the staged changes. Fails if nothing is staged or no author identity is configured. */
-export async function gitCommit(workspaceRoot: string, message: string): Promise<GitOpResult> {
-	if (!message || !message.trim()) return { ok: false, error: 'A commit message is required' };
-	const rr = await resolveRepoRoot(workspaceRoot);
-	if (!rr.root) return { ok: false, reason: rr.reason };
-	const root = rr.root;
-	try {
-		await retryLocked(() => git(root).commit(message));
-		return { ok: true };
-	} catch (e) {
-		if (isMissingGit(e)) return { ok: false, reason: 'no-git' };
 		return { ok: false, error: errMsg(e) };
 	}
 }
