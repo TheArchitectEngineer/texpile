@@ -60,12 +60,14 @@
 	function readSources(): { local: boolean; git: boolean } {
 		try {
 			const saved = JSON.parse(localStorage.getItem(SOURCES_KEY) ?? 'null') as { local?: boolean; git?: boolean } | null;
-			return { local: saved?.local !== false, git: saved?.git !== false };
+			return { local: saved?.local !== false, git: saved?.git === true };
 		} catch {
-			return { local: true, git: true };
+			return { local: true, git: false };
 		}
 	}
-	// VS Code's filter: which sources the list shows, remembered
+	// VS Code's filter: which sources the list shows, remembered. Git versions start hidden: they are
+	// listed in Source Control's History, and one list per kind of history is easier to read than
+	// both interleaved. The menu brings them back.
 	let sources = $state(readSources());
 	function toggle(which: 'local' | 'git') {
 		sources = { ...sources, [which]: !sources[which] };

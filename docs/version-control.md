@@ -42,7 +42,7 @@ A version in History opens to what differs between it and your files now. To see
 
 ## Timeline and local history
 
-Every time you save a file, Texpile keeps a copy of it, as VS Code's local history does. This happens in every project, including one that has never used git, and the copies stay on your computer in Texpile's own data, not in the project. The Timeline, below Contents in the explorer, lists the open file's saved copies and its git versions, newest first.
+Every time you save a file, Texpile keeps a copy of it, as VS Code's local history does. This happens in every project, including one that has never used git, and the copies stay on your computer in Texpile's own data, not in the project. The Timeline, folded away below Contents in the explorer, lists the open file's saved copies, newest first. Git versions are in Source Control's History; the Timeline's menu can list a file's git versions here too.
 
 Click an entry to compare it with the file as it is now. An entry's menu also has Compare with Previous, which shows what that save or version changed on its own, restores it (after asking, since unsaved changes are discarded), renames it, or deletes it. The Timeline's own menu creates an entry under a name you choose, chooses whether local history, git history or both are listed, and deletes all local history. Git versions come 50 at a time; Load More at the end of the list brings the next ones.
 

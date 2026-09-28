@@ -6,6 +6,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 ## [Unreleased]
 
 - change: Source Control explains less and lets the buttons speak: the Publish dialog has no intro, sign-in prompts no longer describe how the answer is kept, confirmations drop the extra paragraph, and a folder inside another repository or owned by another account says so in one line, with the rest in the buttons' tooltips
+- change: the Timeline starts folded and lists only the automatic copies of the open file; git versions stay in Source Control's History, and the Timeline's menu can show them there too
 - fix: rows in History, the Timeline and the changes list use the panel's full width: the "…" button takes room only while you hover the row, and in History a version's message keeps its room before the author and time
 - change: a folder with no version history says so in one line instead of two paragraphs, and offers Start Version History (Initialize Repository before); publishing comes after a first version, from the panel's main button
 - change: in English, anything you click that names a command is in Title Case, as in VS Code and macOS: menu items, start screen items, command palette commands, buttons, tabs, dialog titles and section headings (Open Folder, Save Version, Finish Combining). Messages, tooltips, placeholders and setting labels stay in sentence case. Long buttons are shorter: Save and Sync, Save and Switch, Sign In with GitHub

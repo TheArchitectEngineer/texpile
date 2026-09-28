@@ -15,12 +15,13 @@
 	function read(): { contents: boolean; timeline: boolean } {
 		try {
 			const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as { contents?: boolean; timeline?: boolean } | null;
-			return { contents: !!saved?.contents, timeline: !!saved?.timeline };
+			return { contents: !!saved?.contents, timeline: saved?.timeline ?? true };
 		} catch {
-			return { contents: false, timeline: false };
+			return { contents: false, timeline: true };
 		}
 	}
-	// which are folded away
+	// which are folded away. The Timeline starts folded, as VS Code's does: it is where a lost
+	// paragraph is found again, not something to read while writing.
 	let closed = $state(read());
 	function toggle(which: 'contents' | 'timeline') {
 		closed = { ...closed, [which]: !closed[which] };
