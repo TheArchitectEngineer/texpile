@@ -1712,7 +1712,6 @@
 	"vcs_sync_dirty_title": "Commit your changes first?",
 	"vcs_sync_save_and_sync": "Commit and Sync",
 	"vcs_sync_autosave_message": "Unsaved work, saved before syncing",
-	"vcs_joined_message": "Joined with the versions on {place}",
 	"wsview_compare_last": "Open Changes",
 	"filetree_folder_changed": "Has uncommitted changes",
 	"filetree_folder_conflict": "Contains a file with conflicts",

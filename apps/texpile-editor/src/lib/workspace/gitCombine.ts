@@ -32,8 +32,8 @@ async function call<R extends GitOpResult>(fn: ((root: string) => Promise<R>) | 
 	}
 }
 
-/** merge the upstream the last Sync fetched, leaving what both sides changed marked in the files;
- *  `message` names the version it becomes (joinedMessage.ts) */
+/** merge the upstream the last Sync fetched, leaving conflict markers in the files; `message` is the
+ *  merge commit's, git's own without one */
 export function gitCombine(root: string, message = ''): Promise<GitCombineResult> {
 	const fn = nativeBridge()?.gitCombine;
 	return call(fn ? (r) => fn(r, message) : undefined, root);

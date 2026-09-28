@@ -152,7 +152,7 @@
 			<button
 				class="mb-0.5 block w-full rounded-base px-3 py-1.5 text-left text-sm {category === c.id
 					? 'bg-primary-tint font-medium'
-					: 'hover:bg-surface-200-800'}"
+					: 'hover:preset-tonal'}"
 				onclick={() => (category = c.id)}
 			>
 				{c.label}

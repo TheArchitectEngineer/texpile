@@ -1712,7 +1712,6 @@
 	"vcs_sync_dirty_title": "Änderungen zuerst committen?",
 	"vcs_sync_save_and_sync": "Committen und synchronisieren",
 	"vcs_sync_autosave_message": "Ungespeicherte Arbeit, vor dem Synchronisieren gespeichert",
-	"vcs_joined_message": "Mit den Versionen auf {place} zusammengeführt",
 	"wsview_compare_last": "Änderungen öffnen",
 	"filetree_folder_changed": "Enthält nicht committete Änderungen",
 	"filetree_folder_conflict": "Enthält eine Datei mit Konflikten",

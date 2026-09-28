@@ -89,7 +89,7 @@
 				{#each files as f (f.path)}
 					<li>
 						<button
-							class="hover:bg-surface-200-800 flex w-full items-center gap-1.5 px-2 py-0.5 text-left text-sm {picked === f
+							class="hover:preset-tonal flex w-full items-center gap-1.5 px-2 py-0.5 text-left text-sm {picked === f
 								? 'bg-surface-200-800'
 								: ''}"
 							onclick={() => pick(f)}

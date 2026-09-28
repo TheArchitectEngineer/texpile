@@ -68,7 +68,7 @@
 			{#each items as item, i (i)}
 				<button
 					type="button"
-					class="hover:bg-surface-200-800 block w-full max-w-full truncate rounded-base px-1 py-0.5 text-left transition-colors {item.kind
+					class="hover:preset-tonal block w-full max-w-full truncate rounded-base px-1 py-0.5 text-left transition-colors {item.kind
 						? 'opacity-80'
 						: ''}"
 					class:bg-primary-tint={i === active}

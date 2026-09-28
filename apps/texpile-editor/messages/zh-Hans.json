@@ -1712,7 +1712,6 @@
 	"vcs_sync_dirty_title": "先提交你的更改？",
 	"vcs_sync_save_and_sync": "提交并同步",
 	"vcs_sync_autosave_message": "同步前保存的未保存工作",
-	"vcs_joined_message": "已与 {place} 上的版本合并",
 	"wsview_compare_last": "打开更改",
 	"filetree_folder_changed": "有未提交的更改",
 	"filetree_folder_conflict": "包含有冲突的文件",

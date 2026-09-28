@@ -1712,7 +1712,6 @@
 	"vcs_sync_dirty_title": "先認可你的變更？",
 	"vcs_sync_save_and_sync": "認可並同步",
 	"vcs_sync_autosave_message": "同步前儲存的未儲存工作",
-	"vcs_joined_message": "已與 {place} 上的版本合併",
 	"wsview_compare_last": "開啟變更",
 	"filetree_folder_changed": "有未認可的變更",
 	"filetree_folder_conflict": "包含有衝突的檔案",

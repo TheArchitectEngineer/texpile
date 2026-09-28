@@ -337,8 +337,8 @@ export type GitSyncResult = {
 	files?: string[];
 };
 
-/** fetch, take in the upstream's versions, send this branch's. `message` names a version that
- *  joins the two (joinedMessage.ts) */
+/** fetch, merge the upstream, push this branch. `message` is the merge commit's; without one,
+ *  git's own ("Merge remote-tracking branch 'origin/main'"), as VS Code's Sync leaves it */
 export async function gitSync(root: string, message = ''): Promise<GitSyncResult> {
 	const n = nativeBridge();
 	if (!n?.gitSync) return { ok: false, error: NO_BRIDGE };

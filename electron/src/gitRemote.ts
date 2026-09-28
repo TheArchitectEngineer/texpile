@@ -284,8 +284,8 @@ export function mergeMessage(message: unknown): string[] {
 
 type TakeIn = { ok: true } | { ok: false; failure: SyncFailure; error?: string; files?: string[] };
 
-/** Bring the upstream's versions into this branch, or leave everything exactly as it was. A merge
- *  version is saved with `message` rather than git's "Merge remote-tracking branch 'origin/main'". */
+/** Bring the upstream's commits into this branch, or leave everything exactly as it was. A merge
+ *  commit gets `message`, or git's own ("Merge remote-tracking branch 'origin/main'") without one. */
 async function takeIn(g: SimpleGit, diverged: boolean, message: string): Promise<TakeIn> {
 	if (!diverged) {
 		// nothing here the remote lacks: move forward to it. Git refuses, touching nothing, when a
@@ -327,8 +327,7 @@ async function pushBranch(g: SimpleGit, remote: string, branch: string, target: 
  * does not. VS Code's Sync, with one difference that matters to someone who does not use git: it
  * never leaves the project half-combined. When both sides changed the same lines the merge is
  * undone and the conflicting files are named; when unsaved work is in the way nothing is tried.
- * `message` names a version that joins the two ("Joined with the versions on GitHub"); without
- * one, git's own is used.
+ * `message` is the merge commit's; without one, git's own is used, as the editor leaves it.
  */
 export async function gitSync(workspaceRoot: string, message = '', auth: GitAuthEnv = {}): Promise<GitSyncResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);

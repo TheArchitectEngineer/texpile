@@ -24,7 +24,6 @@ const gitStatus = vi.fn(async (_root: string) => ({
 		: []
 }));
 
-vi.mock('$lib/workspace/joinedMessage', () => ({ joinedMessage: async () => '' }));
 vi.mock('$lib/workspace/git', () => ({
 	gitStatus,
 	gitLog: vi.fn(async () => ({ ok: true, entries: [] })),

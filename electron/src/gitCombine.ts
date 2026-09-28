@@ -40,8 +40,8 @@ function absolute(root: string, paths: string[]): string[] {
 /**
  * Merge the upstream into this branch and leave whatever git cannot join marked in the files.
  * What Sync fetched a moment ago is what it merges: this is the answer to Sync's conflict, never a
- * fetch of its own. Only from a clean tree, so Cancel can always put everything back. `message`
- * is what the merge version will be called, as in Sync; without one, git's own.
+ * fetch of its own. Only from a clean tree, so Abort Merge can always put everything back. `message`
+ * is the merge commit's, as in Sync; without one, git's own.
  */
 export async function gitCombine(workspaceRoot: string, message = ''): Promise<GitCombineResult> {
 	const rr = await resolveRepoRoot(workspaceRoot);

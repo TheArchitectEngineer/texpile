@@ -212,9 +212,7 @@
 			{#each groups as g (g.day)}
 				<li class="text-muted px-2 pt-2 pb-0.5 text-[11px] font-semibold tracking-wide uppercase">{g.day}</li>
 				{#each g.items as e (e.id)}
-					<li
-						class="group relative flex items-center rounded-base {selected?.id === e.id ? 'bg-primary-tint' : 'hover:bg-surface-200-800'}"
-					>
+					<li class="group relative flex items-center rounded-base {selected?.id === e.id ? 'bg-primary-tint' : 'hover:preset-tonal'}">
 						{#if renaming === e.id}
 							<input
 								class="input mx-1 my-0.5 h-7 min-w-0 flex-1 text-sm"
@@ -321,7 +319,7 @@
 									<button
 										class="flex w-full items-center gap-1.5 rounded-base px-2 py-1 text-left text-sm {path === f.resource
 											? 'bg-primary-tint'
-											: 'hover:bg-surface-200-800'}"
+											: 'hover:preset-tonal'}"
 										onclick={() => pickFile(f)}
 										use:tip={labels.relPath(f.resource)}
 									>

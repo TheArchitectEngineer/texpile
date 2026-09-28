@@ -17,7 +17,6 @@ const statusOf: Record<string, object> = {
 	'/B': { ok: true, branch: 'main', tracking: 'origin/main', head: 'bbb', hasCommits: true, repoRoot: '/B', entries: [] }
 };
 let releaseSync!: () => void;
-vi.mock('$lib/workspace/joinedMessage', () => ({ joinedMessage: async () => '' }));
 vi.mock('$lib/workspace/git', () => ({
 	gitStatus: vi.fn(async (root: string) => statusOf[root]),
 	gitLog: vi.fn(async (root: string) => ({

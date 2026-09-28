@@ -11,8 +11,7 @@ import {
 	gitHasCommits,
 	gitOperation,
 	gitRunning,
-	setGitWriting,
-	gitTracking
+	setGitWriting
 } from './gitStore';
 import {
 	gitInit,
@@ -44,7 +43,6 @@ import { uploadReason } from './uploadReason';
 import { toastGitFailure } from './gitFailureToast';
 import { localGitReason } from './gitLocalReason';
 import { saveChangesFirst } from './scmSaveFirst';
-import { joinedMessage } from './joinedMessage';
 import { basename, samePath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
@@ -440,10 +438,10 @@ export class ScmActions {
 		gitRunning.current = 'sync';
 		let again = false;
 		try {
-			// joining two histories writes a merge version, which git refuses without a name and email
+			// a merge commit, which git refuses without user.name and user.email; git writes its message
 			if (!(await this.ensureIdentity(root))) return;
 			if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
-			const res = await gitSync(root, await joinedMessage(root, gitTracking.current));
+			const res = await gitSync(root);
 			if (res.ok) resumeAutoCheck();
 			if (res.ok && res.pulled) {
 				// files changed on disk under the editor: the same reload a restore does

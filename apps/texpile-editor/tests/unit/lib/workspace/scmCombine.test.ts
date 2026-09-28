@@ -28,7 +28,6 @@ vi.mock('$lib/workspace/gitStore', () => ({
 	gitTracking: { current: 'origin/main' },
 	isConflicted: (x: string, y: string) => x === 'U' || y === 'U'
 }));
-vi.mock('$lib/workspace/joinedMessage', () => ({ joinedMessage: async () => 'Joined with the versions on GitHub' }));
 vi.mock('$lib/workspace/workspaceStore', () => ({ workspaceRoot: { current: 'C:/project' } }));
 
 const { ScmCombine } = await import('$lib/workspace/scmCombine.svelte');
@@ -80,8 +79,8 @@ describe("Sync's offer to combine", () => {
 		await combine.offer('C:/project', CONFLICT);
 
 		expect((promptAsk.mock.calls[0][0] as { message: string }).message).toBe('You and origin both changed "main.tex".');
-		// the merge version is named as a writer would name it, not "Merge remote-tracking branch"
-		expect(gitCombine).toHaveBeenCalledWith('C:/project', 'Joined with the versions on GitHub');
+		// no message of its own: git writes the merge commit's, as under VS Code's Sync
+		expect(gitCombine).toHaveBeenCalledWith('C:/project');
 		// the open file is read again from disk, markers and all, before anyone is sent to it
 		expect(order).toContain('load C:/project/main.tex');
 		expect(deps.openAtLine).toHaveBeenCalledWith('C:/project/main.tex', 2);

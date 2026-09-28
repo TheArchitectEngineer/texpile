@@ -5,6 +5,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- change: list rows (file explorer, Source Control, History, Contents, Problems, Local History, Preferences, the start screen) hover in the same light gray as menus and buttons, instead of a darker one
 - change: Source Control uses Git's and VS Code's words throughout, so anyone who knows Git recognizes each feature: Commit, Fetch, Push and Pull, Merge Changes, Complete Merge, Abort Merge, Accept Current Change and Accept Incoming Change, Initialize Repository, Detached HEAD; Preferences › Version Control has a Git section (Autofetch, Git Identity) and a Local History section
 - feat: Local History opens from File › Local History… and a file's or tab's right-click menu, showing a file's copies by day, beside the file with what changed since, with Restore This Copy, Copy and Save a Copy Now…; File › Restore Deleted File… and a folder's right-click menu bring back a deleted file
 - feat: Local History is kept for writing with autosave: saves gather into one copy for up to 5 minutes, copies are kept 7 days and then one a day for 30, named copies and each file's newest stay, files up to 1 MB, 300 MB in all. Preferences › Version Control turns it off, shows its size and clears it
@@ -69,7 +70,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: an edit waiting for autosave in a file that was not changed on disk yet is included in the commit being made
 - feat: clicking a change mark in the source editor's margin shows what those lines were in the last commit, with Revert Change
 - feat: Publish sends a project to a new GitHub repository, a remote it already has, or any repository by address
-- feat: Sync pulls commits made elsewhere and pushes yours, and undoes the attempt rather than leave a conflict behind; the merge commit that joins the two is called Joined with the versions on GitHub (or wherever the remote is), not git's Merge remote-tracking branch
+- feat: Sync pulls commits made elsewhere and pushes yours, and undoes the attempt rather than leave a conflict behind; git writes the merge commit's message, as under VS Code
 - feat: git's sign-in questions (a password or token, an SSH key's passphrase, a server it has not seen) are asked in the window instead of failing
 - feat: the first commit on a computer asks for the name and email git records (user.name and user.email), once
 - feat: switching branches over changes that would be overwritten offers to commit them first, then switch (Commit and Switch)

@@ -48,7 +48,7 @@
 			? `bg-primary-tint font-medium ${focused ? 'text-primary-ink' : ''}`
 			: sel.selected.includes(entry.path)
 				? 'bg-surface-strong-wash'
-				: 'hover:bg-surface-200-800'} {dnd.dropTarget === entry.path && entry.type === 'dir'
+				: 'hover:preset-tonal'} {dnd.dropTarget === entry.path && entry.type === 'dir'
 			? 'ring-primary-500 ring-2 ring-inset'
 			: ''} {dnd.dragPaths.includes(entry.path) ? 'opacity-50' : ''}"
 		draggable={editor.renaming !== entry.path}
@@ -129,7 +129,7 @@
 				? 'bg-primary-tint-solid'
 				: sel.selected.includes(entry.path)
 					? 'bg-surface-strong-wash-solid'
-					: 'bg-surface-200-800'}
+					: 'bg-tonal-hover-solid'}
 			<span class="sticky right-0 z-10 flex w-0 shrink-0 items-center justify-end">
 				<button
 					class="btn-icon btn-icon-xs text-muted hover:text-surface-950-50 mr-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 {fill}"
