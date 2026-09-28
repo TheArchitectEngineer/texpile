@@ -121,15 +121,6 @@
 							</button>
 						</div>
 					</div>
-					<p class="text-surface-950-50 mt-2 text-xs">
-						<span class="text-muted">{m.vcs_publish_github_signin()}</span>
-						<a
-							class="anchor underline"
-							href="https://github.com/settings/tokens/new?scopes=repo&description=Texpile"
-							target="_blank"
-							rel="noopener noreferrer">{m.vcs_create_token()}</a
-						>
-					</p>
 				{/if}
 			</div>
 		</div>

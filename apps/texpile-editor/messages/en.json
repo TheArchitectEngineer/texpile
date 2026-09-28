@@ -728,7 +728,6 @@
 	"vcs_publish_private": "Private",
 	"vcs_publish_public": "Public",
 	"vcs_publish_visibility": "Who can see it",
-	"vcs_publish_github_signin": "Texpile signs in with the credential Git already uses for github.com. If there is none, it asks you to sign in to GitHub in your browser, or for a personal access token.",
 	"vcs_create_token": "Create a token",
 	"vcs_publish_url": "Add remote from URL",
 	"vcs_publish_url_placeholder": "https://github.com/you/project.git",

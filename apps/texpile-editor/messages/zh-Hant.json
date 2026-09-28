@@ -728,7 +728,6 @@
 	"vcs_publish_private": "私人",
 	"vcs_publish_public": "公開",
 	"vcs_publish_visibility": "誰可以看到",
-	"vcs_publish_github_signin": "Texpile 使用 Git 已用於 github.com 的憑證登入。如果沒有，它會請你在瀏覽器中登入 GitHub，或輸入個人存取權杖。",
 	"vcs_create_token": "建立權杖",
 	"vcs_publish_url": "從 URL 新增遠端儲存庫",
 	"vcs_publish_url_placeholder": "https://github.com/you/project.git",

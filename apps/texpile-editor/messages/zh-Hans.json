@@ -728,7 +728,6 @@
 	"vcs_publish_private": "私有",
 	"vcs_publish_public": "公开",
 	"vcs_publish_visibility": "谁可以看到",
-	"vcs_publish_github_signin": "Texpile 使用 Git 已经用于 github.com 的凭据登录。如果没有，它会请你在浏览器中登录 GitHub，或输入个人访问令牌。",
 	"vcs_create_token": "创建令牌",
 	"vcs_publish_url": "从 URL 添加远程仓库",
 	"vcs_publish_url_placeholder": "https://github.com/you/project.git",
