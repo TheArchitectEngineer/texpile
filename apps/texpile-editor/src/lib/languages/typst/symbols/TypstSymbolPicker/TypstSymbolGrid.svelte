@@ -51,7 +51,7 @@
 	<div
 		bind:this={listbox}
 		{id}
-		class="grid min-h-0 gap-1 overflow-y-auto p-1.5 [scrollbar-gutter:stable]"
+		class="grid min-h-0 auto-rows-max gap-1 overflow-y-auto p-1.5 [scrollbar-gutter:stable]"
 		style:grid-template-columns="repeat({TYPST_SYMBOL_COLUMNS}, minmax(0, 1fr))"
 		role="listbox"
 		tabindex="-1"
