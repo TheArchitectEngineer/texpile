@@ -429,7 +429,7 @@ function template(win: BrowserWindow, s: MenuState): MenuItemConstructorOptions[
 			submenu: [
 				{ label: label(s, 'shortcuts', 'Keyboard Shortcuts'), click: () => fire(win, 'help:shortcuts') },
 				...(s.canTutorial ? [{ label: label(s, 'tutorial', 'Open Tutorial'), click: () => fire(win, 'help:tutorial') }] : []),
-				{ label: label(s, 'whatsNew', "What's new"), click: () => fire(win, 'help:whatsnew') },
+				{ label: label(s, 'whatsNew', "What's New"), click: () => fire(win, 'help:whatsnew') },
 				{ type: 'separator' },
 				{ label: label(s, 'documentation', 'Documentation'), click: () => fire(win, 'help:docs') },
 				{ label: label(s, 'discord', 'Join Discord'), click: () => fire(win, 'help:discord') },

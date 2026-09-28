@@ -15,23 +15,23 @@ it('offers to keep the surviving side first, and to delete the file', async () =
 	const first = promptAsk.mock.calls[0][0];
 	expect(first.message).toContain('methods.tex');
 	expect(first.buttons.map((b) => [b.id, b.label])).toEqual([
-		['mine', 'Keep my version'],
-		['theirs', 'Delete file'],
+		['mine', 'Keep My Version'],
+		['theirs', 'Delete File'],
 		['cancel', 'Cancel']
 	]);
 
 	promptAsk.mockResolvedValueOnce('theirs');
 	await askWholeFile('methods.tex', 'deleted-by-us');
 	expect(promptAsk.mock.calls[1][0].buttons.map((b) => [b.id, b.label]).slice(0, 2)).toEqual([
-		['theirs', 'Keep their version'],
-		['mine', 'Delete file']
+		['theirs', 'Keep Their Version'],
+		['mine', 'Delete File']
 	]);
 });
 
 it('names both versions for a figure, and backing out keeps nothing', async () => {
 	promptAsk.mockResolvedValueOnce('cancel');
 	expect(await askWholeFile('plot.pdf', 'binary')).toBeNull();
-	expect(keepLabel('binary', 'theirs')).toBe('Keep their version');
+	expect(keepLabel('binary', 'theirs')).toBe('Keep Their Version');
 	// a text file both changed keeps its old menu wording
-	expect(keepLabel(undefined, 'mine')).toBe('Keep my whole file');
+	expect(keepLabel(undefined, 'mine')).toBe('Keep My Whole File');
 });

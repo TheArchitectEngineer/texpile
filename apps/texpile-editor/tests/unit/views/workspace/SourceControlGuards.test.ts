@@ -54,8 +54,8 @@ const button = (name: string) => [...document.querySelectorAll('button')].find((
 
 it('will not finish while a file still holds a marked place', () => {
 	render([{ path: '/p/main.tex', x: 'U', y: 'U', markers: true }]);
-	expect(button('Finish combining')?.disabled).toBe(true);
-	expect(button('Cancel combining')?.disabled).toBe(false);
+	expect(button('Finish Combining')?.disabled).toBe(true);
+	expect(button('Cancel Combining')?.disabled).toBe(false);
 	expect(document.body.textContent).not.toContain('Ready');
 	expect(document.querySelector('textarea')).toBeNull();
 });
@@ -67,7 +67,7 @@ it('finishes once every place is chosen, and says the file is ready', () => {
 	]);
 	expect(document.body.textContent).toContain('All conflicts are resolved');
 	expect(document.body.textContent).toContain('Ready');
-	button('Finish combining')!.click();
+	button('Finish Combining')!.click();
 	expect(calls.finish).toHaveBeenCalledOnce();
 });
 
@@ -81,7 +81,7 @@ it('opens a file both sides changed at its marked place, not as a comparison', (
 
 it('leaves a rebase to the terminal it was started in', () => {
 	render([{ path: '/p/main.tex', x: 'U', y: 'U', markers: true }], { operation: 'rebase' });
-	expect(button('Finish combining')).toBeUndefined();
+	expect(button('Finish Combining')).toBeUndefined();
 	expect(document.body.textContent).toContain('git rebase --continue');
 });
 
@@ -99,16 +99,16 @@ it('asks before using a repository that starts above the folder', () => {
 	expect(document.body.textContent).not.toContain('main.tex');
 	expect(document.querySelector('textarea')).toBeNull();
 	expect(document.body.textContent).toContain('/home/ada');
-	button('Open repository')!.click();
+	button('Open Repository')!.click();
 	expect(onUse).toHaveBeenCalledOnce();
-	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Initialize repository in this project'))!.click();
+	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Initialize Repository in This Project'))!.click();
 	expect(onInit).toHaveBeenCalledOnce();
 });
 
 it('offers Sync as the next step when there is nothing to save but versions to exchange', () => {
 	const calls = { sync: vi.fn(), publish: vi.fn() };
 	render([], { operation: null, tracking: 'origin/main', ahead: 2, behind: 1, onSync: calls.sync, onPublish: calls.publish });
-	const sync = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Sync changes'))!;
+	const sync = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Sync Changes'))!;
 	expect(sync.textContent).toContain('1');
 	expect(sync.textContent).toContain('2');
 	sync.click();
@@ -118,6 +118,6 @@ it('offers Sync as the next step when there is nothing to save but versions to e
 it('offers Publish as the next step for a branch with nowhere to go yet', () => {
 	const publish = vi.fn();
 	render([], { operation: null, tracking: null, hasCommits: true, onPublish: publish });
-	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Publish branch "main"'))!.click();
+	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Publish Branch "main"'))!.click();
 	expect(publish).toHaveBeenCalledOnce();
 });

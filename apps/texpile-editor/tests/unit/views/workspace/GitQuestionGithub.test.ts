@@ -35,7 +35,7 @@ function render(question: Record<string, unknown>) {
 
 it('offers the browser sign-in for github.com, and hands the question over when chosen', () => {
 	render({ github: true });
-	const button = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Sign in with GitHub in your browser'));
+	const button = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Sign In with GitHub'));
 	expect(button).toBeTruthy();
 	button!.click();
 	expect(answerWithGithubSignIn).toHaveBeenCalledWith(expect.objectContaining({ id: 7 }));
@@ -43,5 +43,5 @@ it('offers the browser sign-in for github.com, and hands the question over when 
 
 it('does not offer it where the sign-in is not available', () => {
 	render({ github: false });
-	expect(document.body.textContent).not.toContain('Sign in with GitHub in your browser');
+	expect(document.body.textContent).not.toContain('Sign In with GitHub');
 });
