@@ -39,7 +39,16 @@
 	} from '$lib/workspace/localHistory.svelte';
 	import { localHistoryActions, entryDate } from '$lib/workspace/localHistoryActions.svelte';
 	import type { GitLogEntry } from '$lib/workspace/git';
-	import { MENU_CARD, MENU_ITEM, MENU_DANGER, MENU_ICON, MENU_SPACER, MENU_SEPARATOR, MENU_TRIGGER } from '$lib/workspace/history/rowMenu';
+	import {
+		MENU_CARD,
+		MENU_ITEM,
+		MENU_DANGER,
+		MENU_ICON,
+		MENU_SPACER,
+		MENU_SEPARATOR,
+		MENU_TRIGGER,
+		hoverAction
+	} from '$lib/workspace/history/rowMenu';
 	import { m } from '$lib/paraglide/messages';
 
 	let { path, collapsed, onToggle }: { path: string | null; collapsed: boolean; onToggle: () => void } = $props();
@@ -230,12 +239,7 @@
 		positioning={{ placement: 'bottom-end', offset: { mainAxis: 2 } }}
 		autoFocus={false}
 	>
-		<Popover.Trigger
-			class="{MENU_TRIGGER} shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 {open
-				? 'opacity-100'
-				: ''}"
-			aria-label={label}
-		>
+		<Popover.Trigger class="{MENU_TRIGGER} {hoverAction(open)}" aria-label={label}>
 			{#snippet element(attrs)}
 				<button {...attrs} use:tip={label}><MoreHorizontal class="size-3.5" /></button>
 			{/snippet}

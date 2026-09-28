@@ -16,3 +16,10 @@ export const MENU_SPACER = 'size-4 shrink-0';
 export const MENU_SEPARATOR = 'border-surface-200-800 my-1 border-t';
 /** the "…" button that opens a row's menu */
 export const MENU_TRIGGER = 'hover:preset-tonal rounded-base p-0.5';
+
+/** A row's hover button takes no room until the row is hovered or has focus, as in VS Code: one
+ *  that was only invisible kept its width and cut every row's text short by it. `shown` keeps it
+ *  up while its menu is open. */
+export function hoverAction(shown = false): string {
+	return shown ? 'flex shrink-0' : 'hidden shrink-0 group-focus-within:flex group-hover:flex';
+}

@@ -9,7 +9,7 @@
 	import { canShowVersion } from '$lib/workspace/gitVersion';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import GraphRail from './GraphRail.svelte';
-	import { MENU_CARD, MENU_ITEM, MENU_ICON, MENU_TRIGGER } from './rowMenu';
+	import { MENU_CARD, MENU_ITEM, MENU_ICON, MENU_TRIGGER, hoverAction } from './rowMenu';
 	import { gitHistoryLoaded } from '$lib/workspace/gitStore';
 	import FileIcon from '$lib/filetree/FileIcon.svelte';
 	import { STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
@@ -149,7 +149,9 @@
 				use:tip={`${entry.subject}\n${entry.author} · ${exact(entry.date)}${entry.parentCount > 1 ? `\n${m.vcs_merged_version()}` : ''}`}
 			>
 				<span class="truncate text-sm {i === 0 ? 'font-semibold' : ''}">{entry.subject}</span>
-				<span class="text-muted truncate text-xs">{entry.author} · {ago(entry.date)}</span>
+				<!-- the message keeps its room, as a VS Code row's label does: who and when start from no width
+				     and take only what the message leaves, so a short message is never cut for them -->
+				<span class="text-muted min-w-0 flex-1 truncate text-xs">{entry.author} · {ago(entry.date)}</span>
 				{#if i === 0 && branch}
 					<!-- VS Code marks the checked-out branch against the newest item; here it also answers
 					     "is the version I am looking at the one the editor is showing". Capped, so a long branch
@@ -169,13 +171,7 @@
 				positioning={{ placement: 'bottom-end', offset: { mainAxis: 2 } }}
 				autoFocus={false}
 			>
-				<Popover.Trigger
-					class="{MENU_TRIGGER} shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 {openMenu ===
-					entry.hash
-						? 'opacity-100'
-						: ''}"
-					aria-label={m.vcs_row_actions()}
-				>
+				<Popover.Trigger class="{MENU_TRIGGER} {hoverAction(openMenu === entry.hash)}" aria-label={m.vcs_row_actions()}>
 					{#snippet element(attrs)}
 						<button {...attrs} use:tip={m.vcs_row_actions()}><MoreHorizontal class="size-3.5" /></button>
 					{/snippet}

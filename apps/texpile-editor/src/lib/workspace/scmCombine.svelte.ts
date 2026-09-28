@@ -70,7 +70,7 @@ export class ScmCombine {
 				files.length === 1
 					? m.vcs_combine_message_one({ remote, file: basename(files[0]) })
 					: m.vcs_combine_message_count({ remote, count: files.length }),
-			detail: files.length > 1 ? `${m.vcs_combine_detail()}\n\n${files.join('\n')}` : m.vcs_combine_detail(),
+			detail: files.length > 1 ? files.join('\n') : undefined,
 			buttons: [
 				{ id: 'combine', label: m.vcs_combine_now(), primary: true },
 				{ id: 'later', label: m.vcs_combine_later() }
@@ -104,7 +104,7 @@ export class ScmCombine {
 			toaster.info({ title: m.vcs_toast_combine_started(), description: m.vcs_toast_combine_whole_desc() });
 			return;
 		}
-		toaster.info({ title: m.vcs_toast_combine_started(), description: m.vcs_toast_combine_started_desc() });
+		toaster.info({ title: m.vcs_toast_combine_started() });
 		await this.openConflict(marked);
 	}
 

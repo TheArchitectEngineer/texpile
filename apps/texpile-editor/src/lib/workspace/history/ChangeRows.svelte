@@ -11,7 +11,7 @@
 	import { STATUS_COLOR, STATUS_DECOR, STATUS_TITLE } from '$lib/filetree/treeBadges';
 	import { badgeOf, gitWriting, isNewFile } from '$lib/workspace/gitStore';
 	import { chooseNote, keepLabel } from '$lib/workspace/wholeFileChoice';
-	import { MENU_CARD, MENU_ITEM, MENU_DANGER, MENU_ICON, MENU_SEPARATOR, MENU_TRIGGER } from './rowMenu';
+	import { MENU_CARD, MENU_ITEM, MENU_DANGER, MENU_ICON, MENU_SEPARATOR, MENU_TRIGGER, hoverAction } from './rowMenu';
 	import type { GitStatusEntry } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
 
@@ -115,13 +115,7 @@
 			positioning={{ placement: 'bottom-end', offset: { mainAxis: 2 } }}
 			autoFocus={false}
 		>
-			<Popover.Trigger
-				class="{MENU_TRIGGER} shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 {openMenu ===
-				c.path
-					? 'opacity-100'
-					: ''}"
-				aria-label={m.vcs_row_actions()}
-			>
+			<Popover.Trigger class="{MENU_TRIGGER} {hoverAction(openMenu === c.path)}" aria-label={m.vcs_row_actions()}>
 				{#snippet element(attrs)}
 					<button {...attrs} use:tip={m.vcs_row_actions()}><MoreHorizontal class="size-3.5" /></button>
 				{/snippet}

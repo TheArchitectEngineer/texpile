@@ -249,7 +249,7 @@ export class ScmActions {
 		const ok = await confirmAsk(
 			dirty ? m.vcs_confirm_restore_unsaved({ name: entry.subject }) : m.vcs_confirm_restore({ name: entry.subject }),
 			{
-				detail: dirty ? m.vcs_confirm_restore_unsaved_detail() : m.vcs_confirm_restore_detail(),
+				detail: dirty ? undefined : m.vcs_confirm_restore_detail(),
 				confirmLabel: dirty ? m.vcs_save_and_restore() : m.vcs_restore()
 			}
 		);

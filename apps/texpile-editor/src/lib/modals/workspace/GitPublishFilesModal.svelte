@@ -18,6 +18,13 @@
 		kept = kept.includes(name) ? kept.filter((n) => n !== name) : [...kept, name];
 	}
 
+	// VS Code's multi-select pick has one box over the list that ticks or clears every row
+	const all = $derived(kept.length === ask.entries.length);
+	const some = $derived(kept.length > 0 && !all);
+	function toggleAll() {
+		kept = all ? [] : ask.entries.map((e) => e.name);
+	}
+
 	function go() {
 		if (kept.length) answerPublishFiles(kept);
 	}
@@ -31,9 +38,25 @@
 
 <Modal title={m.vcs_publish_files_title()} icon={UploadCloud} onClose={() => answerPublishFiles(null)} onEnter={go}>
 	<p class="text-muted mb-3 text-sm">{m.vcs_publish_files_desc()}</p>
-	<ul class="border-surface-200-800 max-h-72 overflow-y-auto rounded-base border py-1" use:focusFirst>
-		{#each ask.entries as e (e.name)}
-			<li>
+	<!-- scrolls inside the dialog past about fourteen rows; each row is a top-level file or folder,
+	     so a folder of thousands of files is still one row -->
+	<ul class="border-surface-200-800 max-h-72 overflow-y-auto rounded-base border pb-1" use:focusFirst>
+		{#if ask.entries.length > 1}
+			<li class="bg-surface-50-950 border-surface-200-800 sticky top-0 z-10 border-b">
+				<label class="hover:bg-surface-200-800 flex cursor-pointer items-center gap-2 px-2 py-1 text-sm">
+					<input
+						type="checkbox"
+						class="checkbox border-surface-400-600 accent-primary-500 size-3.5 shrink-0"
+						checked={all}
+						indeterminate={some}
+						onchange={toggleAll}
+					/>
+					<span class="text-muted">{m.vcs_select_all()}</span>
+				</label>
+			</li>
+		{/if}
+		{#each ask.entries as e, i (e.name)}
+			<li class={i === 0 ? 'pt-1' : ''}>
 				<label class="hover:bg-surface-200-800 flex cursor-pointer items-center gap-2 px-2 py-0.5 text-sm">
 					<input
 						type="checkbox"

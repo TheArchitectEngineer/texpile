@@ -5,6 +5,10 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- change: Source Control explains less and lets the buttons speak: the Publish dialog has no intro, sign-in prompts no longer describe how the answer is kept, confirmations drop the extra paragraph, and a folder inside another repository or owned by another account says so in one line, with the rest in the buttons' tooltips
+- fix: rows in History, the Timeline and the changes list use the panel's full width: the "…" button takes room only while you hover the row, and in History a version's message keeps its room before the author and time
+- feat: the which-files question before publishing a folder has Select all
+- change: a folder with no version history says so in one line instead of two paragraphs, and offers Start Version History (Initialize Repository before) and Publish…, whose tooltips say what each does
 - change: in English, anything you click that names a command is in Title Case, as in VS Code and macOS: menu items, start screen items, command palette commands, buttons, tabs, dialog titles and section headings (Open Folder, Save Version, Finish Combining). Messages, tooltips, placeholders and setting labels stay in sentence case. Long buttons are shorter: Save and Sync, Save and Switch, Sign In with GitHub
 - fix: Combine now from the comparison view opens the file where Keep mine, Keep theirs and Keep both are, instead of showing the marked places as changes to revert; a combined version's message no longer carries git's "# Conflicts" comment; Escape that closes a confirmation no longer also leaves Source Control; in Preferences, the check for co-authors' versions is no longer filed under Git identity
 - change: Source Control, the Timeline and Local History use VS Code's wording for every feature VS Code has, keeping the writer words (version, combine, check for new versions) whose tooltips name VS Code's term; conflicts are called conflicts everywhere

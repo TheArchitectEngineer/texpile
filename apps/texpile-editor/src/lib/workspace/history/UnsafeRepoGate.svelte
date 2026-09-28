@@ -4,6 +4,7 @@
 	// repository", with an Initialize that did nothing. Trusting it is asked, not assumed: git's
 	// check exists because a repository's own settings can run programs.
 	import { ShieldAlert, ShieldCheck, LoaderCircle } from '@lucide/svelte';
+	import { tip } from '$lib/components/tooltip.svelte';
 	import RepoPath from './RepoPath.svelte';
 	import { promptAsk } from '$lib/modals/confirm.svelte';
 	import { toaster } from '$lib/modals/toaster-svelte';
@@ -45,9 +46,13 @@
 	<ShieldAlert class="text-warning-ink size-8" />
 	<p class="text-sm">{m.vcs_unsafe()}</p>
 	<RepoPath path={repo} />
-	<p class="text-muted text-xs">{m.vcs_unsafe_detail()}</p>
 	{#if canTrustRepo()}
-		<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={trust} disabled={trusting}>
+		<button
+			class="btn btn-xs preset-filled-primary-500 w-full gap-1.5"
+			onclick={trust}
+			disabled={trusting}
+			use:tip={m.vcs_unsafe_trust_tip()}
+		>
 			{#if trusting}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ShieldCheck class="size-3.5" />{/if}
 			{trusting ? m.vcs_running_trust() : m.vcs_unsafe_trust()}
 		</button>

@@ -94,15 +94,11 @@
 			disabled={busy}
 		/>
 	</label>
-	<p class="text-muted mt-1 text-xs">
-		{#if address.trim() && !parsed}
-			<span class="text-error-ink">{m.vcs_clone_not_an_address()}</span>
-		{:else if parsed && parsed.url !== address.trim()}
-			{m.vcs_clone_will_clone({ url: parsed.url })}
-		{:else}
-			{m.vcs_clone_address_hint()}
-		{/if}
-	</p>
+	{#if address.trim() && !parsed}
+		<p class="text-error-ink mt-1 text-xs">{m.vcs_clone_not_an_address()}</p>
+	{:else if parsed && parsed.url !== address.trim()}
+		<p class="text-muted mt-1 text-xs">{m.vcs_clone_will_clone({ url: parsed.url })}</p>
+	{/if}
 
 	<div class="mt-4 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 text-sm">
 		<span class="font-medium">{m.vcs_clone_folder_name()}</span>

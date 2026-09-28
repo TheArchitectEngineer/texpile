@@ -99,9 +99,9 @@ it('asks before using a repository that starts above the folder', () => {
 	expect(document.body.textContent).not.toContain('main.tex');
 	expect(document.querySelector('textarea')).toBeNull();
 	expect(document.body.textContent).toContain('/home/ada');
-	button('Open Repository')!.click();
+	button('Use That History')!.click();
 	expect(onUse).toHaveBeenCalledOnce();
-	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Initialize Repository in This Project'))!.click();
+	[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Start Separate History'))!.click();
 	expect(onInit).toHaveBeenCalledOnce();
 });
 

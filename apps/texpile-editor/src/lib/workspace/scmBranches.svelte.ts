@@ -3,7 +3,7 @@
 // files under both. Texpile does not start or delete branches: it cannot join two of them again,
 // and switching back is the one thing a writer who landed on another branch needs.
 import { workspaceRoot } from './workspaceStore';
-import { refreshGitStatus, refreshGitHistory, gitOperation, gitBranch } from './gitStore';
+import { refreshGitStatus, refreshGitHistory, gitOperation } from './gitStore';
 import { saveChangesFirst } from './scmSaveFirst';
 import { gitBranches, gitSwitch, type GitBranchesResult, type GitSwitchResult } from './gitBranches';
 import { basename } from './fileSystem';
@@ -61,7 +61,6 @@ export class ScmBranches {
 		return saveChangesFirst(host, {
 			title: m.vcs_branch_dirty_title(),
 			message: m.vcs_branch_dirty_message({ files: blocking.map((f) => basename(f)).join(', '), branch: name }),
-			detail: m.vcs_branch_dirty_detail({ branch: gitBranch.current ?? '' }),
 			confirm: m.vcs_branch_save_and_switch(),
 			version: m.vcs_branch_autosave_message({ branch: name }),
 			blocking

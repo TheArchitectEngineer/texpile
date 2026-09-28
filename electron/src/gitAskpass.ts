@@ -150,14 +150,10 @@ async function answer(req: { token?: unknown; kind?: unknown; prompt?: unknown; 
 	const id = nextId++;
 	const reply = await new Promise<string | null>((resolve) => {
 		waiting.set(id, { session, subject: request.subject, github: forGithub, resolve });
-		// `kept`: the prompt says the answer is remembered once it works, since it will be
 		// `github`: the question can be answered by signing in to GitHub in the browser instead
 		session.sender.send('git:askpass', {
 			id,
 			...request,
-			kept: keep && signInStore().available,
-			// no keychain: remembered only until Texpile quits, and the prompt says so
-			keptUntilQuit: keep && !signInStore().lasting,
 			github: forGithub && githubSignInAvailable()
 		});
 	});

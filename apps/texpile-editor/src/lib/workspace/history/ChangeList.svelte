@@ -10,7 +10,7 @@
 	import { EyeOff } from '@lucide/svelte';
 	import ChangeGroup from './ChangeGroup.svelte';
 	import { pathLabels } from './pathLabels';
-	import { MENU_TRIGGER } from './rowMenu';
+	import { MENU_TRIGGER, hoverAction } from './rowMenu';
 	import type { GitStatusEntry } from '$lib/workspace/git';
 	import { gitWriting } from '$lib/workspace/gitStore';
 	import { m } from '$lib/paraglide/messages';
@@ -107,7 +107,7 @@
 				<!-- the permanent fix, one click: unticking these every time is a chore nobody should repeat.
 				     The rows' own hover button, with the icon a row's Add to .gitignore carries. -->
 				<button
-					class="{MENU_TRIGGER} shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-50"
+					class="{MENU_TRIGGER} {hoverAction()} disabled:opacity-50"
 					use:tip={m.vcs_ignore_artifacts_title()}
 					aria-label={m.vcs_ignore_artifacts()}
 					onclick={onIgnoreArtifacts}
