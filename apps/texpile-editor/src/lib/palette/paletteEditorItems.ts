@@ -1,4 +1,4 @@
-import { AlignLeft, BookMarked, Keyboard, ArrowDownToLine, ArrowUpToLine, Undo2 } from '@lucide/svelte';
+import { AlignLeft, BookMarked, BookPlus, Keyboard, ArrowDownToLine, ArrowUpToLine, Undo2 } from '@lucide/svelte';
 import { sourceCmView } from '$lib/stores/editorStore';
 import { changedLines, nextChange, previousChange, revertChange, revertChangeAt } from '$lib/editor/source/cmChangeMarkers';
 import { conflictBlocks, nextConflict, previousConflict } from '$lib/editor/source/cmConflicts';
@@ -19,6 +19,15 @@ export function editorItems(a: PaletteActions): PaletteItem[] {
 			keywords: 'zotero cite citation bibliography reference bibtex import',
 			icon: BookMarked,
 			run: () => a.insertZoteroCitation?.()
+		});
+	if (a.citeByDoi && a.canCiteByDoi?.())
+		items.push({
+			id: 'editor.citeByDoi',
+			label: m.cite_doi_insert(),
+			group,
+			keywords: 'doi arxiv cite citation bibliography reference bibtex crossref paper',
+			icon: BookPlus,
+			run: () => a.citeByDoi?.()
 		});
 	if (a.hasFile() && a.canFormat())
 		items.push({

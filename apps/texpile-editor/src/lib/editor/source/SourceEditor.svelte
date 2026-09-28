@@ -51,6 +51,7 @@
 		selectedComment = null,
 		onAddComment,
 		onInsertCitation,
+		onCiteByDoi,
 		onSelectComment,
 		readOnly = false,
 		changeBaseline = null
@@ -80,6 +81,8 @@
 		onAddComment?: (from: number, to: number) => void;
 		/** pick citations from Zotero and insert them at the caret (host + desktop only) */
 		onInsertCitation?: () => void;
+		/** look a work up by DOI or arXiv ID and cite it at the caret (host + desktop only) */
+		onCiteByDoi?: () => void;
 		onSelectComment?: (id: string) => void;
 		/** this file's threads, read by the hover card over commented text and its line number */
 		readOnly?: boolean;
@@ -333,7 +336,8 @@
 	bind:this={host}
 	class="source-editor h-full"
 	oncontextmenu={(e) =>
-		view && openSourceContextMenu(e, view, { onSyncToPdf, onAddComment, onInsertCitation, syncTarget: isTypFile ? 'preview' : 'pdf' })}
+		view &&
+		openSourceContextMenu(e, view, { onSyncToPdf, onAddComment, onInsertCitation, onCiteByDoi, syncTarget: isTypFile ? 'preview' : 'pdf' })}
 	role="presentation"
 ></div>
 

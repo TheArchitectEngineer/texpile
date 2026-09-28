@@ -103,6 +103,7 @@
 		onAddComment,
 		onSetViewMode,
 		onInsertCitation,
+		onCiteByDoi,
 		onAddCommentAnchored,
 		onCommentsPlaced,
 		commentPendingActive = false,
@@ -349,6 +350,7 @@
 								{selectedComment}
 								{onAddComment}
 								{onInsertCitation}
+								{onCiteByDoi}
 								{onSelectComment}
 							/>
 						{/key}
@@ -382,6 +384,7 @@
 							{onSelectComment}
 							{onAddCommentAnchored}
 							{onInsertCitation}
+							{onCiteByDoi}
 							{onJumpToLabel}
 							{onJumpToDefinition}
 							{onCommentsPlaced}
