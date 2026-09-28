@@ -1,7 +1,6 @@
-// What the Timeline does with a Local History entry, as VS Code's local history commands do:
-// Compare with File (the row's click), Restore Contents, Rename, Delete, and Create Entry. A module
-// the workspace provides while it is open, like scmHandlers.svelte.ts: the Timeline sits in the
-// explorer, nowhere near the editor it acts on.
+// What the Local History dialog does with a copy, as VS Code's local history commands do: Restore,
+// Rename, Delete, and Save a Copy Now (VS Code's Create Entry). A module the workspace provides
+// while it is open, like scmHandlers.svelte.ts: the dialog is drawn apart from the editor it acts on.
 import {
 	addLocalHistory,
 	readLocalHistory,
@@ -20,8 +19,8 @@ import { m } from '$lib/paraglide/messages';
 
 export type LocalHistoryDeps = {
 	getLoadedPath(): string | null;
-	/** drop the file's queued autosave: a restore replaces what it was about to write */
-	discardPendingSave(): void;
+	/** write the file's queued autosave now: a restore keeps what it replaces, unsaved edits included */
+	flushPendingSave(): Promise<void>;
 	/** resolves once a save already being written has landed, so it cannot land on the restore */
 	whenSaved(): Promise<void>;
 	/** null when the file is gone */
@@ -39,11 +38,6 @@ export function entryDate(timestamp: number): string {
 export class LocalHistoryActions {
 	constructor(private deps: LocalHistoryDeps) {}
 
-	/** a git version of the file against the file as it is now: the Timeline's git rows */
-	compareVersion(path: string, hash: string, subject: string, pathThen?: string): void {
-		this.deps.openCompareTab(path, { hash, subject, ...(pathThen ? { path: pathThen } : {}) });
-	}
-
 	/** the entry against the file as it is now, in a compare tab */
 	compare(path: string, entry: LocalHistoryEntry): void {
 		this.deps.openCompareTab(path, {
@@ -52,8 +46,9 @@ export class LocalHistoryActions {
 		});
 	}
 
-	/** Restore Contents: asked first, then the file becomes the entry, and that is an entry of its own */
-	async restore(path: string, entry: LocalHistoryEntry): Promise<void> {
+	/** Restore: asked first, then the file becomes the copy, and that is an entry of its own. What it
+	 *  held, unsaved edits included, is kept first as Before Restore, and the notice offers Undo. */
+	async restore(path: string, entry: LocalHistoryEntry): Promise<boolean> {
 		const answer = await promptAsk({
 			title: m.history_restore_title(),
 			message: m.history_restore_message({ name: basename(path) }),
@@ -64,11 +59,11 @@ export class LocalHistoryActions {
 			],
 			cancelId: 'cancel'
 		});
-		if (answer !== 'restore') return;
+		if (answer !== 'restore') return false;
 		const content = await readLocalHistory(path, entry.id);
 		if (content === null) {
 			toaster.error({ title: m.history_restore_failed({ name: basename(path) }), description: m.history_entry_gone() });
-			return;
+			return false;
 		}
 		let current: string | null;
 		// samePath: after a rename in the app the editor holds the path with / and Local History hands
@@ -76,21 +71,40 @@ export class LocalHistoryActions {
 		const loaded = this.deps.getLoadedPath();
 		const open = !!loaded && samePath(loaded, path);
 		try {
-			if (open) this.deps.discardPendingSave();
+			if (open) await this.deps.flushPendingSave();
 			await this.deps.whenSaved();
 			// the file's own line endings, whatever the copy was kept with
 			current = await this.deps.readTextIfPresent(path);
+			// what the restore replaces, so restoring is undone the same way
+			if (current !== null) await addLocalHistory(path, toLf(current), 'before-restore');
 			await this.deps.writeText(path, current === null ? content : fromLf(toLf(content), detectEol(current)));
 		} catch (e) {
 			toaster.error({ title: m.history_restore_failed({ name: basename(path) }), description: e instanceof Error ? e.message : String(e) });
-			return;
+			return false;
 		}
 		// a deleted file comes back (its folder too, if that went), and is opened
 		if (current === null) openFile(path);
 		else if (open && loaded) await this.deps.loadFile(loaded);
 		await addLocalHistory(path, toLf(content), 'restored');
 		// said, as restoring a version is: the file may not be the one on screen
-		toaster.success({ title: m.history_toast_restored({ name: basename(path) }) });
+		const before = current;
+		toaster.success({
+			title: m.history_toast_restored({ name: basename(path) }),
+			...(before !== null ? { action: { label: m.vcs_undo(), onClick: () => void this.undoRestore(path, before) } } : {})
+		});
+		return true;
+	}
+
+	/** Undo on the notice: the text the file had before, written back */
+	private async undoRestore(path: string, before: string): Promise<void> {
+		try {
+			await this.deps.writeText(path, before);
+		} catch (e) {
+			toaster.error({ title: m.history_restore_failed({ name: basename(path) }), description: e instanceof Error ? e.message : String(e) });
+			return;
+		}
+		const loaded = this.deps.getLoadedPath();
+		if (loaded && samePath(loaded, path)) await this.deps.loadFile(loaded);
 	}
 
 	/** the file as it is on disk now; null when it is gone */

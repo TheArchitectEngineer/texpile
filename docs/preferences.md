@@ -28,13 +28,15 @@ Settings apply to every folder you open. The compile command and its options are
 
 ## Editor
 
-| Setting                            | What it does                                                                                                                                                |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Autosave                           | On by default. Off, changes save only when you press Save, and you are warned before switching files. Live preview and hosting a shared session keep it on. |
-| Spell check                        | Off by default. See [Spell check](spell-check.md).                                                                                                          |
-| Toolbar on selection               | Buttons over selected text for commenting, and for Refine when an agent is set up. In both editors.                                                         |
-| Open terminal panel when compiling | Also opens Problems when a compile reports errors. Off, the badge next to Compile is the only signal.                                                       |
-| Keybindings                        | Default, Vim, or Emacs, for the source editor. The mode line appears under the editor.                                                                      |
+| Setting                            | What it does                                                                                                                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Autosave                           | On by default. Off, changes save only when you press Save, and you are warned before switching files. Live preview and hosting a shared session keep it on.                         |
+| Keep local history                 | On by default. A copy of each file as you save it, kept on this computer for 30 days ([Local history](version-control.md#local-history)). Off records nothing; what was kept stays. |
+| Saved copies                       | How much space Local History takes. Clear Local History… deletes every copy of every file.                                                                                          |
+| Spell check                        | Off by default. See [Spell check](spell-check.md).                                                                                                                                  |
+| Toolbar on selection               | Buttons over selected text for commenting, and for Refine when an agent is set up. In both editors.                                                                                 |
+| Open terminal panel when compiling | Also opens Problems when a compile reports errors. Off, the badge next to Compile is the only signal.                                                                               |
+| Keybindings                        | Default, Vim, or Emacs, for the source editor. The mode line appears under the editor.                                                                                              |
 
 ### Source editor
 

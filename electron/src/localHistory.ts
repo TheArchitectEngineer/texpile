@@ -1,23 +1,37 @@
 // Local History, as VS Code keeps it (workbench.localHistory): every save of a file puts a copy of
-// it under the app's own data, so a morning's work is not protected only by undo in a project that
-// has never been put under git. Same layout as VS Code's User/History: a folder per file, named by
-// a hash of its path, holding the copies and an entries.json that lists them.
+// it under the app's own data, so the work between two versions is not protected only by undo.
+// Same layout as VS Code's User/History: a folder per file, named by a hash of its path, holding
+// the copies and an entries.json that lists them.
 //
-// The same rules too: saves from the same source within the merge window replace the last entry
-// rather than add one (autosave would otherwise fill the list in minutes), a file keeps its last 50
-// entries, and files over 256 KB are not kept. A rename or move carries the entries along.
+// VS Code's rules assume saving by hand. Texpile saves 1.5 s after typing stops, so they are tuned
+// for that, as writing tools keep history (Obsidian: a snapshot at most every 5 minutes, kept 7
+// days):
+// - saves from the same source go into the current copy until it is 5 minutes old, then a new one
+//   starts: an hour of writing is about twelve copies, however often it paused
+// - copies are kept by age: every one for 7 days, then the last of each day for 30 days. A copy the
+//   author named is kept until they delete it
+// - files up to 1 MB (a long .bib is well over VS Code's 256 KB), and all of it together under a cap
+//   that removes the oldest first
+// A rename or move carries the entries along.
+//
+// A portable Texpile files a project on its own drive by the path from the app's folder, so the
+// history travels with the drive whatever letter it is given on the next computer.
 //
 // Nothing here reads the file being tracked: the window hands over what it saved, so a path can
 // never be used to pull an arbitrary file into the history and read it back out.
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { extname, join, resolve, sep } from 'node:path';
+import { extname, isAbsolute, join, normalize, parse, relative, resolve, sep } from 'node:path';
 
 export type LocalHistoryEntry = {
 	/** the copy's file name in the history folder: four characters and the file's extension */
 	id: string;
+	/** the last save that went into it */
 	timestamp: number;
-	/** 'restored', 'renamed', 'moved', or a name the author gave it; absent for an ordinary save */
+	/** the first save that went into it; the 5-minute window counts from here */
+	started?: number;
+	/** 'restored', 'renamed', 'moved', 'before-discard', 'before-restore', 'before-reload', 'shared',
+	 *  or a name the author gave it; absent for an ordinary save */
 	source?: string;
 	/** for a rename or move, where the file was before */
 	sourceDescription?: string;
@@ -25,20 +39,29 @@ export type LocalHistoryEntry = {
 
 type Model = { version: 1; resource: string; entries: LocalHistoryEntry[] };
 
-export const LOCAL_HISTORY_LIMITS = { maxEntries: 50, maxFileSize: 256 * 1024, mergeWindowMs: 10_000 };
+const MINUTE = 60_000;
+const DAY = 24 * 60 * MINUTE;
+
+export const LOCAL_HISTORY_LIMITS = {
+	mergeWindowMs: 5 * MINUTE,
+	maxFileSize: 1024 * 1024,
+	keepAllMs: 7 * DAY,
+	keepDailyMs: 30 * DAY,
+	/** a backstop for a file saved without pause for weeks; age decides long before this */
+	maxEntries: 1000,
+	maxTotalBytes: 300 * 1024 * 1024
+};
+export type LocalHistoryLimits = typeof LOCAL_HISTORY_LIMITS;
+
+/** what Texpile records on its own; any other source is a name the author gave the copy */
+const RECORDED = new Set([undefined, 'restored', 'renamed', 'moved', 'before-discard', 'before-restore', 'before-reload', 'shared']);
+
+function named(entry: LocalHistoryEntry): boolean {
+	return !RECORDED.has(entry.source);
+}
 
 const ENTRIES_FILE = 'entries.json';
 const ID_RE = /^[A-Za-z0-9]{4}(\.[^\\/]{1,32})?$/;
-
-/** the path as it names a file here: resolved, and case-folded where the file system folds case */
-export function resourceKey(path: string): string {
-	const abs = resolve(path);
-	return process.platform === 'win32' || process.platform === 'darwin' ? abs.toLowerCase() : abs;
-}
-
-function folderName(resource: string): string {
-	return createHash('sha1').update(resourceKey(resource)).digest('hex').slice(0, 16);
-}
 
 /** four characters and the file's extension, as VS Code names a copy; never one the file already
  *  has, compared as macOS's and Windows's disks do, without case: "aB3d" there is "Ab3D", and the
@@ -56,15 +79,25 @@ function randomId(resource: string, taken: { id: string }[]): string {
 	}
 }
 
+/** the calendar day a time falls on, where the author is */
+function dayOf(timestamp: number): string {
+	return new Date(timestamp).toDateString();
+}
+
 export class LocalHistory {
 	// one operation at a time: a save, a move and a restore can arrive together, and each rewrites
 	// entries.json from what it read
 	private chain: Promise<unknown> = Promise.resolve();
+	private limits: LocalHistoryLimits;
 
+	/** `base`: the portable app's folder, which a project on the same drive is filed relative to */
 	constructor(
 		private home: string,
-		private limits = LOCAL_HISTORY_LIMITS
-	) {}
+		limits: Partial<LocalHistoryLimits> = {},
+		private base?: string
+	) {
+		this.limits = { ...LOCAL_HISTORY_LIMITS, ...limits };
+	}
 
 	private queue<T>(op: () => Promise<T>): Promise<T> {
 		const next = this.chain.then(op, op);
@@ -72,8 +105,37 @@ export class LocalHistory {
 		return next;
 	}
 
+	/** how a path is written down: from the portable app's folder when it is on the same drive */
+	private stored(path: string): string {
+		const abs = resolve(path);
+		if (!this.base) return abs;
+		const base = resolve(this.base);
+		return parse(abs).root.toLowerCase() === parse(base).root.toLowerCase() ? relative(base, abs) || '.' : abs;
+	}
+
+	/** a path as it was written down, back to where it is on this computer */
+	private absolute(stored: string): string {
+		return isAbsolute(stored) || !this.base ? stored : resolve(this.base, stored);
+	}
+
+	/** a path as it names a file here, case-folded where the file system folds case */
+	private key(path: string): string {
+		const s = normalize(this.stored(path));
+		return process.platform === 'win32' || process.platform === 'darwin' ? s.toLowerCase() : s;
+	}
+
 	private folder(resource: string): string {
-		return join(this.home, folderName(resource));
+		return join(this.home, createHash('sha1').update(this.key(resource)).digest('hex').slice(0, 16));
+	}
+
+	/** the path a history folder's listing names, or null when it cannot be read */
+	private async listedPath(name: string): Promise<string | null> {
+		try {
+			const resource = (JSON.parse(await readFile(join(this.home, name, ENTRIES_FILE), 'utf8')) as Model).resource;
+			return typeof resource === 'string' ? this.absolute(resource) : null;
+		} catch {
+			return null;
+		}
 	}
 
 	/**
@@ -90,11 +152,11 @@ export class LocalHistory {
 			return { version: 1, resource: resolve(resource), entries: [] };
 		}
 		let listed: LocalHistoryEntry[] = [];
-		let stored = resolve(resource);
+		let path = resolve(resource);
 		try {
 			const parsed = JSON.parse(await readFile(join(dir, ENTRIES_FILE), 'utf8')) as Model;
 			if (parsed && Array.isArray(parsed.entries)) listed = parsed.entries.filter((e) => ID_RE.test(e.id));
-			if (typeof parsed?.resource === 'string') stored = parsed.resource;
+			if (typeof parsed?.resource === 'string') path = this.absolute(parsed.resource);
 		} catch {
 			// no listing, or one that cannot be read: the copies alone, timed by when they were written
 		}
@@ -107,7 +169,7 @@ export class LocalHistory {
 			if (written) entries.push({ id, timestamp: written.mtimeMs });
 		}
 		entries.sort((a, b) => a.timestamp - b.timestamp);
-		return { version: 1, resource: stored, entries };
+		return { version: 1, resource: path, entries };
 	}
 
 	private async store(resource: string, model: Model): Promise<void> {
@@ -119,21 +181,40 @@ export class LocalHistory {
 		await mkdir(dir, { recursive: true });
 		// written aside and renamed over the old one, so a crash leaves one listing or the other
 		const aside = join(dir, `.${ENTRIES_FILE}.${randomBytes(4).toString('hex')}`);
-		await writeFile(aside, JSON.stringify(model));
+		await writeFile(aside, JSON.stringify({ ...model, resource: this.stored(model.resource) }));
 		await rename(aside, join(dir, ENTRIES_FILE));
 	}
 
-	/** drop the oldest past the limit, files and all */
-	private async trim(resource: string, model: Model): Promise<void> {
-		const excess = model.entries.length - this.limits.maxEntries;
-		if (excess <= 0) return;
-		for (const old of model.entries.splice(0, excess)) await rm(join(this.folder(resource), old.id), { force: true });
+	/**
+	 * Keep by age: every copy from the last 7 days, the last of each day before that up to 30 days,
+	 * nothing older; a copy the author named stays. The newest copy always stays, however old, so a
+	 * file left alone for a month keeps the text it was left with. Returns the ids dropped.
+	 */
+	private thin(model: Model, now: number): string[] {
+		const newest = model.entries.at(-1);
+		const lastOfDay = new Map<string, LocalHistoryEntry>();
+		for (const e of model.entries) lastOfDay.set(dayOf(e.timestamp), e);
+		const kept = model.entries.filter((e) => {
+			if (e === newest || named(e)) return true;
+			const age = now - e.timestamp;
+			if (age <= this.limits.keepAllMs) return true;
+			return age <= this.limits.keepDailyMs && lastOfDay.get(dayOf(e.timestamp)) === e;
+		});
+		let excess = kept.length - this.limits.maxEntries;
+		const final = kept.filter((e) => !(excess > 0 && e !== newest && !named(e) && excess-- > 0));
+		const dropped = model.entries.filter((e) => !final.includes(e)).map((e) => e.id);
+		model.entries = final;
+		return dropped;
+	}
+
+	private async trim(resource: string, model: Model, now: number): Promise<void> {
+		for (const id of this.thin(model, now)) await rm(join(this.folder(resource), id), { force: true });
 	}
 
 	/**
-	 * A save: a new entry, or the last one replaced when it came from the same source within the
-	 * merge window. Nothing when the file is over the size limit, or the content is what the last
-	 * entry already holds. Resolves to the entry, or null when nothing was kept.
+	 * A save: a new entry, or the current one replaced when it came from the same source and is less
+	 * than 5 minutes old. Nothing when the file is over the size limit, or the content is what the
+	 * last entry already holds. Resolves to the entry, or null when nothing was kept.
 	 */
 	add(
 		resource: string,
@@ -148,26 +229,26 @@ export class LocalHistory {
 			const dir = this.folder(resource);
 			const last = model.entries.at(-1);
 			// a save that changed nothing adds nothing, whatever made the last entry: Ctrl+S right after a
-			// rename or a restore would otherwise spend one of the 50 on a second copy of it (VS Code's
-			// tracker skips it too). An entry the author asked for by name is kept regardless
+			// rename or a restore would otherwise make a second copy of it (VS Code's tracker skips it
+			// too). An entry the author asked for by name is kept regardless
 			if (last && (last.source === source || !source)) {
 				const previous = await readFile(join(dir, last.id), 'utf8').catch(() => null);
 				if (previous === content) return last;
 			}
-			if (last && last.source === source) {
-				if (timestamp - last.timestamp <= this.limits.mergeWindowMs) {
-					await writeFile(join(dir, last.id), content);
-					last.timestamp = timestamp;
-					// the window replacing a rename's entry with what is on disk keeps where it came from
-					last.sourceDescription = sourceDescription ?? last.sourceDescription;
-					await this.store(resource, model);
-					return last;
-				}
+			if (last && last.source === source && timestamp - (last.started ?? last.timestamp) < this.limits.mergeWindowMs) {
+				await writeFile(join(dir, last.id), content);
+				last.started ??= last.timestamp;
+				last.timestamp = timestamp;
+				// the window replacing a rename's entry with what is on disk keeps where it came from
+				last.sourceDescription = sourceDescription ?? last.sourceDescription;
+				await this.store(resource, model);
+				return last;
 			}
 			await mkdir(dir, { recursive: true });
 			const entry: LocalHistoryEntry = {
 				id: randomId(resource, model.entries),
 				timestamp,
+				started: timestamp,
 				...(source ? { source } : {}),
 				...(sourceDescription ? { sourceDescription } : {})
 			};
@@ -177,7 +258,7 @@ export class LocalHistory {
 			// whose copy never arrived loses only that entry (load() skips it)
 			if (model.entries.length === 1) await this.store(resource, model);
 			await writeFile(join(dir, entry.id), content);
-			await this.trim(resource, model);
+			await this.trim(resource, model, timestamp);
 			await this.store(resource, model);
 			return entry;
 		});
@@ -185,7 +266,7 @@ export class LocalHistory {
 
 	/** oldest first, as VS Code keeps them */
 	list(resource: string): Promise<LocalHistoryEntry[]> {
-		return this.queue(async () => (await this.load(resource)).entries.slice(-this.limits.maxEntries));
+		return this.queue(async () => (await this.load(resource)).entries);
 	}
 
 	/** an entry's contents; null for an id the file's history does not list */
@@ -224,13 +305,12 @@ export class LocalHistory {
 
 	/**
 	 * Every file with history under `under`, newest first, whether or not it is still there: VS
-	 * Code's Find Entry to Restore, which is how a deleted file's copies are found at all, since the
-	 * Timeline shows only a file that is open.
+	 * Code's Find Entry to Restore, which is how a deleted file's copies are found at all.
 	 */
 	all(under: string): Promise<{ resource: string; count: number; newest: number }[]> {
 		return this.queue(async () => {
 			// a project at the root of a drive already ends in a separator
-			const key = resourceKey(under);
+			const key = this.key(under);
 			const prefix = key.endsWith(sep) ? key : key + sep;
 			let folders: string[];
 			try {
@@ -240,13 +320,8 @@ export class LocalHistory {
 			}
 			const found: { resource: string; count: number; newest: number }[] = [];
 			for (const name of folders) {
-				let resource: string;
-				try {
-					resource = (JSON.parse(await readFile(join(this.home, name, ENTRIES_FILE), 'utf8')) as Model).resource;
-				} catch {
-					continue;
-				}
-				if (typeof resource !== 'string' || !resourceKey(resource).startsWith(prefix)) continue;
+				const resource = await this.listedPath(name);
+				if (resource === null || !this.key(resource).startsWith(prefix)) continue;
 				const { entries } = await this.load(resource);
 				if (entries.length) found.push({ resource, count: entries.length, newest: entries.at(-1)!.timestamp });
 			}
@@ -259,6 +334,80 @@ export class LocalHistory {
 		return this.queue(() => rm(this.home, { recursive: true, force: true }));
 	}
 
+	/** the space every copy together takes, in bytes */
+	usage(): Promise<number> {
+		return this.queue(async () => (await this.sizes()).reduce((sum, c) => sum + c.size, 0));
+	}
+
+	/** every copy on disk, with its size and the file it belongs to */
+	private async sizes(): Promise<{ resource: string; entry: LocalHistoryEntry; size: number }[]> {
+		let folders: string[];
+		try {
+			folders = await readdir(this.home);
+		} catch {
+			return [];
+		}
+		const out: { resource: string; entry: LocalHistoryEntry; size: number }[] = [];
+		for (const name of folders) {
+			const resource = await this.listedPath(name);
+			if (resource === null) continue;
+			for (const entry of (await this.load(resource)).entries) {
+				const s = await stat(join(this.home, name, entry.id)).catch(() => null);
+				if (s) out.push({ resource, entry, size: s.size });
+			}
+		}
+		return out;
+	}
+
+	/**
+	 * Housekeeping, run once in a while rather than on every save: every file's history thinned by
+	 * age (one left alone is otherwise never trimmed, since that happens on a save), then the oldest
+	 * copies removed, across every file, while all of it together is over the cap. A file's newest
+	 * copy goes last.
+	 */
+	prune(now = Date.now()): Promise<void> {
+		return this.queue(async () => {
+			let folders: string[];
+			try {
+				folders = await readdir(this.home);
+			} catch {
+				return;
+			}
+			for (const name of folders) {
+				const resource = await this.listedPath(name);
+				if (resource === null) continue;
+				const model = await this.load(resource);
+				if (!model.entries.length) continue;
+				const before = model.entries.length;
+				await this.trim(resource, model, now);
+				if (model.entries.length !== before) await this.store(resource, model);
+			}
+			const copies = await this.sizes();
+			let total = copies.reduce((sum, c) => sum + c.size, 0);
+			if (total <= this.limits.maxTotalBytes) return;
+			const newest = new Map<string, number>();
+			for (const c of copies) newest.set(c.resource, Math.max(newest.get(c.resource) ?? 0, c.entry.timestamp));
+			// oldest first, and each file's newest after every other copy
+			const order = copies.sort(
+				(a, b) =>
+					Number(a.entry.timestamp === newest.get(a.resource)) - Number(b.entry.timestamp === newest.get(b.resource)) ||
+					a.entry.timestamp - b.entry.timestamp
+			);
+			const drop = new Map<string, Set<string>>();
+			for (const c of order) {
+				if (total <= this.limits.maxTotalBytes) break;
+				total -= c.size;
+				drop.set(c.resource, (drop.get(c.resource) ?? new Set()).add(c.entry.id));
+			}
+			for (const [resource, ids] of drop) {
+				const model = await this.load(resource);
+				model.entries = model.entries.filter((e) => !ids.has(e.id));
+				for (const id of ids) await rm(join(this.folder(resource), id), { force: true });
+				await this.store(resource, model);
+			}
+		});
+	}
+
 	/**
 	 * A file or folder was renamed or moved: every file under `from` takes its entries to its new
 	 * path, merged with any the new path already had, and gets one more entry saying where it was.
@@ -268,7 +417,7 @@ export class LocalHistory {
 	 */
 	move(from: string, to: string): Promise<string[]> {
 		return this.queue(async () => {
-			const src = resourceKey(from);
+			const src = this.key(from);
 			// The file itself is found by its own folder, whose name comes from its path, so a listing
 			// that cannot be read does not strand its copies under the old name (load() rebuilds it).
 			// Files under a moved folder can only be found by their listings, where their paths are.
@@ -281,13 +430,8 @@ export class LocalHistory {
 				// nothing kept yet
 			}
 			for (const name of folders) {
-				let resource: unknown;
-				try {
-					resource = (JSON.parse(await readFile(join(this.home, name, ENTRIES_FILE), 'utf8')) as Model).resource;
-				} catch {
-					continue;
-				}
-				if (typeof resource === 'string' && resourceKey(resource).startsWith(src + sep)) sources.push(resource);
+				const resource = await this.listedPath(name);
+				if (resource !== null && this.key(resource).startsWith(src + sep)) sources.push(resource);
 			}
 			const moved: string[] = [];
 			for (const source of sources) {
@@ -334,10 +478,12 @@ export class LocalHistory {
 			into.entries.sort((a, b) => a.timestamp - b.timestamp);
 		}
 		into.resource = target;
+		const now = Date.now();
 		if (newest) {
 			const entry: LocalHistoryEntry = {
 				id: randomId(target, into.entries),
-				timestamp: Date.now(),
+				timestamp: now,
+				started: now,
 				source: resolve(target, '..') === resolve(source, '..') ? 'renamed' : 'moved',
 				sourceDescription: source
 			};
@@ -347,7 +493,8 @@ export class LocalHistory {
 				into.entries.push(entry);
 			}
 		}
-		await this.trim(target, into);
+		// not thinned here: a move is not a reason to let go of anything, and the next save or prune()
+		// does it by the same rules
 		await this.store(target, into);
 		if (!same && complete) await rm(fromDir, { recursive: true, force: true });
 		return true;

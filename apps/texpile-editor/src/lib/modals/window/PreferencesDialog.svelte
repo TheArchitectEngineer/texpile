@@ -20,6 +20,8 @@
 	import { LogoSpin } from './logoSpin.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { windowGlass } from '$lib/chrome/windowGlass.svelte';
+	import { canKeepLocalHistory, localHistoryUsage, removeAllLocalHistory } from '$lib/workspace/localHistory.svelte';
+	import { promptAsk } from '$lib/modals/confirm.svelte';
 
 	// autosave is forced on (shown disabled) while live mode or a hosted session is active
 	const autosaveForced = $derived(compileConfig.current.latex.liveMode || collabHost.active);
@@ -67,6 +69,32 @@
 		if (categories.some((c) => c.id === want)) category = want as Category;
 		preferencesTab.current = null;
 	});
+
+	// how much Local History takes, said beside Clear: on a portable copy it is space on the drive
+	let historyBytes = $state<number | null>(null);
+	$effect(() => {
+		if (!open || category !== 'editor' || !canKeepLocalHistory()) return;
+		void localHistoryUsage().then((n) => (historyBytes = n));
+	});
+	function sizeText(bytes: number): string {
+		if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+	}
+	async function clearHistory() {
+		const answer = await promptAsk({
+			message: m.history_delete_all_message(),
+			detail: m.history_irreversible(),
+			buttons: [
+				{ id: 'delete', label: m.history_delete_all(), primary: true },
+				{ id: 'cancel', label: m.vcs_cancel() }
+			],
+			cancelId: 'cancel',
+			danger: true
+		});
+		if (answer !== 'delete') return;
+		await removeAllLocalHistory();
+		historyBytes = await localHistoryUsage();
+	}
 
 	/** every row is the same shape: name and explanation on the left, the control on the right */
 	const ROW = 'border-surface-200-800 flex items-start justify-between gap-6 border-b py-4 last:border-b-0';
@@ -211,6 +239,20 @@
 					autosaveForced,
 					autosaveForced ? m.prefs_autosave_hint_forced() : ''
 				)}
+				{#if canKeepLocalHistory()}
+					{@render toggleRow(m.prefs_local_history(), m.prefs_local_history_note(), settings.current.localHistory !== false, (v) =>
+						updateSettings({ localHistory: v })
+					)}
+					<div class={ROW}>
+						{@render label(
+							m.prefs_local_history_space(),
+							historyBytes === null ? '' : m.prefs_local_history_used({ size: sizeText(historyBytes) })
+						)}
+						<button class="btn btn-sm preset-outlined-surface-200-800 hover:preset-tonal text-error-ink shrink-0" onclick={clearHistory}>
+							{m.prefs_local_history_clear()}
+						</button>
+					</div>
+				{/if}
 				{@render toggleRow(m.prefs_spellcheck(), '', settings.current.spellcheck, (v) => setSpellcheckEnabled(v))}
 				{@render toggleRow(m.prefs_comment_pill(), m.prefs_comment_pill_note(), settings.current.commentPill !== false, (v) =>
 					updateSettings({ commentPill: v })

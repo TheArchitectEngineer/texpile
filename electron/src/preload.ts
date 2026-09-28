@@ -307,6 +307,7 @@ contextBridge.exposeInMainWorld('texpileNative', {
 	localHistoryRename: (path: string, id: string, label: string) => invokeFs('history:rename', path, id, label),
 	localHistoryRemoveAll: () => invokeFs('history:removeAll'),
 	localHistoryMove: (from: string, to: string) => invokeFs('history:move', from, to),
+	localHistoryUsage: () => invokeFs('history:usage'),
 	localHistoryAll: (root: string) => invokeFs('history:all', root),
 	/** Signing in to GitHub in the browser (githubAuth.ts): offered only once Texpile's OAuth app is configured. */
 	githubSignInAvailable: () => ipcRenderer.invoke('github:available'),

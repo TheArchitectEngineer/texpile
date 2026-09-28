@@ -90,6 +90,9 @@ export type AppSettings = {
 	/** look for co-authors' new versions every few minutes while the window is in front (VS Code's
 	 *  git.autofetch, on by default here: a writer's conflicts come from editing before a Sync) */
 	checkForNewVersions: boolean;
+	/** Local History: a copy of each file as it is saved, kept in the app's data. On by default: it
+	 *  is the only way back to text written since the last version, and costs nothing until needed. */
+	localHistory: boolean;
 };
 
 /** default compile command. -cd runs the compile in the main file's own directory, so a main file in
@@ -132,7 +135,8 @@ const DEFAULTS: AppSettings = {
 	aiAgentCommand: '',
 	aiAgentModel: '',
 	toolDirs: [],
-	checkForNewVersions: true
+	checkForNewVersions: true,
+	localHistory: true
 };
 
 const LS_KEY = 'texpile:settings';

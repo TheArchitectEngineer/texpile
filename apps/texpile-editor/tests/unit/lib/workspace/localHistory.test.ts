@@ -4,14 +4,14 @@ import { it, expect, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
-import { LocalHistory } from '../../../../../../electron/src/localHistory';
+import { LocalHistory, type LocalHistoryLimits } from '../../../../../../electron/src/localHistory';
 
 const homes: string[] = [];
 afterEach(() => {
 	for (const h of homes.splice(0)) rmSync(h, { recursive: true, force: true });
 });
 
-function history(limits = { maxEntries: 50, maxFileSize: 1024, mergeWindowMs: 10_000 }) {
+function history(limits: Partial<LocalHistoryLimits> = { maxEntries: 50, maxFileSize: 1024, mergeWindowMs: 10_000 }) {
 	const home = mkdtempSync(join(tmpdir(), 'texpile-history-'));
 	homes.push(home);
 	return { h: new LocalHistory(home, limits), home };
@@ -207,4 +207,73 @@ it('adds nothing for an unchanged save after a rename or restore, but keeps an e
 	await h.add(FILE, 'text', undefined, undefined, 120_000);
 	await h.add(FILE, 'text', 'Sent to the committee', undefined, 180_000);
 	expect((await h.list(FILE)).map((e) => e.source)).toEqual([undefined, 'restored', 'Sent to the committee']);
+});
+
+const MIN = 60_000;
+const DAY = 24 * 60 * MIN;
+
+it('gathers saves into one copy until it is 5 minutes old, however often they came', async () => {
+	const { h } = history({ mergeWindowMs: 5 * MIN });
+	for (const at of [0, 1, 2, 3, 4.5]) await h.add(FILE, `at ${at}`, undefined, undefined, 1_000 + at * MIN);
+	await h.add(FILE, 'at 5', undefined, undefined, 1_000 + 5 * MIN);
+	const entries = await h.list(FILE);
+	expect(entries).toHaveLength(2);
+	expect(await h.read(FILE, entries[0].id)).toBe('at 4.5');
+	expect(entries[0].started).toBe(1_000);
+	expect(await h.read(FILE, entries[1].id)).toBe('at 5');
+});
+
+it('keeps every copy for 7 days, the last of each day to 30, a named one always, and the newest', async () => {
+	const { h } = history({ mergeWindowMs: 0 });
+	// local calendar days, as the history keeps "the last of each day" where the author is
+	const at = (daysAgo: number, hour = 12) => new Date(2026, 3, 100 - daysAgo, hour).getTime();
+	const now = at(0);
+	await h.add(FILE, '40 days ago', undefined, undefined, at(40));
+	await h.add(FILE, 'named, 40 days ago', 'Sent to the committee', undefined, at(40, 13));
+	await h.add(FILE, '20 days ago, morning', undefined, undefined, at(20, 9));
+	await h.add(FILE, '20 days ago, evening', undefined, undefined, at(20, 18));
+	await h.add(FILE, '3 days ago, morning', undefined, undefined, at(3, 9));
+	await h.add(FILE, '3 days ago, evening', undefined, undefined, at(3, 18));
+	await h.add(FILE, 'now', undefined, undefined, now);
+	const texts = await Promise.all((await h.list(FILE)).map((e) => h.read(FILE, e.id)));
+	expect(texts).toEqual(['named, 40 days ago', '20 days ago, evening', '3 days ago, morning', '3 days ago, evening', 'now']);
+});
+
+it('keeps under the size cap by removing the oldest copies first, each file keeping its newest', async () => {
+	const { h } = history({ mergeWindowMs: 0, maxTotalBytes: 30 });
+	const other = join(tmpdir(), 'project', 'refs.bib');
+	await h.add(FILE, 'aaaaaaaaaa', undefined, undefined, 1_000); // 10 bytes each
+	await h.add(other, 'bbbbbbbbbb', undefined, undefined, 2_000);
+	await h.add(FILE, 'cccccccccc', undefined, undefined, 3_000);
+	await h.add(FILE, 'dddddddddd', undefined, undefined, 4_000);
+	expect(await h.usage()).toBe(40);
+	await h.prune(5_000);
+	expect(await h.usage()).toBe(30);
+	expect(await Promise.all((await h.list(FILE)).map((e) => h.read(FILE, e.id)))).toEqual(['cccccccccc', 'dddddddddd']);
+	expect(await h.list(other)).toHaveLength(1);
+});
+
+it('prune thins a file no longer being saved by the same age rules', async () => {
+	const { h } = history({ mergeWindowMs: 0 });
+	await h.add(FILE, 'old', undefined, undefined, 1_000);
+	await h.add(FILE, 'last', undefined, undefined, 2_000);
+	await h.prune(2_000 + 60 * DAY);
+	expect(await Promise.all((await h.list(FILE)).map((e) => h.read(FILE, e.id)))).toEqual(['last']);
+});
+
+it('files a portable project on its own drive by the path from the app, so a new drive letter finds it', async () => {
+	const home = mkdtempSync(join(tmpdir(), 'texpile-history-'));
+	homes.push(home);
+	const driveE = join(tmpdir(), 'E');
+	const onE = new LocalHistory(home, {}, join(driveE, 'Texpile'));
+	await onE.add(join(driveE, 'thesis', 'main.tex'), 'written on E:');
+	const [folder] = readdirSync(home);
+	expect(JSON.parse(readFileSync(join(home, folder, 'entries.json'), 'utf8')).resource).toBe(join('..', 'thesis', 'main.tex'));
+	// the same drive on another computer, mounted somewhere else
+	const driveF = join(tmpdir(), 'F');
+	const onF = new LocalHistory(home, {}, join(driveF, 'Texpile'));
+	const moved = join(driveF, 'thesis', 'main.tex');
+	const entries = await onF.list(moved);
+	expect(await onF.read(moved, entries[0].id)).toBe('written on E:');
+	expect((await onF.all(join(driveF, 'thesis'))).map((f) => f.resource)).toEqual([moved]);
 });

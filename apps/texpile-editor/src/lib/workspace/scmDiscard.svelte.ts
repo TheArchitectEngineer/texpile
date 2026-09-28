@@ -2,6 +2,8 @@
 // a file that was never saved as a version goes to the Trash, not away for good: a new chapter is
 // the one thing in this panel git cannot give back. Where there is no Trash (some Linux desktops,
 // network shares) the author is asked before anything is deleted outright, as VS Code asks.
+// Either way each file's text is kept in Local History first, and the notice after offers Undo:
+// Discard is the one button in the panel that throws away work nothing else has a copy of.
 import { workspaceRoot } from './workspaceStore';
 import { refreshGitStatus, isNewFile } from './gitStore';
 import { gitDiscard, gitUnstage, type GitStatusEntry } from './git';
@@ -9,12 +11,24 @@ import { toastGitFailure } from './gitFailureToast';
 import { localGitReason } from './gitLocalReason';
 import { basename, relativeInside, samePath } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
+import { toaster } from '$lib/modals/toaster-svelte';
+import { addLocalHistory } from './localHistory.svelte';
+import { settings } from '$lib/settings';
 import { m } from '$lib/paraglide/messages';
 import type { ScmDeps } from './scmActions.svelte';
 
 type DiscardDeps = Pick<
 	ScmDeps,
-	'getLoadedPath' | 'discardPendingSave' | 'trashEntry' | 'removeEntry' | 'refreshTree' | 'loadFile' | 'isDiffMode' | 'captureDiffSnapshot'
+	| 'getLoadedPath'
+	| 'discardPendingSave'
+	| 'trashEntry'
+	| 'removeEntry'
+	| 'refreshTree'
+	| 'loadFile'
+	| 'isDiffMode'
+	| 'captureDiffSnapshot'
+	| 'readTextIfPresent'
+	| 'writeText'
 >;
 
 /** VS Code's question: what is about to happen, and under it what follows from it */
@@ -27,7 +41,8 @@ function question(changes: GitStatusEntry[], allNew: boolean): { message: string
 			: { message: m.vcs_confirm_trash_other({ count: changes.length }), detail: m.vcs_confirm_trash_other_detail() };
 	return {
 		message: one ? m.wsview_confirm_discard_one({ name }) : m.wsview_confirm_discard_other({ count: changes.length }),
-		detail: m.history_irreversible()
+		// said only when it is so: with Local History off nothing keeps them
+		detail: settings.current.localHistory === false ? m.history_irreversible() : m.vcs_discard_kept_detail()
 	};
 }
 
@@ -57,6 +72,7 @@ export class ScmDiscard {
 		const openAffected =
 			!!loadedPath && changes.some((c) => samePath(c.path, loadedPath) || (!!c.files && !!relativeInside(c.path, loadedPath)));
 		if (openAffected) this.deps.discardPendingSave();
+		const kept = await this.#keep(changes);
 		this.host.busy = true;
 		let err: string | undefined;
 		try {
@@ -65,6 +81,14 @@ export class ScmDiscard {
 			this.host.busy = false;
 		}
 		if (err) toastGitFailure(m.wsview_toast_discard_failed_title(), localGitReason(err), { error: err });
+		else if (kept.length)
+			toaster.success({
+				title:
+					changes.length === 1
+						? m.vcs_toast_discarded_one({ name: basename(changes[0].path) })
+						: m.vcs_toast_discarded_other({ count: changes.length }),
+				action: { label: m.vcs_undo(), onClick: () => void this.#undo(root, kept) }
+			});
 		await this.deps.refreshTree();
 		await refreshGitStatus(root);
 		if (openAffected && loadedPath) await this.deps.loadFile(loadedPath); // its on-disk content changed
@@ -72,6 +96,36 @@ export class ScmDiscard {
 		// them as additions and deletions that no longer exist anywhere
 		if (this.deps.isDiffMode()) this.deps.captureDiffSnapshot();
 	};
+
+	/** Each file's text as it is now, into Local History and kept here for Undo. Not a folder of
+	 *  new files (one row for many; they go to the Trash whole), nor a file already deleted. */
+	async #keep(changes: GitStatusEntry[]): Promise<{ path: string; content: string }[]> {
+		const kept: { path: string; content: string }[] = [];
+		for (const c of changes) {
+			if (c.files) continue;
+			const content = await this.deps.readTextIfPresent(c.path).catch(() => null);
+			if (content === null) continue;
+			await addLocalHistory(c.path, content, 'before-discard');
+			kept.push({ path: c.path, content });
+		}
+		return kept;
+	}
+
+	/** Undo on the notice: the text written back as it was, the open file reloaded to show it */
+	async #undo(root: string, kept: { path: string; content: string }[]): Promise<void> {
+		for (const k of kept) {
+			try {
+				await this.deps.writeText(k.path, k.content);
+			} catch (e) {
+				toastGitFailure(m.wsview_toast_discard_failed_title(), e instanceof Error ? e.message : String(e), {});
+				return;
+			}
+		}
+		await this.deps.refreshTree();
+		await refreshGitStatus(root);
+		const loaded = this.deps.getLoadedPath();
+		if (loaded && kept.some((k) => samePath(k.path, loaded))) await this.deps.loadFile(loaded);
+	}
 
 	/** the work itself; resolves to the last failure's words, if any */
 	async #throwAway(root: string, changes: GitStatusEntry[]): Promise<string | undefined> {

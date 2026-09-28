@@ -58,8 +58,19 @@
 		onClose?.();
 	}
 
+	/** A menu or popover open above the dialog takes Escape first: it closes that, not the dialog
+	 *  under it, as VS Code closes the innermost thing (a copy's "…" menu in Local History). Looked
+	 *  at as the key press starts: by the time it bubbles here the menu has already closed itself. */
+	let menuTakesEscape = false;
+	function onWindowKeydownCapture(e: KeyboardEvent) {
+		if (e.key === 'Escape')
+			menuTakesEscape = !!document.querySelector(
+				'[data-part="content"][data-state="open"]:is([data-scope="popover"], [data-scope="menu"])'
+			);
+	}
+
 	function onWindowKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && dismissable && escapeStack[escapeStack.length - 1] === id) {
+		if (e.key === 'Escape' && dismissable && escapeStack[escapeStack.length - 1] === id && !menuTakesEscape) {
 			// used up here: nothing behind the dialog should act on it too
 			e.preventDefault();
 			close();
@@ -73,7 +84,7 @@
 	}
 </script>
 
-<svelte:window onkeydown={open ? onWindowKeydown : undefined} />
+<svelte:window onkeydowncapture={open ? onWindowKeydownCapture : undefined} onkeydown={open ? onWindowKeydown : undefined} />
 
 {#if open}
 	<div

@@ -7,6 +7,8 @@ import { focusScmMessage } from '$lib/workspace/scmHandlers.svelte';
 import { fileMode } from '$lib/workspace/fileMode.svelte';
 import { tabs, tabKey, type Tab } from '$lib/workspace/tabs.svelte';
 import { collabGuest } from '$lib/collab/guestStore.svelte';
+import { canKeepLocalHistory } from '$lib/workspace/localHistory.svelte';
+import { openLocalHistory, openRestoreDeleted } from '$lib/workspace/localHistoryDialog.svelte';
 import { normSyncPath } from '$lib/workspace/syncTexNav';
 import { projectConfigSync as projectConfig } from '$lib/workspace/projectConfigSync.svelte';
 import { uiZoomIn, uiZoomOut, uiZoomReset } from '$lib/workspace/shortcuts';
@@ -162,6 +164,7 @@ export function makeMainActions(d: ActionSurfaceDeps) {
 				close: (x) => d.editFlow().closeTab(x),
 				keep: (x) => tabs.keep(tabKey(x)),
 				reveal: isDesktop() && !d.guest() ? (p) => void revealItem(p) : undefined,
+				localHistory: !d.guest() && canKeepLocalHistory() ? (p) => openLocalHistory(p) : undefined,
 				showInTree: (p) => {
 					d.layout().setSidebarOpen(true);
 					// eslint-disable-next-line no-param-reassign -- the deps hand over the live controllers this surface drives
@@ -238,6 +241,14 @@ export function makeChromeActions(d: ActionSurfaceDeps) {
 		openFolder: (path?: string) => void d.files().folder.open(path),
 		// the clone opens here the way Open Folder does, unsaved-work checks and all
 		cloneRepository: () => void startClone((path) => d.files().folder.open(path)),
+		localHistory: () => {
+			const path = activeFilePath.current;
+			if (path) openLocalHistory(path);
+		},
+		restoreDeleted: () => {
+			const root = workspaceRoot.current;
+			if (root) openRestoreDeleted(root);
+		},
 		closeWorkspace: () => void d.files().folder.close(),
 		save: () => d.wsdoc.save(),
 		openShare: () => d.setShareModalOpen(true),

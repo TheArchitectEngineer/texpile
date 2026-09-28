@@ -37,6 +37,7 @@
 	import type { GitStatusEntry, GitLogEntry, GitFileChange } from '$lib/workspace/git';
 	import { m } from '$lib/paraglide/messages';
 	import { combo } from '$lib/chrome/shortcutText';
+	import { canKeepLocalHistory } from '$lib/workspace/localHistory.svelte';
 	import { Popover, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { FilePlus, FolderPlus, RefreshCw, GitBranch, Search, MoreHorizontal } from '@lucide/svelte';
 
@@ -404,6 +405,7 @@
 					{onCopyIn}
 					onSetMain={guest ? undefined : onSetMain}
 					onReveal={guest ? undefined : onReveal}
+					localHistory={!guest && canKeepLocalHistory()}
 					history={guest ? null : fileHistory}
 				/>
 			</div>
@@ -424,7 +426,7 @@
 					class="border-surface-200-800 scroll-inset-r min-h-0 overflow-y-auto [scrollbar-gutter:stable] border-t p-2"
 					style="flex: {tocFraction} 1 0%"
 				>
-					<ExplorerSections mode={viewMode === 'source' ? 'source' : 'visual'} {guest} onOpenFile={onOpenFileAt} />
+					<ExplorerSections mode={viewMode === 'source' ? 'source' : 'visual'} onOpenFile={onOpenFileAt} />
 				</div>
 			{/if}
 		</div>

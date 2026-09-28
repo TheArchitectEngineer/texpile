@@ -18,6 +18,7 @@
 	import type { TerminalDockState } from '$lib/workspace/terminalDockState.svelte';
 	import { canCombine } from '$lib/workspace/gitCombine';
 	import { canClone } from '$lib/workspace/gitClone';
+	import { canKeepLocalHistory } from '$lib/workspace/localHistory.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import type { Snippet } from 'svelte';
 
@@ -98,6 +99,8 @@
 			typstProject={menu.typstProject}
 			onOpenFolder={menu.hostMode ? actions.openFolder : undefined}
 			onCloneRepository={menu.hostMode && canClone() ? actions.cloneRepository : undefined}
+			onLocalHistory={menu.hostMode && canKeepLocalHistory() ? actions.localHistory : undefined}
+			onRestoreDeleted={menu.hostMode && canKeepLocalHistory() ? actions.restoreDeleted : undefined}
 			onCloseWorkspace={menu.hostMode ? actions.closeWorkspace : undefined}
 			onSave={actions.save}
 			onShareSession={menu.shareable ? actions.openShare : undefined}

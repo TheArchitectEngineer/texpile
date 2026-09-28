@@ -18,6 +18,10 @@
 		typstProject: boolean;
 		canOpenFolder: boolean;
 		canClone?: boolean;
+		/** the File menu's Local History items: the host's own workspace */
+		canLocalHistory?: boolean;
+		/** a file is open, for Local History… */
+		fileOpen?: boolean;
 		canCloseWorkspace: boolean;
 		canShareSession: boolean;
 	};
@@ -31,6 +35,8 @@
 		typstProject,
 		canOpenFolder,
 		canClone = false,
+		canLocalHistory = false,
+		fileOpen = false,
 		canCloseWorkspace,
 		canShareSession
 	}: Props = $props();
@@ -116,6 +122,13 @@
 				<Menu.Item value="save" class={itemClass}>
 					<Menu.ItemText>{m.menubar_save()}</Menu.ItemText><span class="opacity-50">{combo('S')}</span>
 				</Menu.Item>
+				<!-- under File, where Word and Google Docs keep version history and writers look first -->
+				{#if canLocalHistory}
+					<Menu.Item value="local-history" class={itemClass} disabled={!fileOpen}
+						><Menu.ItemText>{m.history_menu_open()}</Menu.ItemText></Menu.Item
+					>
+					<Menu.Item value="restore-deleted" class={itemClass}><Menu.ItemText>{m.history_menu_restore_deleted()}</Menu.ItemText></Menu.Item>
+				{/if}
 				{#if canCloseWorkspace}
 					<Menu.Item value="close-workspace" class={itemClass}><Menu.ItemText>{m.menubar_close_workspace()}</Menu.ItemText></Menu.Item>
 				{/if}

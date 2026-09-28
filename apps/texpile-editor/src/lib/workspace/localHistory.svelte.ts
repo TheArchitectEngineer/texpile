@@ -1,13 +1,20 @@
 // The client half of electron/src/localHistory.ts: VS Code's Local History. Every save of a file
-// keeps a copy in the app's data, listed in the explorer's Timeline beside the file's git versions.
-// Never throws: history is a safety net, and a save must not fail because the net did.
+// keeps a copy in the app's data, and a copy is taken before anything overwrites unsaved or
+// unversioned text. Opened from the File menu, a file's or tab's right-click menu and the palette
+// (LocalHistoryDialog). Never throws: history is a safety net, and a save must not fail because the
+// net did.
 import { dirname, nativeBridge } from './fileSystem';
+import { settings } from '$lib/settings';
 import { m } from '$lib/paraglide/messages';
 
 export type LocalHistoryEntry = {
 	id: string;
+	/** the last save that went into it */
 	timestamp: number;
-	/** 'restored', 'renamed', 'moved', or a name the author gave it; absent for an ordinary save */
+	/** the first save that went into it: a copy gathers saves for up to 5 minutes */
+	started?: number;
+	/** 'restored', 'renamed', 'moved', 'before-discard', 'before-restore', 'before-reload', 'shared', or a
+	 *  name the author gave it; absent for an ordinary save */
 	source?: string;
 	sourceDescription?: string;
 };
@@ -22,6 +29,7 @@ export type LocalHistoryBridge = {
 	localHistoryRemoveAll?: () => Promise<void>;
 	localHistoryMove?: (from: string, to: string) => Promise<string[]>;
 	localHistoryAll?: (root: string) => Promise<LocalHistoryFile[]>;
+	localHistoryUsage?: () => Promise<number>;
 };
 
 /** a file with Local History, for Find entry to restore; `exists` false for one since deleted */
@@ -50,13 +58,15 @@ async function attempt<T>(run: () => Promise<T> | undefined, fallback: T): Promi
 	}
 }
 
+/** Keep local history, in Preferences: off records nothing, and what was kept stays until cleared */
 export async function addLocalHistory(path: string, content: string, source?: string): Promise<LocalHistoryEntry | null> {
+	if (settings.current.localHistory === false) return null;
 	const entry = await attempt(() => nativeBridge()?.localHistoryAdd?.(path, content, source), null);
 	if (entry) revision++;
 	return entry;
 }
 
-/** newest first, the order the Timeline shows */
+/** newest first, the order the dialog shows */
 export async function listLocalHistory(path: string): Promise<LocalHistoryEntry[]> {
 	return (await attempt(() => nativeBridge()?.localHistoryList?.(path), [] as LocalHistoryEntry[])).slice().reverse();
 }
@@ -88,6 +98,11 @@ export async function removeAllLocalHistory(): Promise<void> {
 	revision++;
 }
 
+/** the space every copy together takes, in bytes; null where there is no desktop bridge */
+export function localHistoryUsage(): Promise<number | null> {
+	return attempt(() => nativeBridge()?.localHistoryUsage?.(), null);
+}
+
 /** every file under the project with history, newest first, deleted ones included */
 export async function listAllLocalHistory(root: string): Promise<LocalHistoryFile[]> {
 	return attempt(() => nativeBridge()?.localHistoryAll?.(root), [] as LocalHistoryFile[]);
@@ -115,5 +130,9 @@ export function sourceLabel(source?: string): string {
 	if (source === 'restored') return m.history_source_restored();
 	if (source === 'renamed') return m.history_source_renamed();
 	if (source === 'moved') return m.history_source_moved();
+	if (source === 'before-discard') return m.history_source_before_discard();
+	if (source === 'before-restore') return m.history_source_before_restore();
+	if (source === 'before-reload') return m.history_source_before_reload();
+	if (source === 'shared') return m.history_source_shared();
 	return source;
 }

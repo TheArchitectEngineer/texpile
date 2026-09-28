@@ -5,13 +5,17 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 
 ## [Unreleased]
 
+- feat: Local History opens from File › Local History… and a file's or tab's right-click menu, showing a file's copies by day, beside the file with what changed since, with Restore This Copy, Copy and Save a Copy Now…; File › Restore Deleted File… and a folder's right-click menu bring back a deleted file
+- feat: Local History is kept for writing with autosave: saves gather into one copy for up to 5 minutes, copies are kept 7 days and then one a day for 30, named copies and each file's newest stay, files up to 1 MB, 300 MB in all. Preferences › Editor turns it off, shows its size and clears it
+- feat: a copy is kept before a discard, a restore, or a reload over unsaved edits, and discard and restore offer Undo; in a shared session the host keeps guests' edits too
+- feat: the portable build files a project on its own drive by its path from Texpile's folder, so Local History follows the drive to another computer
+- fix: Escape closes a menu open over a dialog, not the dialog too
 - change: Source Control explains less and lets the buttons speak: the Publish dialog has no intro, sign-in prompts no longer describe how the answer is kept, confirmations drop the extra paragraph, and a folder inside another repository or owned by another account says so in one line, with the rest in the buttons' tooltips
-- change: the Timeline starts folded and lists only the automatic copies of the open file; git versions stay in Source Control's History, and the Timeline's menu can show them there too
-- fix: rows in History, the Timeline and the changes list use the panel's full width: the "…" button takes room only while you hover the row, and in History a version's message keeps its room before the author and time
+- fix: rows in History and the changes list use the panel's full width: the "…" button takes room only while you hover the row, and in History a version's message keeps its room before the author and time
 - change: a folder with no version history says so in one line instead of two paragraphs, and offers Start Version History (Initialize Repository before); publishing comes after a first version, from the panel's main button
 - change: in English, anything you click that names a command is in Title Case, as in VS Code and macOS: menu items, start screen items, command palette commands, buttons, tabs, dialog titles and section headings (Open Folder, Save Version, Finish Combining). Messages, tooltips, placeholders and setting labels stay in sentence case. Long buttons are shorter: Save and Sync, Save and Switch, Sign In with GitHub
 - fix: Combine now from the comparison view opens the file where Keep mine, Keep theirs and Keep both are, instead of showing the marked places as changes to revert; a combined version's message no longer carries git's "# Conflicts" comment; Escape that closes a confirmation no longer also leaves Source Control; in Preferences, the check for co-authors' versions is no longer filed under Git identity
-- change: Source Control, the Timeline and Local History use VS Code's wording for every feature VS Code has, keeping the writer words (version, combine, check for new versions) whose tooltips name VS Code's term; conflicts are called conflicts everywhere
+- change: Source Control and Local History use VS Code's wording for every feature VS Code has, keeping the writer words (version, combine, check for new versions) whose tooltips name VS Code's term; conflicts are called conflicts everywhere
 - change: menus, dialogs and notices in source control look and behave alike: icons in every menu, destructive items last in red, confirmations that put the consequence under the question, git's own words behind Details, file icons in the changes list, and a loading state instead of "No versions saved yet" while History loads
 - fix: the default Cancel and OK of a confirmation were English in every language; Escape that closes a menu or dialog no longer also leaves Source Control; "Check for new versions" offers Sync, as the automatic check does
 - fix: your GitHub sign-in answers only github.com's questions; a question from any other server can never be answered with it
@@ -23,19 +27,16 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: in a project that is one folder of a larger repository, Save version no longer unstages what was staged outside it; a failing hook is reported in its own words instead of "Git is not installed"
 - fix: Combine now opens the text with places to choose rather than a figure; Keep mine or theirs, and deleting a folder, drop the open file's unsaved edit so it cannot land on the result
 - fix: Save a version and sync includes new build output git says is in the way; opening another folder during a Sync no longer shows the old folder's changes
-- fix: Compare with Previous on a Timeline version compares with the version it was made from, as VS Code does; Local History never gives a new copy an older one's name, which overwrote it on macOS and Windows
+- fix: Local History never gives a new copy an older one's name, which overwrote it on macOS and Windows
 - feat: on Linux without a keyring, a sign-in that worked is remembered until you quit Texpile (never written to disk) instead of being asked for on every Sync
 - fix: a repository in a folder above the project colours nothing, counts nothing and marks nothing until you choose to use it, as in VS Code
 - fix: a leftover `=======` line also keeps a file from counting as settled, as in VS Code; a file being combined shows no change marks in the margin
 - fix: a repository locked by another git is retried up to ten times, for every change Texpile makes, as VS Code does; Restore no longer drops a file when the lock outlasts that
 - fix: the Source Control progress bar appears at once and stays a moment after git finishes, so steps run back to back read as one
-- feat: a git version's menu in the Timeline copies its message
 
 - feat: while combining, a file one side deleted or a figure both sides changed asks which version to keep (Keep my version, Keep their version, Delete the file), and Finish combining waits for the answer
-- feat: Timeline: Compare with Previous shows what one save or version changed; Find Entry to Restore (Timeline menu and palette) lists every file with local history, deleted ones included, and brings a deleted file back
 - feat: Texpile checks for co-authors' new versions every three minutes while in front and says when some arrive, without ever asking for a sign-in; Preferences > Collaboration turns it off
 
-- fix: Timeline: a version from before a rename opens under the file's name then, and Load more reaches versions past the first 50
 - fix: Save version keeps a rename whole, takes in a file whose conflicts are all chosen after a stash, and waits while a place is still marked
 - fix: Discard puts back changes staged in a terminal; a file staged as new, or the new name of a rename, goes to the Trash; where there is no Trash it asks before deleting outright
 - fix: a repository inside the project is left out of the changes list, and a folder row that also holds ignored files is never deleted whole
@@ -47,7 +48,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: Local History keeps every copy if its listing is lost, and a rename's entry holds the file as it is on disk
 
 - feat: sign in to GitHub in the browser with a one-time code (VS Code's device flow); the account answers git for Sync and Publish, and Sign out of GitHub ends it.
-- feat: local history: every save keeps a copy (as in VS Code), listed with the file's git versions in a new Timeline below Contents, with compare, restore, rename, delete and create entry; it works in projects without git
+- feat: local history: every save keeps a copy (as in VS Code), with compare, restore, rename, delete and a named copy; it works in projects without git
 - feat: a progress bar runs across Source Control while git works
 - feat: comparisons have previous and next change buttons (Alt+F5 and Shift+Alt+F5 in the source comparison) and Put back beside each change
 - feat: a file both sides changed can be kept whole from its menu, mine or theirs, for figures, PDFs and files one side deleted

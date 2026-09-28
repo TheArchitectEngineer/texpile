@@ -13,11 +13,11 @@ import {
 	Users,
 	Wrench
 } from '@lucide/svelte';
-import { isDirty } from '$lib/workspace/workspaceStore';
+import { isDirty, activeFilePath, workspaceRoot } from '$lib/workspace/workspaceStore';
 import { nativeBridge } from '$lib/workspace/fileSystem';
 import { githubStatus, signInToGithub, signOutOfGithub } from '$lib/workspace/githubSignIn.svelte';
 import { canKeepLocalHistory } from '$lib/workspace/localHistory.svelte';
-import { openLocalHistoryFinder } from '$lib/workspace/localHistoryFinder.svelte';
+import { openLocalHistory, openRestoreDeleted } from '$lib/workspace/localHistoryDialog.svelte';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { collabHost } from '$lib/collab/hostStore.svelte';
 import { combo } from '$lib/chrome/shortcutText';
@@ -116,15 +116,26 @@ export function fileItems(a: PaletteActions): PaletteItem[] {
 			icon: Github,
 			run: () => void (github.login ? signOutOfGithub() : signInToGithub())
 		});
-	// VS Code's Local History: Find Entry to Restore, the way back to a deleted file's copies
-	if (a.isHostWorkspace() && canKeepLocalHistory())
+	// Local History: the open file's copies, and the way back to a deleted file's (the File menu's two)
+	const open = activeFilePath.current;
+	if (a.isHostWorkspace() && canKeepLocalHistory() && open)
 		items.push({
-			id: 'file.localHistoryFind',
+			id: 'file.localHistory',
+			label: m.palette_history_open(),
+			group,
+			keywords: 'local history copies versions restore recover lost text backup undo timeline',
+			icon: History,
+			run: () => openLocalHistory(open)
+		});
+	const root = workspaceRoot.current;
+	if (a.isHostWorkspace() && canKeepLocalHistory() && root)
+		items.push({
+			id: 'file.restoreDeleted',
 			label: m.palette_history_find(),
 			group,
-			keywords: 'local history restore recover deleted lost file copy backup undo timeline',
+			keywords: 'local history restore recover deleted lost file copy backup undo find entry',
 			icon: History,
-			run: () => openLocalHistoryFinder()
+			run: () => openRestoreDeleted(root)
 		});
 	const forget = a.forgetSignIns;
 	if (a.isHostWorkspace() && forget)

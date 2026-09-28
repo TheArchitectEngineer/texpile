@@ -16,6 +16,8 @@ import { provideScmHandlers } from '$lib/workspace/scmHandlers.svelte';
 import { ScmFetch } from '$lib/workspace/scmFetch.svelte';
 import { AutoCheck } from '$lib/workspace/scmAutoCheck.svelte';
 import { LocalHistoryActions, provideLocalHistoryActions } from '$lib/workspace/localHistoryActions.svelte';
+import { addLocalHistory } from '$lib/workspace/localHistory.svelte';
+import { joinPath } from '$lib/workspace/fileSystem';
 import { refreshProjectIntel } from '$lib/workspace/projectIntel';
 import { projectIntelStore } from '$lib/stores/projectIntel';
 import { trailingDebounce } from '$lib/trailingDebounce';
@@ -134,7 +136,7 @@ export class WorkspaceIntegrations {
 		// the Timeline's Local History commands, with the same hands on the editor Source Control has
 		const history = new LocalHistoryActions({
 			getLoadedPath: () => doc.path,
-			discardPendingSave: () => d.editFlow().saver.discard(),
+			flushPendingSave: () => d.editFlow().saver.flushAndWait(),
 			whenSaved: () => d.editFlow().saver.whenIdle(),
 			readTextIfPresent: async (p) => {
 				try {
@@ -232,7 +234,13 @@ export class WorkspaceIntegrations {
 				refreshTree: () => void d.files().refreshTree(),
 				expectedPdfPath: () => d.compiler().expectedPdfPath(),
 				recordGuestEdit: (rel, before, after, edit) => d.commentsCtl.remoteEdit(rel, before, after, edit),
-				beforeGuestWrite: (rel, content) => d.commentsCtl.beforeRemoteWrite(rel, content),
+				beforeGuestWrite: async (rel, content) => {
+					await d.commentsCtl.beforeRemoteWrite(rel, content);
+					// what the session writes for guests, kept like a save of the host's own: a guest's edits to a
+					// file the host never opens would otherwise have no copy at all
+					const root = workspaceRoot.current;
+					if (root) void addLocalHistory(joinPath(root, rel), content, 'shared');
+				},
 				typstScrollForGuest: (rel, line, character) => d.typstPreview().scrollForGuest(rel, line, character)
 			})
 		);

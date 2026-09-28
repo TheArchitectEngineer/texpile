@@ -46,6 +46,10 @@ export type MenuState = {
 	/** the workspace may be swapped out. False for a guest: it would abandon the session unleft */
 	canOpenFolder: boolean;
 	canClone?: boolean;
+	/** Local History in the File menu: the host's own workspace, not a guest's */
+	canLocalHistory?: boolean;
+	/** a file is open, for Local History… */
+	fileOpen?: boolean;
 	canTutorial: boolean;
 	recentFolders: string[];
 	/** the start screen (or another workspace-less screen): the bar offers only what opens a folder */
@@ -194,6 +198,13 @@ function template(win: BrowserWindow, s: MenuState): MenuItemConstructorOptions[
 				{ label: label(s, 'openFolderNewWindow', 'Open Folder in New Window'), click: () => fire(win, 'file:open-folder-new-window') },
 				{ type: 'separator' },
 				{ label: label(s, 'save', 'Save'), accelerator: 'CmdOrCtrl+S', click: () => fire(win, 'file:save') },
+				// under File, where Word and Google Docs keep version history and writers look first
+				...(s.canLocalHistory
+					? [
+							{ label: label(s, 'localHistory', 'Local History…'), enabled: !!s.fileOpen, click: () => fire(win, 'file:local-history') },
+							{ label: label(s, 'restoreDeleted', 'Restore Deleted File…'), click: () => fire(win, 'file:restore-deleted') }
+						]
+					: []),
 				...(s.canCloseWorkspace
 					? [{ label: label(s, 'closeWorkspace', 'Close Folder'), click: () => fire(win, 'file:close-workspace') }]
 					: [])

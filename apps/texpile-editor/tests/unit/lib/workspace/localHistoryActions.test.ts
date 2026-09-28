@@ -21,7 +21,7 @@ const { LocalHistoryActions } = await import('$lib/workspace/localHistoryActions
 function make(loaded: string | null) {
 	const deps = {
 		getLoadedPath: () => loaded,
-		discardPendingSave: vi.fn(),
+		flushPendingSave: vi.fn(async () => {}),
 		whenSaved: vi.fn(async () => {}),
 		readTextIfPresent: vi.fn(async () => 'Now.\r\n' as string | null),
 		writeText: vi.fn(async () => {}),
@@ -40,7 +40,7 @@ beforeEach(() => {
 it('restores in the file’s own line endings, reloads it, and records the restore', async () => {
 	const { actions, deps } = make('/p/main.tex');
 	await actions.restore('/p/main.tex', ENTRY);
-	expect(deps.discardPendingSave).toHaveBeenCalled();
+	expect(deps.flushPendingSave).toHaveBeenCalled();
 	expect(deps.writeText).toHaveBeenCalledWith('/p/main.tex', 'Old line.\r\nSecond.\r\n');
 	expect(deps.loadFile).toHaveBeenCalledWith('/p/main.tex');
 	expect(history.addLocalHistory).toHaveBeenCalledWith('/p/main.tex', 'Old line.\nSecond.\n', 'restored');

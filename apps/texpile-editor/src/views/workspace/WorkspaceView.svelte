@@ -1,10 +1,10 @@
 <script lang="ts">
 	import VersionChangesModal from './VersionChangesModal.svelte';
 	import TwoVersionsModal from './TwoVersionsModal.svelte';
-	import FindLocalHistoryModal from './FindLocalHistoryModal.svelte';
+	import LocalHistoryDialog from './LocalHistoryDialog.svelte';
 	import { versionChanges } from '$lib/workspace/versionChanges.svelte';
 	import { twoVersions } from '$lib/workspace/twoVersions.svelte';
-	import { localHistoryFinder } from '$lib/workspace/localHistoryFinder.svelte';
+	import { localHistoryDialog } from '$lib/workspace/localHistoryDialog.svelte';
 	import { fileMode, NO_PROJECT_CAPS } from '$lib/workspace/fileMode.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import WorkspaceModals from '$lib/modals/workspace/WorkspaceModals.svelte';
@@ -409,8 +409,10 @@
 	{#if twoVersions.current}
 		<TwoVersionsModal versions={twoVersions.current} />
 	{/if}
-	{#if localHistoryFinder.open && workspaceRoot.current}
-		<FindLocalHistoryModal root={workspaceRoot.current} />
+	{#if localHistoryDialog.view && workspaceRoot.current}
+		{#key localHistoryDialog.view}
+			<LocalHistoryDialog root={workspaceRoot.current} view={localHistoryDialog.view} />
+		{/key}
 	{/if}
 
 	<WorkspaceModals
