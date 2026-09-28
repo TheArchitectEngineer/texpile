@@ -98,6 +98,7 @@ export class WorkspaceIntegrations {
 		this.scm = new ScmActions({
 			getLoadedPath: () => doc.path,
 			discardPendingSave: () => d.editFlow().saver.discard(),
+			detachPendingSave: () => d.editFlow().saver.detach(),
 			hasPendingSave: () => !!d.editFlow().saver.pending,
 			flushPendingSave: () => d.editFlow().saver.flushAndWait(),
 			// the Trash where there is one: a file never saved as a version has no other copy anywhere
@@ -138,6 +139,7 @@ export class WorkspaceIntegrations {
 			getLoadedPath: () => doc.path,
 			flushPendingSave: () => d.editFlow().saver.flushAndWait(),
 			whenSaved: () => d.editFlow().saver.whenIdle(),
+			detachPendingSave: () => d.editFlow().saver.detach(),
 			readTextIfPresent: async (p) => {
 				try {
 					return await d.provider.readText(p);
@@ -157,6 +159,9 @@ export class WorkspaceIntegrations {
 		// co-authors' new versions, looked for every few minutes while this project is open
 		const autoCheck = new AutoCheck({ isBusy: () => this.scm.busy, sync: () => void this.scm.sync() });
 		$effect(() => {
+			// again for each folder opened in this window: checked soon after it opens, as the first
+			// was, with nothing the last one announced counted against it
+			void workspaceRoot.current;
 			autoCheck.start();
 			return autoCheck.stop;
 		});
@@ -168,7 +173,8 @@ export class WorkspaceIntegrations {
 				hasUpstream: () => !!gitTracking.current,
 				keepSide: (path, side) => void this.scm.combine.keepSide(path, side),
 				chooseWhole: (path, choose) => void this.scm.combine.chooseWhole(path, choose),
-				canSwitchBranch: () => isGitRepo.current && canSwitchBranch(),
+				// not a repository above the folder the author has not agreed to use: its branches are not this project's
+				canSwitchBranch: () => isGitRepo.current && !gitHeldBack.current && canSwitchBranch(),
 				listBranches: () => this.scm.branches.list(),
 				switchBranch: (name) => void this.scm.branches.switchTo(name)
 			})

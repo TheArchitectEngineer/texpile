@@ -7,6 +7,7 @@
 	// the same library as the rest of the UI; the filtering, ranking and highlighting are ours.
 	//
 	// No props: the commands come from the palette action registry, which WorkspaceView fills in.
+	import { untrack } from 'svelte';
 	import { Combobox, useListCollection } from '@skeletonlabs/skeleton-svelte';
 	import { Search } from '@lucide/svelte';
 	import Kbd from '$lib/components/Kbd.svelte';
@@ -71,16 +72,21 @@
 		if (!commandPalette.open) return;
 		const a = commandPalette.actions;
 		if (!a) return;
-		commands = buildCommands(a);
-		files = goToFileItems(a);
-		// a command that opens another list (Switch branch) starts it empty, not with its own name typed
-		query = '';
-		if (commandPalette.mode !== 'branches') return;
-		branches = [];
-		branchesLoading = true;
-		void branchItems().then((items) => {
-			branches = items;
-			branchesLoading = false;
+		const mode = commandPalette.mode;
+		// untracked: a file tree read again (a compile, the watcher) or any state a label reads would
+		// otherwise rebuild the lists, empty what the author was typing and load the branches again
+		untrack(() => {
+			commands = buildCommands(a);
+			files = goToFileItems(a);
+			// a command that opens another list (Switch branch) starts it empty, not with its own name typed
+			query = '';
+			if (mode !== 'branches') return;
+			branches = [];
+			branchesLoading = true;
+			void branchItems().then((items) => {
+				branches = items;
+				branchesLoading = false;
+			});
 		});
 	});
 

@@ -7,21 +7,23 @@
 // for that, as writing tools keep history (Obsidian: a snapshot at most every 5 minutes, kept 7
 // days):
 // - saves from the same source go into the current copy until it is 5 minutes old, then a new one
-//   starts: an hour of writing is about twelve copies, however often it paused
+//   starts: an hour of writing is about twelve copies, however often it paused. A copy kept before
+//   a Reload, Discard or Restore, and one the author named, stays as it is
 // - copies are kept by age: every one for 7 days, then the last of each day for 30 days. A copy the
 //   author named is kept until they delete it
 // - files up to 1 MB (a long .bib is well over VS Code's 256 KB), and all of it together under a cap
 //   that removes the oldest first
 // A rename or move carries the entries along.
 //
-// A portable Texpile files a project on its own drive by the path from the app's folder, so the
-// history travels with the drive whatever letter it is given on the next computer.
+// A portable Texpile files a project on its own drive by the path from that drive's root, so the
+// history travels with the drive whatever letter it is given on the next computer, and stays put
+// when the app's folder is moved about on it.
 //
 // Nothing here reads the file being tracked: the window hands over what it saved, so a path can
 // never be used to pull an arbitrary file into the history and read it back out.
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { extname, isAbsolute, join, normalize, parse, relative, resolve, sep } from 'node:path';
+import { extname, isAbsolute, join, normalize, parse, resolve, sep } from 'node:path';
 
 export type LocalHistoryEntry = {
 	/** the copy's file name in the history folder: four characters and the file's extension */
@@ -90,7 +92,7 @@ export class LocalHistory {
 	private chain: Promise<unknown> = Promise.resolve();
 	private limits: LocalHistoryLimits;
 
-	/** `base`: the portable app's folder, which a project on the same drive is filed relative to */
+	/** `base`: the portable app's folder; a project on its drive is filed from the drive's root */
 	constructor(
 		private home: string,
 		limits: Partial<LocalHistoryLimits> = {},
@@ -105,17 +107,18 @@ export class LocalHistory {
 		return next;
 	}
 
-	/** how a path is written down: from the portable app's folder when it is on the same drive */
+	/** how a path is written down: from the root of the portable app's drive when it is on it. Not
+	 *  from the app's folder, which the author may move to another folder on the drive */
 	private stored(path: string): string {
 		const abs = resolve(path);
 		if (!this.base) return abs;
-		const base = resolve(this.base);
-		return parse(abs).root.toLowerCase() === parse(base).root.toLowerCase() ? relative(base, abs) || '.' : abs;
+		const root = parse(abs).root;
+		return root.toLowerCase() === parse(resolve(this.base)).root.toLowerCase() ? abs.slice(root.length) || '.' : abs;
 	}
 
 	/** a path as it was written down, back to where it is on this computer */
 	private absolute(stored: string): string {
-		return isAbsolute(stored) || !this.base ? stored : resolve(this.base, stored);
+		return isAbsolute(stored) || !this.base ? stored : resolve(parse(resolve(this.base)).root, stored);
 	}
 
 	/** a path as it names a file here, case-folded where the file system folds case */
@@ -212,9 +215,9 @@ export class LocalHistory {
 	}
 
 	/**
-	 * A save: a new entry, or the current one replaced when it came from the same source and is less
-	 * than 5 minutes old. Nothing when the file is over the size limit, or the content is what the
-	 * last entry already holds. Resolves to the entry, or null when nothing was kept.
+	 * A save: a new entry, or the current one replaced when it came from the same kind of save and is
+	 * less than 5 minutes old. Nothing when the file is over the size limit, or the content is what
+	 * the last entry already holds. Resolves to the entry, or null when nothing was kept.
 	 */
 	add(
 		resource: string,
@@ -235,7 +238,11 @@ export class LocalHistory {
 				const previous = await readFile(join(dir, last.id), 'utf8').catch(() => null);
 				if (previous === content) return last;
 			}
-			if (last && last.source === source && timestamp - (last.started ?? last.timestamp) < this.limits.mergeWindowMs) {
+			// only copies of the file as it is saved gather: one kept before a Reload, Discard or Restore
+			// holds text nothing else has, and so does one the author named. A second Reload a minute
+			// later would otherwise write over the first one's text
+			const gathers = !source || source === 'shared' || source === 'renamed' || source === 'moved';
+			if (last && gathers && last.source === source && timestamp - (last.started ?? last.timestamp) < this.limits.mergeWindowMs) {
 				await writeFile(join(dir, last.id), content);
 				last.started ??= last.timestamp;
 				last.timestamp = timestamp;
@@ -363,7 +370,7 @@ export class LocalHistory {
 	 * Housekeeping, run once in a while rather than on every save: every file's history thinned by
 	 * age (one left alone is otherwise never trimmed, since that happens on a save), then the oldest
 	 * copies removed, across every file, while all of it together is over the cap. A file's newest
-	 * copy goes last.
+	 * copy goes last, and a named one not at all.
 	 */
 	prune(now = Date.now()): Promise<void> {
 		return this.queue(async () => {
@@ -387,12 +394,15 @@ export class LocalHistory {
 			if (total <= this.limits.maxTotalBytes) return;
 			const newest = new Map<string, number>();
 			for (const c of copies) newest.set(c.resource, Math.max(newest.get(c.resource) ?? 0, c.entry.timestamp));
-			// oldest first, and each file's newest after every other copy
-			const order = copies.sort(
-				(a, b) =>
-					Number(a.entry.timestamp === newest.get(a.resource)) - Number(b.entry.timestamp === newest.get(b.resource)) ||
-					a.entry.timestamp - b.entry.timestamp
-			);
+			// oldest first, and each file's newest after every other copy. A named copy is not in it: the
+			// author was told it stays until they delete it, and it is usually the oldest
+			const order = copies
+				.filter((c) => !named(c.entry))
+				.sort(
+					(a, b) =>
+						Number(a.entry.timestamp === newest.get(a.resource)) - Number(b.entry.timestamp === newest.get(b.resource)) ||
+						a.entry.timestamp - b.entry.timestamp
+				);
 			const drop = new Map<string, Set<string>>();
 			for (const c of order) {
 				if (total <= this.limits.maxTotalBytes) break;
@@ -414,8 +424,9 @@ export class LocalHistory {
 	 * Nothing is read from disk here, so that entry starts as a copy of the file's own newest one; the
 	 * window then hands over what the file holds now (moveLocalHistory), which replaces it inside the
 	 * merge window, as VS Code's entry is a copy of the file itself. Resolves to the new paths.
+	 * `record` false (Keep local history turned off) takes the entries along and adds none.
 	 */
-	move(from: string, to: string): Promise<string[]> {
+	move(from: string, to: string, record = true): Promise<string[]> {
 		return this.queue(async () => {
 			const src = this.key(from);
 			// The file itself is found by its own folder, whose name comes from its path, so a listing
@@ -436,7 +447,7 @@ export class LocalHistory {
 			const moved: string[] = [];
 			for (const source of sources) {
 				const target = resolve(to) + resolve(source).slice(resolve(from).length);
-				if (await this.carry(source, target)) moved.push(target);
+				if (await this.carry(source, target, record)) moved.push(target);
 			}
 			return moved;
 		});
@@ -445,7 +456,7 @@ export class LocalHistory {
 	/** One file's entries to its new path; false when it had none. The old folder is removed only
 	 *  once every copy is across: one another program holds open for a moment (an indexer, a virus
 	 *  scan on Windows) keeps the folder, and the rest with it, rather than being lost. */
-	private async carry(source: string, target: string): Promise<boolean> {
+	private async carry(source: string, target: string, record: boolean): Promise<boolean> {
 		const carried = (await this.load(source)).entries;
 		if (!carried.length) return false;
 		const fromDir = this.folder(source);
@@ -479,7 +490,7 @@ export class LocalHistory {
 		}
 		into.resource = target;
 		const now = Date.now();
-		if (newest) {
+		if (newest && record) {
 			const entry: LocalHistoryEntry = {
 				id: randomId(target, into.entries),
 				timestamp: now,

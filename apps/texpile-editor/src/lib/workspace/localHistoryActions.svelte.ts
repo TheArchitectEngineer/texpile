@@ -21,6 +21,9 @@ export type LocalHistoryDeps = {
 	getLoadedPath(): string | null;
 	/** write the file's queued autosave now: a restore keeps what it replaces, unsaved edits included */
 	flushPendingSave(): Promise<void>;
+	/** the queued autosave taken off the queue unwritten (SavePipeline.detach): after a flush, one the
+	 *  save guard turned away, which would otherwise land on the restored text later */
+	detachPendingSave?(): { path: string; content: string } | null;
 	/** resolves once a save already being written has landed, so it cannot land on the restore */
 	whenSaved(): Promise<void>;
 	/** null when the file is gone */
@@ -71,12 +74,13 @@ export class LocalHistoryActions {
 		const loaded = this.deps.getLoadedPath();
 		const open = !!loaded && samePath(loaded, path);
 		try {
-			if (open) await this.deps.flushPendingSave();
+			const unsaved = open ? await this.settle() : null;
 			await this.deps.whenSaved();
 			// the file's own line endings, whatever the copy was kept with
 			current = await this.deps.readTextIfPresent(path);
 			// what the restore replaces, so restoring is undone the same way
 			if (current !== null) await addLocalHistory(path, toLf(current), 'before-restore');
+			if (unsaved) await addLocalHistory(unsaved.path, unsaved.content, 'before-restore');
 			await this.deps.writeText(path, current === null ? content : fromLf(toLf(content), detectEol(current)));
 		} catch (e) {
 			toaster.error({ title: m.history_restore_failed({ name: basename(path) }), description: e instanceof Error ? e.message : String(e) });
@@ -95,21 +99,36 @@ export class LocalHistoryActions {
 		return true;
 	}
 
-	/** Undo on the notice: the text the file had before, written back */
+	/** Undo on the notice: the text the file had before, written back. Typing since the restore is
+	 *  saved first, and kept as any save is: queued, it would land on the text Undo brings back */
 	private async undoRestore(path: string, before: string): Promise<void> {
+		const loaded = this.deps.getLoadedPath();
+		const open = !!loaded && samePath(loaded, path);
 		try {
+			const unsaved = open ? await this.settle() : null;
+			if (unsaved) await addLocalHistory(unsaved.path, unsaved.content, 'before-restore');
+			await this.deps.whenSaved();
 			await this.deps.writeText(path, before);
 		} catch (e) {
 			toaster.error({ title: m.history_restore_failed({ name: basename(path) }), description: e instanceof Error ? e.message : String(e) });
 			return;
 		}
-		const loaded = this.deps.getLoadedPath();
-		if (loaded && samePath(loaded, path)) await this.deps.loadFile(loaded);
+		if (open && loaded) await this.deps.loadFile(loaded);
 	}
 
-	/** the file as it is on disk now; null when it is gone */
-	currentText(path: string): Promise<string | null> {
-		return this.deps.readTextIfPresent(path);
+	/** The open file's queued save written out and waited for. Resolves to one the save guard turned
+	 *  away (the file changed outside, and the author put off deciding), taken off the queue: its
+	 *  text is on no disk, so the caller keeps it, and queued it would later be written over
+	 *  whatever the caller writes */
+	private async settle(): Promise<{ path: string; content: string } | null> {
+		await this.deps.flushPendingSave();
+		return this.deps.detachPendingSave?.() ?? null;
+	}
+
+	/** the file as it is on disk now, in LF as the copies are kept; null when it is gone */
+	async currentText(path: string): Promise<string | null> {
+		const text = await this.deps.readTextIfPresent(path);
+		return text === null ? null : toLf(text);
 	}
 
 	/** Rename: the entry's label, which starts as how it was made ("File Saved") */

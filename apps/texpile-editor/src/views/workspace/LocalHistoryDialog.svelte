@@ -62,8 +62,9 @@
 
 	onMount(async () => {
 		if (view.kind === 'deleted') {
-			const under = view.under.replace(/\\/g, '/').replace(/\/+$/, '') + '/';
-			deleted = (await listAllLocalHistory(root)).filter((f) => !f.exists && f.resource.replace(/\\/g, '/').startsWith(under));
+			// asked for under the folder itself: the main process compares paths as the disk does,
+			// without case on Windows and macOS, and hands back each file as it was first spelled
+			deleted = (await listAllLocalHistory(view.under)).filter((f) => !f.exists);
 			path = deleted[0]?.resource ?? null;
 			if (!path) loading = false;
 		}
@@ -129,7 +130,12 @@
 	}
 
 	async function copy() {
-		await navigator.clipboard.writeText(copyText).catch(() => {});
+		try {
+			await navigator.clipboard.writeText(copyText);
+		} catch {
+			toaster.error({ title: m.ctxmenu_copy_failed_toast() });
+			return;
+		}
 		toaster.success({ title: m.history_copied() });
 	}
 
@@ -223,6 +229,8 @@
 									if (ev.key === 'Enter') void saveRename(e);
 									if (ev.key === 'Escape') {
 										ev.stopPropagation();
+										// emptied first: the field losing focus as it goes saves what it holds
+										name = '';
 										renaming = null;
 									}
 								}}
@@ -346,6 +354,8 @@
 									if (ev.key === 'Enter') void saveNamed();
 									if (ev.key === 'Escape') {
 										ev.stopPropagation();
+										// emptied first: the field losing focus as it goes saves what it holds
+										name = '';
 										naming = false;
 									}
 								}}

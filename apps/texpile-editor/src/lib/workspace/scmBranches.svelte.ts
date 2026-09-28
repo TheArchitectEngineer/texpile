@@ -14,8 +14,8 @@ import type { ScmDeps } from './scmActions.svelte';
 
 export type BranchHost = {
 	busy: boolean;
-	/** ScmActions.commit: Save version with these files and this message */
-	commit(message: string, paths: string[]): Promise<boolean>;
+	/** ScmActions.commit: Save version with these files and this message, in this folder */
+	commit(message: string, paths: string[], root: string): Promise<boolean>;
 };
 
 /** exported for the tests: why a switch did not happen */
@@ -50,12 +50,13 @@ export class ScmBranches {
 
 	/**
 	 * The switch would overwrite changes not saved as a version: offer to save them on this branch
-	 * first - every change the panel lists except build output, so what is left behind is not split
-	 * between two branches. True once saved, and the switch is tried again.
+	 * first - what the panel has staged, and the files in the way. What the author unstaged is left
+	 * for the checkout to carry over. True once saved, and the switch is tried again.
 	 */
-	private saveFirst(name: string, blocking: string[]): Promise<boolean> {
+	private saveFirst(root: string, name: string, blocking: string[]): Promise<boolean> {
 		const host = {
-			commit: (message: string, paths: string[]) => this.host.commit(message, paths),
+			root,
+			commit: (message: string, paths: string[]) => this.host.commit(message, paths, root),
 			setBusy: (on: boolean) => (this.host.busy = on)
 		};
 		return saveChangesFirst(host, {
@@ -80,7 +81,7 @@ export class ScmBranches {
 			let res = await gitSwitch(root, name);
 			if (!res.ok && res.failure === 'dirty') {
 				// VS Code offers to stash; a writer's word for keeping work safe is a version
-				if (!(await this.saveFirst(name, res.files ?? []))) return '';
+				if (!(await this.saveFirst(root, name, res.files ?? []))) return '';
 				res = await gitSwitch(root, name);
 			}
 			if (!res.ok) return switchReason(res);

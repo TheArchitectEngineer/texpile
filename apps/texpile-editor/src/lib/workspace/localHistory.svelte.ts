@@ -3,7 +3,7 @@
 // unversioned text. Opened from the File menu, a file's or tab's right-click menu and the palette
 // (LocalHistoryDialog). Never throws: history is a safety net, and a save must not fail because the
 // net did.
-import { dirname, nativeBridge } from './fileSystem';
+import { dirname, nativeBridge, toLf } from './fileSystem';
 import { settings } from '$lib/settings';
 import { m } from '$lib/paraglide/messages';
 
@@ -114,11 +114,13 @@ export async function listAllLocalHistory(root: string): Promise<LocalHistoryFil
  *  (a pull), and what is read here replaces it. */
 export async function moveLocalHistory(from: string, to: string, readText?: (path: string) => Promise<string>): Promise<void> {
 	const moved = await attempt(() => nativeBridge()?.localHistoryMove?.(from, to), [] as string[]);
-	if (readText) {
+	// turned off, the entries still go along, and nothing is read to add one
+	if (readText && settings.current.localHistory !== false) {
 		for (const target of moved) {
 			const was = from + target.slice(to.length);
 			const now = await readText(target).catch(() => null);
-			if (now !== null) await addLocalHistory(target, now, dirname(target) === dirname(was) ? 'renamed' : 'moved');
+			// in LF, as saves are kept: a CRLF file's first unchanged save after the rename adds nothing
+			if (now !== null) await addLocalHistory(target, toLf(now), dirname(target) === dirname(was) ? 'renamed' : 'moved');
 		}
 	}
 	if (moved.length) revision++;

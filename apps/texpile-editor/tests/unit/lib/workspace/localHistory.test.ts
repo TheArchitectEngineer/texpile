@@ -261,19 +261,38 @@ it('prune thins a file no longer being saved by the same age rules', async () =>
 	expect(await Promise.all((await h.list(FILE)).map((e) => h.read(FILE, e.id)))).toEqual(['last']);
 });
 
-it('files a portable project on its own drive by the path from the app, so a new drive letter finds it', async () => {
-	const home = mkdtempSync(join(tmpdir(), 'texpile-history-'));
-	homes.push(home);
-	const driveE = join(tmpdir(), 'E');
-	const onE = new LocalHistory(home, {}, join(driveE, 'Texpile'));
-	await onE.add(join(driveE, 'thesis', 'main.tex'), 'written on E:');
-	const [folder] = readdirSync(home);
-	expect(JSON.parse(readFileSync(join(home, folder, 'entries.json'), 'utf8')).resource).toBe(join('..', 'thesis', 'main.tex'));
-	// the same drive on another computer, mounted somewhere else
-	const driveF = join(tmpdir(), 'F');
-	const onF = new LocalHistory(home, {}, join(driveF, 'Texpile'));
-	const moved = join(driveF, 'thesis', 'main.tex');
-	const entries = await onF.list(moved);
-	expect(await onF.read(moved, entries[0].id)).toBe('written on E:');
-	expect((await onF.all(join(driveF, 'thesis'))).map((f) => f.resource)).toEqual([moved]);
+it('never gathers a copy kept before a Reload or Discard, or a named one, into the next', async () => {
+	const { h } = history({ mergeWindowMs: 5 * MIN });
+	// Reload over unsaved text, then again a few minutes later over what was written since
+	await h.add(FILE, 'saved', undefined, undefined, 1_000);
+	await h.add(FILE, 'unsaved, first', 'before-reload', undefined, 1_000 + MIN);
+	await h.add(FILE, 'unsaved, second', 'before-reload', undefined, 1_000 + 3 * MIN);
+	await h.add(FILE, 'discarded, first', 'before-discard', undefined, 1_000 + 4 * MIN);
+	await h.add(FILE, 'discarded, second', 'before-discard', undefined, 1_000 + 4.5 * MIN);
+	await h.add(FILE, 'draft A', 'Draft', undefined, 1_000 + 4.6 * MIN);
+	await h.add(FILE, 'draft B', 'Draft', undefined, 1_000 + 4.7 * MIN);
+	const texts = await Promise.all((await h.list(FILE)).map((e) => h.read(FILE, e.id)));
+	expect(texts).toEqual(['saved', 'unsaved, first', 'unsaved, second', 'discarded, first', 'discarded, second', 'draft A', 'draft B']);
+});
+
+it('keeps a named copy under the size cap, however old', async () => {
+	const { h } = history({ mergeWindowMs: 0, maxTotalBytes: 30 });
+	const other = join(tmpdir(), 'project', 'refs.bib');
+	await h.add(FILE, 'NAMEDNAMED', 'Sent to the committee', undefined, 1_000); // 10 bytes each
+	await h.add(other, 'bbbbbbbbbb', undefined, undefined, 2_000);
+	await h.add(FILE, 'cccccccccc', undefined, undefined, 3_000);
+	await h.add(FILE, 'dddddddddd', undefined, undefined, 4_000);
+	await h.prune(5_000);
+	expect(await h.usage()).toBe(30);
+	expect((await h.list(FILE)).map((e) => e.source)).toEqual(['Sent to the committee', undefined]);
+	expect(await h.list(other)).toHaveLength(1);
+});
+
+it('takes the entries along on a rename without adding one when history is turned off', async () => {
+	const { h } = history();
+	await h.add(FILE, 'first', undefined, undefined, 1_000);
+	const renamed = join(tmpdir(), 'project', 'chapters', 'introduction.tex');
+	expect(await h.move(FILE, renamed, false)).toEqual([renamed]);
+	expect(await h.list(FILE)).toEqual([]);
+	expect((await h.list(renamed)).map((e) => e.source)).toEqual([undefined]);
 });

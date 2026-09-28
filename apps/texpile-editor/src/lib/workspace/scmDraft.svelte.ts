@@ -5,6 +5,13 @@
 // the file tree and back therefore ticked everything again and emptied the message, so the next
 // Save version quietly took in files the author had deliberately left out. Kept here, per folder,
 // it lasts as long as the window does.
+import { isBuildArtifact } from './buildArtifacts';
+import type { GitStatusEntry } from './git';
+
+/** build output and whole folders of new files start unticked: ticking one is an opt-in */
+export function optIn(c: GitStatusEntry): boolean {
+	return !!c.files || isBuildArtifact(c.path);
+}
 
 export class ScmDraft {
 	/** Paths the author has UNticked. Exclusions rather than inclusions, so a file that changes
@@ -15,11 +22,20 @@ export class ScmDraft {
 	artifactsOptedIn = $state<string[]>([]);
 	message = $state('');
 
-	/** after a version is saved: what was chosen for it is spent */
-	clear(): void {
-		this.excluded = [];
-		this.artifactsOptedIn = [];
+	/** ticked in the panel. Commit & Sync and Commit & Checkout go by it too (scmSaveFirst.ts), so
+	 *  a file unstaged to stay on this computer is not committed and pushed behind the author's back */
+	ticked(c: GitStatusEntry): boolean {
+		return optIn(c) ? this.artifactsOptedIn.includes(c.path) : !this.excluded.includes(c.path);
+	}
+
+	/** After a commit: the message is spent. What was left unstaged stays so, as in VS Code; given
+	 *  the changes listed now, a file that has left the list is forgotten, and starts over when it
+	 *  next changes. Emptying the exclusions here staged a private draft again for the next commit. */
+	clear(listed?: string[]): void {
 		this.message = '';
+		if (!listed) return;
+		this.excluded = this.excluded.filter((p) => listed.includes(p));
+		this.artifactsOptedIn = this.artifactsOptedIn.filter((p) => listed.includes(p));
 	}
 }
 

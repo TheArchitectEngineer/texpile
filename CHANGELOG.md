@@ -10,7 +10,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - feat: Local History keeps a copy of each file as you save (as in VS Code), in projects without git too. It opens from File › Local History… and a file's or tab's right-click menu, showing a file's copies by day, beside the file with what changed since, with Restore This Copy, Copy and Save a Copy Now…; a copy's … menu renames or deletes it; File › Restore Deleted File… and a folder's right-click menu bring back a deleted file
 - feat: Local History is kept for writing with autosave: saves gather into one copy for up to 5 minutes, copies are kept 7 days and then one a day for 30, named copies and each file's newest stay, files up to 1 MB, 300 MB in all
 - feat: a copy is kept before a discard, a restore, or a reload over unsaved edits, and discard and restore offer Undo; in a shared session the host keeps guests' edits too
-- feat: the portable build files a project on its own drive by its path from Texpile's folder, so Local History follows the drive to another computer
+- feat: the portable build files a project on its own drive by its path from the drive's root, so Local History follows the drive to another computer and the Texpile folder can move on it
 - fix: Escape closes a menu open over a dialog, not the dialog too
 - feat: Preferences has a Version Control tab: Git (Autofetch, and the Git Identity commits carry) and Local History (Keep local history, and Saved copies, which shows their size and opens to Clear Local History…)
 - change: comparisons no longer draw a colored bar down the left of changed lines

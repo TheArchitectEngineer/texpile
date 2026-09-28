@@ -15,7 +15,7 @@
 	import { isBuildArtifact } from '$lib/workspace/buildArtifacts';
 	// what is going on in git that only the display needs: not callbacks, so read here, not passed down
 	import { isConflicted, gitRunning, gitUnsafe, gitTruncated, gitHead, gitBranch } from '$lib/workspace/gitStore';
-	import { scmDraftFor } from '$lib/workspace/scmDraft.svelte';
+	import { scmDraftFor, optIn } from '$lib/workspace/scmDraft.svelte';
 	import type { GitStatusEntry, GitLogEntry, GitFileChange, GitOperation } from '$lib/workspace/git';
 	import { combo } from '$lib/chrome/shortcutText';
 	import { m } from '$lib/paraglide/messages';
@@ -126,15 +126,7 @@
 	const artifacts = $derived(changes.filter((c) => !isConflicted(c.x, c.y) && isBuildArtifact(c.path)));
 	const sources = $derived(changes.filter((c) => !isConflicted(c.x, c.y) && !isBuildArtifact(c.path)));
 
-	// build output and whole folders of new files start unticked: ticking one is an opt-in
-	function optIn(c: GitStatusEntry): boolean {
-		return !!c.files || isBuildArtifact(c.path);
-	}
-	const selected = $derived(
-		[...sources, ...artifacts]
-			.filter((c) => (optIn(c) ? draft.artifactsOptedIn.includes(c.path) : !draft.excluded.includes(c.path)))
-			.map((c) => c.path)
-	);
+	const selected = $derived([...sources, ...artifacts].filter((c) => draft.ticked(c)).map((c) => c.path));
 
 	function toggle(path: string) {
 		if (changes.some((c) => c.path === path && optIn(c))) {
@@ -152,7 +144,12 @@
 
 	async function save() {
 		if (!canSave) return;
-		if (await onCommit(draft.message, selected)) draft.clear();
+		// this folder's draft, held across the wait: a commit that ends after another folder was
+		// opened must not clear that one's
+		const d = draft;
+		if (!(await onCommit(d.message, selected))) return;
+		// what was unstaged stays unstaged, pruned to what is still listed while the list is this folder's
+		d.clear(d === draft ? changes.map((c) => c.path) : undefined);
 	}
 
 	/** a merge the panel can finish or cancel itself; the rest go back to the terminal they came from */
@@ -160,8 +157,14 @@
 	/** files still holding a place nobody has chosen for */
 	const marked = $derived(conflicts.filter((c) => c.markers).length);
 
+	// what a commit goes on, as VS Code names it: the branch, or with HEAD detached (git then calls
+	// the branch "HEAD") the commit's short hash
+	const shortHead = $derived((gitHead.current ?? '').slice(0, 7));
+	const commitOn = $derived(detached ? shortHead : gitBranch.current);
+
 	function onKeydown(e: KeyboardEvent) {
-		if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+		// Ctrl+Enter alone: Ctrl+Alt+Enter is Compile, which committed the half-written message as well
+		if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && !e.isComposing && e.key === 'Enter') {
 			e.preventDefault();
 			void save();
 		}
@@ -197,9 +200,7 @@
 			     calls the branch "HEAD", which says nothing; this says what it means and where the way back is -->
 			<GitBranch class="size-3.5 shrink-0" />
 			{#if detached}
-				<span class="truncate font-medium" use:tip={m.vcs_detached_tip()}
-					>{m.vcs_detached({ short: (gitHead.current ?? '').slice(0, 7) })}</span
-				>
+				<span class="truncate font-medium" use:tip={m.vcs_detached_tip()}>{m.vcs_detached({ short: shortHead })}</span>
 			{:else}
 				<span class="truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
 			{/if}
@@ -250,7 +251,7 @@
 							/>
 						</div>
 					{:else}
-						<div class="text-muted mt-6 mb-2 flex flex-col items-center gap-1 text-center text-sm">
+						<div class="text-muted mt-6 mb-2 flex flex-col items-center gap-1 px-3 text-center text-sm">
 							<GitCommitHorizontal class="size-6 opacity-60" />
 							{m.vcs_no_changes()}
 						</div>
@@ -280,8 +281,8 @@
 							data-scm-message
 							class="textarea resize-none text-sm rounded-container"
 							rows="2"
-							placeholder={gitBranch.current
-								? m.vcs_commit_placeholder({ combo: combo('Enter'), branch: gitBranch.current })
+							placeholder={commitOn
+								? m.vcs_commit_placeholder({ combo: combo('Enter'), branch: commitOn })
 								: m.vcs_commit_placeholder_nobranch({ combo: combo('Enter') })}
 							bind:value={draft.message}
 							onkeydown={onKeydown}></textarea>
@@ -289,7 +290,7 @@
 							class="btn btn-xs preset-filled-primary-500 w-full gap-1.5"
 							onclick={save}
 							disabled={!canSave}
-							use:tip={gitBranch.current ? m.vcs_save_version_tip({ branch: gitBranch.current }) : m.vcs_save_version_tip_nobranch()}
+							use:tip={commitOn ? m.vcs_save_version_tip({ branch: commitOn }) : m.vcs_save_version_tip_nobranch()}
 						>
 							{#if gitRunning.current === 'save'}
 								<LoaderCircle class="size-3.5 animate-spin" />

@@ -15,12 +15,12 @@ const ask = { title: 't', message: 'syncing would overwrite changes to main.bbl'
 
 it('saves the new build output git named as in the way', async () => {
 	const commit = vi.fn(async (_message: string, _paths: string[]) => true);
-	expect(await saveChangesFirst({ commit, setBusy: () => {} }, { ...ask, blocking: ['/p/main.bbl'] })).toBe(true);
+	expect(await saveChangesFirst({ root: '/p', commit, setBusy: () => {} }, { ...ask, blocking: ['/p/main.bbl'] })).toBe(true);
 	expect(commit.mock.calls[0][1]).toEqual(['/p/main.bbl']);
 });
 
 it('still leaves out build output nothing named', async () => {
 	const commit = vi.fn(async () => true);
-	expect(await saveChangesFirst({ commit, setBusy: () => {} }, ask)).toBe(false);
+	expect(await saveChangesFirst({ root: '/p', commit, setBusy: () => {} }, ask)).toBe(false);
 	expect(commit).not.toHaveBeenCalled();
 });

@@ -26,7 +26,9 @@ export const AUTO_CHECK_PERIOD_MS = 180_000;
 const SOON_MS = 5_000;
 
 let running: Promise<void> | null = null;
-let paused = false;
+/** the folder whose check stopped at a sign-in. Only that one: another folder has its own remote,
+ *  and one refused sign-in stopped the checking in every folder opened after it. */
+let paused: string | null = null;
 
 /** resolves once a check under way is over: a Sync or a check of the author's waits for it rather
  *  than fetch alongside it */
@@ -36,7 +38,7 @@ export function autoCheckDone(): Promise<void> {
 
 /** a Sync or check of the author's own worked: sign-in is fine again, so checking resumes */
 export function resumeAutoCheck(): void {
-	paused = false;
+	paused = null;
 }
 
 async function fetchQuiet(root: string): Promise<GitFetchResult> {
@@ -84,8 +86,8 @@ export class AutoCheck {
 	/** whether a check may go now; null when it is not wanted at all until something changes */
 	#ready(): 'now' | 'later' | null {
 		const root = workspaceRoot.current;
-		if (settings.current.checkForNewVersions === false || paused) return null;
-		if (!root || !isGitRepo.current || !gitTracking.current || gitOperation.current) return null;
+		if (settings.current.checkForNewVersions === false || !root || root === paused) return null;
+		if (!isGitRepo.current || !gitTracking.current || gitOperation.current) return null;
 		if (this.deps.isBusy() || gitRunning.current !== null || running) return 'later';
 		return document.hasFocus() ? 'now' : null;
 	}
@@ -107,14 +109,15 @@ export class AutoCheck {
 		} finally {
 			running = null;
 		}
-		if (this.#on) this.#schedule(AUTO_CHECK_PERIOD_MS);
+		// another folder opened while this one was checked: that one's first check is soon, not a period on
+		if (this.#on) this.#schedule(workspaceRoot.current === root ? AUTO_CHECK_PERIOD_MS : SOON_MS);
 	}
 
 	async #check(root: string): Promise<void> {
 		const res = await fetchQuiet(root);
 		if (!res.ok) {
 			// it would have had to ask for a sign-in, or the one it had was refused
-			if (res.failure === 'cancelled' || res.failure === 'auth') paused = true;
+			if (res.failure === 'cancelled' || res.failure === 'auth') paused = root;
 			return;
 		}
 		if (workspaceRoot.current !== root) return;

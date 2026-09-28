@@ -57,6 +57,8 @@ export type ScmDeps = {
 	hasPendingSave(): boolean;
 	/** write that edit out and wait for it to land, so git can see it */
 	flushPendingSave(): Promise<void>;
+	/** the queued edit taken off the queue unwritten: after a flush, one the save guard turned away */
+	detachPendingSave?(): { path: string; content: string } | null;
 	/** to the Trash; 'kept' where there is none, and the entry is still there */
 	trashEntry(path: string): Promise<'trashed' | 'kept'>;
 	/** deleted outright, once the author has agreed to it */
@@ -163,10 +165,11 @@ export class ScmActions {
 	discard = (changes: GitStatusEntry[]): Promise<void> => this.discarder.run(changes);
 
 	/** the index is reset and rebuilt from the tick boxes every time, so what the button promised
-	 *  is what lands and a stale staged file cannot ride along */
-	commit = async (message: string, paths: string[]): Promise<boolean> => {
-		const root = workspaceRoot.current;
-		if (!root || !paths.length) return false;
+	 *  is what lands and a stale staged file cannot ride along. `root` is the folder the caller began
+	 *  in, which after a slow Sync may no longer be the one open. */
+	commit = async (message: string, paths: string[], root = workspaceRoot.current): Promise<boolean> => {
+		// one at a time: a held Ctrl+Enter repeats, and each repeat started another commit
+		if (!root || !paths.length || this.busy) return false;
 		// busy from the start: Save version must not be pressable again behind the identity dialog
 		this.busy = true;
 		gitRunning.current = 'save';
@@ -185,9 +188,7 @@ export class ScmActions {
 				const listed = loadedPath !== null && gitChanges.current.some((c) => samePath(c.path, loadedPath));
 				await this.deps.flushPendingSave();
 				if (loadedPath && !listed) {
-					this.busy = false; // the status read waits while Source Control is writing
-					await refreshGitStatus(root);
-					this.busy = true;
+					await refreshGitStatus(root, true); // read without letting go of busy
 					if (gitChanges.current.some((c) => samePath(c.path, loadedPath))) include.push(loadedPath);
 				}
 			}
@@ -257,7 +258,7 @@ export class ScmActions {
 		await refreshGitStatus(root); // the edit is on disk now, so git can finally count it
 		const paths = inTheWay();
 		if (!paths.length) return true; // what was queued turned out to match what was already saved
-		return this.commit(m.vcs_restore_presave({ name: entry.subject }), paths);
+		return this.commit(m.vcs_restore_presave({ name: entry.subject }), paths, root);
 	}
 
 	/** additive: recorded as a new commit, so restoring the entry above undoes it.
@@ -328,10 +329,11 @@ export class ScmActions {
 			toaster.error({ title: m.vcs_toast_publish_failed(), description: m.vcs_publish_empty() });
 			return;
 		}
+		// busy while the remotes are read too: a second click in that moment pushed twice
+		this.busy = true;
 		const listed = await gitRemotes(root);
 		const remotes = listed.ok ? (listed.remotes ?? []) : [];
 		if (remotes.length === 1) {
-			this.busy = true;
 			gitRunning.current = 'publish';
 			const res = await gitPublish(root, remotes[0].name).finally(() => {
 				this.busy = false;
@@ -341,6 +343,7 @@ export class ScmActions {
 			if (problem) toastGitFailure(m.vcs_toast_publish_failed(), problem, res);
 			return;
 		}
+		this.busy = false;
 		await askPublish({
 			branch,
 			remotes,
@@ -443,7 +446,10 @@ export class ScmActions {
 			if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
 			const res = await gitSync(root);
 			if (res.ok) resumeAutoCheck();
-			if (res.ok && res.pulled) {
+			// Another folder was opened while the network was slow. Reloading, merging and committing
+			// would all act on that one, so for this one there is only the notice of how it went.
+			const switched = !samePath(workspaceRoot.current ?? '', root);
+			if (res.ok && res.pulled && !switched) {
 				// files changed on disk under the editor: the same reload a restore does
 				const loadedPath = this.deps.getLoadedPath();
 				await this.deps.refreshTree();
@@ -464,12 +470,12 @@ export class ScmActions {
 				];
 				if (moved.length) toaster.success({ title: m.vcs_toast_synced({ remote }), description: moved.join(' · ') });
 				else toaster.info({ title: m.vcs_toast_sync_uptodate({ remote }) });
-			} else if (res.failure === 'conflict') {
+			} else if (res.failure === 'conflict' && !switched) {
 				await this.combine.offer(root, res);
-			} else if (res.failure === 'dirty') {
+			} else if (res.failure === 'dirty' && !switched) {
 				// unsaved work that taking in versions would overwrite: saved as a version, then Sync again
 				again = await saveChangesFirst(
-					{ commit: this.commit, setBusy: (on) => (this.busy = on) },
+					{ root, commit: (message, paths) => this.commit(message, paths, root), setBusy: (on) => (this.busy = on) },
 					{
 						title: m.vcs_sync_dirty_title(),
 						message: uploadReason(res),
@@ -485,7 +491,8 @@ export class ScmActions {
 			this.busy = false;
 			gitRunning.current = null;
 		}
-		if (again) await this.sync();
+		// sync() reads the folder open now: again only while that is still this one
+		if (again && samePath(workspaceRoot.current ?? '', root)) await this.sync();
 	};
 
 	/** read on expand, not with the log: the answer changes as the author types */

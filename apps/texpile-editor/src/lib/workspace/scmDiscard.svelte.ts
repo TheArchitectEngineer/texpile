@@ -9,7 +9,7 @@ import { refreshGitStatus, isNewFile } from './gitStore';
 import { gitDiscard, gitUnstage, type GitStatusEntry } from './git';
 import { toastGitFailure } from './gitFailureToast';
 import { localGitReason } from './gitLocalReason';
-import { basename, relativeInside, samePath } from './fileSystem';
+import { basename, relativeInside, samePath, toLf } from './fileSystem';
 import { confirmAsk } from '$lib/modals/confirm.svelte';
 import { toaster } from '$lib/modals/toaster-svelte';
 import { addLocalHistory } from './localHistory.svelte';
@@ -21,6 +21,9 @@ type DiscardDeps = Pick<
 	ScmDeps,
 	| 'getLoadedPath'
 	| 'discardPendingSave'
+	| 'hasPendingSave'
+	| 'flushPendingSave'
+	| 'detachPendingSave'
 	| 'trashEntry'
 	| 'removeEntry'
 	| 'refreshTree'
@@ -63,15 +66,23 @@ export class ScmDiscard {
 		const confirmLabel = allNew ? m.vcs_move_to_trash() : m.vcs_discard_changes();
 		const ask = question(changes, allNew);
 		if (!(await confirmAsk(ask.message, { detail: ask.detail, confirmLabel, danger: true }))) return;
-		// if the open file is being discarded, drop its queued autosave first: otherwise a debounced
-		// write scheduled just before the confirm lands after git reverts and re-creates the changes
 		const loadedPath = this.deps.getLoadedPath();
 		// samePath: git and the file tree hand back separators and case that do not always match, and
 		// a miss here leaves the editor showing content that is no longer on disk
 		// A folder row (a big new folder, shown as one) takes the open file with it when it is inside
 		const openAffected =
 			!!loadedPath && changes.some((c) => samePath(c.path, loadedPath) || (!!c.files && !!relativeInside(c.path, loadedPath)));
-		if (openAffected) this.deps.discardPendingSave();
+		// if the open file is being discarded, its queued autosave is written out first and waited for:
+		// its unsaved edits are then in the copy kept below, as the question said they would be, and a
+		// debounced write cannot land after git reverts and re-create the changes. One the save guard
+		// turned away (the file changed outside) is still queued after the flush: it is kept as a copy
+		// of its own, then dropped
+		if (openAffected) {
+			if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
+			const refused = this.deps.hasPendingSave() ? (this.deps.detachPendingSave?.() ?? null) : null;
+			if (refused) await addLocalHistory(refused.path, toLf(refused.content), 'before-discard');
+			this.deps.discardPendingSave();
+		}
 		const kept = await this.#keep(changes);
 		this.host.busy = true;
 		let err: string | undefined;
@@ -105,14 +116,23 @@ export class ScmDiscard {
 			if (c.files) continue;
 			const content = await this.deps.readTextIfPresent(c.path).catch(() => null);
 			if (content === null) continue;
-			await addLocalHistory(c.path, content, 'before-discard');
+			// in LF, as saves are kept; Undo writes it back as it was
+			await addLocalHistory(c.path, toLf(content), 'before-discard');
 			kept.push({ path: c.path, content });
 		}
 		return kept;
 	}
 
-	/** Undo on the notice: the text written back as it was, the open file reloaded to show it */
+	/** Undo on the notice: the text written back as it was, the open file reloaded to show it. Typing
+	 *  since the discard is saved first, and kept as any save is: queued, it would land on the text
+	 *  Undo brings back */
 	async #undo(root: string, kept: { path: string; content: string }[]): Promise<void> {
+		const loaded = this.deps.getLoadedPath();
+		const open = !!loaded && kept.some((k) => samePath(k.path, loaded));
+		if (open) {
+			if (this.deps.hasPendingSave()) await this.deps.flushPendingSave();
+			this.deps.discardPendingSave();
+		}
 		for (const k of kept) {
 			try {
 				await this.deps.writeText(k.path, k.content);
@@ -123,8 +143,7 @@ export class ScmDiscard {
 		}
 		await this.deps.refreshTree();
 		await refreshGitStatus(root);
-		const loaded = this.deps.getLoadedPath();
-		if (loaded && kept.some((k) => samePath(k.path, loaded))) await this.deps.loadFile(loaded);
+		if (open && loaded) await this.deps.loadFile(loaded);
 	}
 
 	/** the work itself; resolves to the last failure's words, if any */

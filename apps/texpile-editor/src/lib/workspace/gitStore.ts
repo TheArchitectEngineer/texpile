@@ -196,15 +196,17 @@ function clearGitState(): void {
 	historyRoot = null;
 }
 
-/** refreshes git state for the open folder; never throws. missingGit lets the caller show the install hint. */
-export async function refreshGitStatus(root: string | null): Promise<{ missingGit: boolean }> {
+/** refreshes git state for the open folder; never throws. missingGit lets the caller show the install hint.
+ *  `own`: Source Control reading between two of its own writes, which has nothing to wait for. Letting
+ *  go of busy to read instead re-enabled Commit for that moment, and a second Ctrl+Enter got in. */
+export async function refreshGitStatus(root: string | null, own = false): Promise<{ missingGit: boolean }> {
 	if (!root) {
 		clearGitState();
 		gitMissing.current = false;
 		gitUnsafe.current = null;
 		return { missingGit: false };
 	}
-	if (writing) {
+	if (writing && !own) {
 		waitingRoot = root;
 		return { missingGit: false };
 	}

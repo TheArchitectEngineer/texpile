@@ -76,7 +76,8 @@ export class ScmCombine {
 			],
 			cancelId: 'later'
 		});
-		if (choice !== 'combine') return;
+		// another folder opened while this was asked: the merge would start here with that one on screen
+		if (choice !== 'combine' || !samePath(workspaceRoot.current ?? '', root)) return;
 
 		const combined = await gitCombine(root);
 		if (!combined.ok) {

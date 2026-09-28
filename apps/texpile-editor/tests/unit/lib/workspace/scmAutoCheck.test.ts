@@ -10,7 +10,8 @@ const info = vi.fn();
 const settings = { current: { checkForNewVersions: true } };
 
 vi.mock('$lib/workspace/fileSystem', () => ({ nativeBridge: () => ({ gitFetchQuiet }) }));
-vi.mock('$lib/workspace/workspaceStore', () => ({ workspaceRoot: { current: '/p' } }));
+const workspaceRoot = { current: '/p' };
+vi.mock('$lib/workspace/workspaceStore', () => ({ workspaceRoot }));
 vi.mock('$lib/workspace/gitStore', () => ({
 	refreshGitStatus: vi.fn(async () => ({})),
 	gitRunning: { current: null },
@@ -32,6 +33,7 @@ beforeEach(() => {
 	gitFetchQuiet.mockClear();
 	info.mockClear();
 	settings.current.checkForNewVersions = true;
+	workspaceRoot.current = '/p';
 	resumeAutoCheck();
 	check = new AutoCheck({ isBusy: () => false, sync });
 });
@@ -84,6 +86,35 @@ describe('the automatic check', () => {
 		window.dispatchEvent(new Event('focus'));
 		await vi.advanceTimersByTimeAsync(0);
 		expect(gitFetchQuiet).toHaveBeenCalledTimes(1);
+	});
+
+	// another folder has its own remote and its own sign-in: a refusal in one stopped the checking in all
+	it('stops only in the folder whose check needed a sign-in', async () => {
+		gitFetchQuiet.mockResolvedValueOnce({ ok: false, failure: 'auth' });
+		check.start();
+		await vi.advanceTimersByTimeAsync(5_000);
+		expect(gitFetchQuiet).toHaveBeenCalledTimes(1);
+
+		// the workspace starts the check over for each folder opened in the window
+		workspaceRoot.current = '/q';
+		check.stop();
+		check.start();
+		await vi.advanceTimersByTimeAsync(5_000);
+		expect(gitFetchQuiet).toHaveBeenLastCalledWith('/q');
+	});
+
+	it("checks a folder opened during another's check soon, not a whole period later", async () => {
+		let done!: (r: Res) => void;
+		gitFetchQuiet.mockImplementationOnce(() => new Promise<Res>((resolve) => (done = resolve)));
+		check.start();
+		await vi.advanceTimersByTimeAsync(5_000);
+		workspaceRoot.current = '/q';
+		check.stop();
+		check.start();
+		// the first folder's check ends after the second folder's was scheduled, and pushed it back
+		done({ ok: true, remote: 'origin', behind: 0 });
+		await vi.advanceTimersByTimeAsync(5_000);
+		expect(gitFetchQuiet).toHaveBeenLastCalledWith('/q');
 	});
 
 	it('does nothing when turned off in Preferences', async () => {

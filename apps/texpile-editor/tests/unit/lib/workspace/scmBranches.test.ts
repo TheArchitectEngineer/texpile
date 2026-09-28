@@ -1,6 +1,7 @@
 // Switch branch, from the command palette. A switch refused over unsaved work: the author is offered
-// to save it as a version on this branch first, and the switch is tried again. Build output is left
-// out, as Save version leaves it out. The palette has closed by then, so the outcome is a notice.
+// to save it as a version on this branch first, and the switch is tried again. What goes in is what
+// the panel has staged: build output and what the author unstaged are left out, as Commit leaves
+// them out. The palette has closed by then, so the outcome is a notice.
 import { it, expect, vi, beforeEach } from 'vitest';
 
 const gitSwitch = vi.fn(async (_root: string, _name: string) => ({ ok: true, branch: 'draft' }) as object);
@@ -30,9 +31,10 @@ vi.mock('$lib/modals/toaster-svelte', () => ({ toaster: { success, error: vi.fn(
 vi.mock('$lib/workspace/gitFailureToast', () => ({ toastGitFailure }));
 
 const { ScmBranches } = await import('$lib/workspace/scmBranches.svelte');
+const { scmDraftFor } = await import('$lib/workspace/scmDraft.svelte');
 
 function make() {
-	const host = { busy: false, commit: vi.fn(async (_m: string, _p: string[]) => true) };
+	const host = { busy: false, commit: vi.fn(async (_m: string, _p: string[], _root: string) => true) };
 	const deps = {
 		getLoadedPath: () => null,
 		hasPendingSave: () => false,
@@ -47,19 +49,30 @@ function make() {
 	return { branches: new ScmBranches(host, deps as any), host };
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+	vi.clearAllMocks();
+	scmDraftFor('/p').excluded = [];
+});
 
 it('offers to save the work first, then switches', async () => {
 	gitSwitch.mockResolvedValueOnce({ ok: false, failure: 'dirty', files: ['/p/main.tex'] });
 	const { branches, host } = make();
 	await branches.switchTo('draft');
 	expect((promptAsk.mock.calls[0][0] as { message: string }).message).toContain('main.tex');
-	// everything the panel lists except build output, under a message that says why
-	expect(host.commit).toHaveBeenCalledWith('WIP before checkout to draft', ['/p/main.tex', '/p/notes.tex']);
+	// what the panel has staged, build output left out, under a message that says why, in this folder
+	expect(host.commit).toHaveBeenCalledWith('WIP before checkout to draft', ['/p/main.tex', '/p/notes.tex'], '/p');
 	expect(gitSwitch).toHaveBeenCalledTimes(2);
 	expect(host.busy).toBe(false);
 	expect(success).toHaveBeenCalledWith({ title: 'Switched to branch "draft"' });
 	expect(toastGitFailure).not.toHaveBeenCalled();
+});
+
+it('leaves an unstaged file for the checkout to carry over, unless it is in the way', async () => {
+	scmDraftFor('/p').excluded = ['/p/notes.tex', '/p/main.tex'];
+	gitSwitch.mockResolvedValueOnce({ ok: false, failure: 'dirty', files: ['/p/main.tex'] });
+	const { branches, host } = make();
+	await branches.switchTo('draft');
+	expect(host.commit).toHaveBeenCalledWith('WIP before checkout to draft', ['/p/main.tex'], '/p');
 });
 
 it('switches nothing when the author declines, or the save fails', async () => {
