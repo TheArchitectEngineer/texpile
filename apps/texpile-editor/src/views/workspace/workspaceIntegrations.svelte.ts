@@ -13,6 +13,7 @@ import { ScmActions } from '$lib/workspace/scm/actions/scmActions.svelte';
 import { ChangeBaseline } from '$lib/workspace/changeBaseline.svelte';
 import { gitHead, gitHeldBack, gitOperation, gitTracking, isGitRepo } from '$lib/workspace/scm/gitStore';
 import { canSwitchBranch } from '$lib/workspace/scm/branches/gitBranches';
+import { canCombine } from '$lib/workspace/scm/branches/gitCombine';
 import { gitignoreLines } from '$lib/workspace/buildArtifacts';
 import { provideScmHandlers } from '$lib/workspace/scm/actions/scmHandlers.svelte';
 import { ScmFetch } from '$lib/workspace/scm/remote/scmFetch.svelte';
@@ -179,7 +180,10 @@ export class WorkspaceIntegrations {
 				// not a repository above the folder the author has not agreed to use: its branches are not this project's
 				canSwitchBranch: () => isGitRepo.current && !gitHeldBack.current && canSwitchBranch(),
 				listBranches: () => this.scm.branches.list(),
-				switchBranch: (name) => void this.scm.branches.switchTo(name)
+				switchBranch: (name) => void this.scm.branches.switchTo(name),
+				canFinishMerge: () => gitOperation.current === 'merge' && !gitHeldBack.current && canCombine(),
+				finishMerge: () => void this.scm.combine.finish(),
+				abortMerge: () => void this.scm.combine.cancel()
 			})
 		);
 

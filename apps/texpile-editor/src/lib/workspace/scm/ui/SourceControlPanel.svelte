@@ -4,7 +4,8 @@
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { GitBranch, RefreshCw, Check, GitCommitHorizontal, PackageX, LoaderCircle } from '@lucide/svelte';
 	import ChangeList from './changes/ChangeList.svelte';
-	import OperationBanner from './OperationBanner.svelte';
+	import OperationNote from './OperationNote.svelte';
+	import MergeActions from './MergeActions.svelte';
 	import SyncControls from './SyncControls.svelte';
 	import ScmProgress from './ScmProgress.svelte';
 	import ParentRepoGate from './gates/ParentRepoGate.svelte';
@@ -232,8 +233,8 @@
 		<div class="flex min-h-0 flex-1 flex-col" bind:this={splitEl}>
 			<div class="flex min-h-0 flex-col" style="flex: 1 1 0%">
 				<div class="scroll-inset-r min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] pb-2">
-					{#if operation}
-						<OperationBanner {operation} {marked} {busy} {onFinishCombine} {onCancelCombine} />
+					{#if operation && !combining}
+						<OperationNote {operation} />
 					{/if}
 					{#if changes.length}
 						<!-- The total, then the groups it is made of. Deliberately not a group row itself: no
@@ -284,9 +285,11 @@
 					{/if}
 				</div>
 
-				<!-- outside the scroller: what you are about to save must not scroll away from its list. Not
-				     while combining: the merge is saved by Finish combining, as one version -->
-				{#if changes.length && !combining}
+				<!-- outside the scroller: what you are about to save must not scroll away from its list. While
+				     merging, Complete Merge stands in its place and saves the merge as one version -->
+				{#if combining}
+					<MergeActions {marked} {busy} onFinish={() => onFinishCombine?.()} onCancel={() => onCancelCombine?.()} />
+				{:else if changes.length}
 					<div class="border-surface-200-800 shrink-0 space-y-2 border-t px-2 py-2">
 						<textarea
 							data-scm-message

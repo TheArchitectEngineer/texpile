@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// The panel's guarded states. During a merge: Complete Merge stays disabled while any file still
-// holds a marked place, the file row opens that file rather than a comparison, and the ordinary
-// commit box is not offered, since the merge is committed by Complete Merge. Inside a
-// larger repository: nothing of it is used until the author says so.
+// The panel's guarded states. During a merge, as VS Code shows one: Complete Merge stands where
+// Commit does, disabled while any file still holds a marked place, the file row opens that file
+// rather than a comparison, and the ordinary commit box is not offered, since the merge is committed
+// by Complete Merge. Inside a larger repository: nothing of it is used until the author says so.
 import { it, expect, vi, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import SourceControlPanel from '../../../../src/lib/workspace/scm/ui/SourceControlPanel.svelte';
@@ -65,8 +65,10 @@ it('finishes once every place is chosen, and says the file is ready', () => {
 		{ path: '/p/main.tex', x: 'U', y: 'U', markers: false },
 		{ path: '/p/notes.tex', x: 'M', y: ' ' }
 	]);
-	expect(document.body.textContent).toContain('All conflicts handled, the merge can be completed now.');
+	// no banner: the file's row says it is resolved, and Complete Merge can be pressed
 	expect(document.body.textContent).toContain('Resolved');
+	expect(document.querySelector('[role=status]')).toBeNull();
+	expect(button('Complete Merge')?.disabled).toBe(false);
 	button('Complete Merge')!.click();
 	expect(calls.finish).toHaveBeenCalledOnce();
 });

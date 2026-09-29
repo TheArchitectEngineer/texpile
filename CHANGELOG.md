@@ -102,6 +102,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: Source Control fits a narrow sidebar: Complete and Abort Merge, the repository buttons, Sync, Publish and the Texpile badge stay inside it, where they ran past its edge (by @louisqli)
 - fix: Source Control's messages (Git not found, no repository, nothing to commit…) are readable in a narrow sidebar, with less padding and a size smaller there, instead of a column one or two words wide (by @louisqli)
 - fix: the link on Git not found reads How to install Git: it opens the install guide, and Texpile downloads nothing (by @louisqli)
+- change: a merge in progress shows as VS Code shows one: Complete Merge where Commit stands, greyed out until every conflict is resolved, with Abort Merge under it and both in the command palette, instead of a yellow box above the changes (by @louisqli)
 - fix: the word count in the top bar is the number its details give: a citation's leftover comma or a reference is no word, and the source view counts a LaTeX or Typst file's prose, not its markup (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
