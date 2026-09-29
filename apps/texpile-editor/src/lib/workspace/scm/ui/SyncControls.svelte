@@ -64,7 +64,8 @@
 		disabled={busy || !!operation}
 	>
 		{#if syncing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ArrowDownUp class="size-3.5" />{/if}
-		<span class="cap-center">{m.vcs_sync_button()}</span>
+		<!-- the header is a container (SourceControlPanel): too narrow for the word, icon and counts say it -->
+		<span class="cap-center @max-[12rem]:hidden">{m.vcs_sync_button()}</span>
 		{#if !syncing}{@render counts('size-3')}{/if}
 	</button>
 {:else if showSync}
@@ -81,9 +82,15 @@
 		</button>
 	</div>
 {:else if showPublish && place === 'header'}
-	<button class={HEADER} use:tip={m.vcs_publish_button_tip()} onclick={onPublish} disabled={busy}>
+	<button
+		class={HEADER}
+		use:tip={m.vcs_publish_button_tip()}
+		aria-label={publishing ? m.vcs_running_publish() : m.vcs_publish_button()}
+		onclick={onPublish}
+		disabled={busy}
+	>
 		{#if publishing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<CloudUpload class="size-3.5" />{/if}
-		<span class="cap-center">{publishing ? m.vcs_running_publish() : m.vcs_publish_button()}</span>
+		<span class="cap-center @max-[13rem]:hidden">{publishing ? m.vcs_running_publish() : m.vcs_publish_button()}</span>
 	</button>
 {:else if showPublish}
 	<div class="px-2">

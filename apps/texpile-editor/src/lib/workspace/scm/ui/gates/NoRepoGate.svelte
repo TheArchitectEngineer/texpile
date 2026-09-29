@@ -14,8 +14,13 @@
 <div class="flex flex-col items-center gap-3 p-6 text-center">
 	<FolderGit2 class="text-faint size-8" />
 	<p class="text-muted text-sm">{m.vcs_not_a_repo()}</p>
-	<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={onInit} disabled={busy} use:tip={m.vcs_init_repo_tip()}>
-		<FolderGit2 class="size-3.5" />
-		<span class="cap-center">{m.vcs_init_repo()}</span>
+	<button
+		class="btn btn-xs preset-filled-primary-500 w-full gap-1.5 whitespace-normal"
+		onclick={onInit}
+		disabled={busy}
+		use:tip={m.vcs_init_repo_tip()}
+	>
+		<FolderGit2 class="size-3.5 shrink-0" />
+		<span class="cap-center min-w-0 overflow-x-clip text-ellipsis">{m.vcs_init_repo()}</span>
 	</button>
 </div>

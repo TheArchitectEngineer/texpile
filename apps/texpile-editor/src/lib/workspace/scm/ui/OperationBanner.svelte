@@ -36,29 +36,40 @@
 	);
 </script>
 
-<div class="border-warning-500/40 bg-warning-500/10 mx-2 mt-1 mb-2 flex gap-2 rounded-base border px-2.5 py-2 text-xs" role="status">
+<!-- a container, for a narrow sidebar: there the buttons take the banner's whole width, under the
+     icon as well, and at the narrowest drop their own icons; past that a name wraps, and a word
+     still too long for the room ends in … -->
+<div
+	class="border-warning-500/40 bg-warning-500/10 @container mx-2 mt-1 mb-2 flex gap-2 rounded-base border px-2.5 py-2 text-xs"
+	role="status"
+>
 	<TriangleAlert class="text-warning-ink mt-0.5 size-3.5 shrink-0" />
 	<div class="min-w-0 flex-1 space-y-2">
 		<p class="cap-center">{text}</p>
 		{#if combining}
-			<div class="flex flex-wrap gap-1.5">
+			<!-- -ml: the icon's 14px and the 8px gap after it -->
+			<div class="flex flex-wrap gap-1.5 @max-[9.5rem]:-ml-[1.375rem]">
 				<!-- disabled, not refused after the click: a file with <<<<<<< lines in it
 				     must never be saved as though it were the combined text -->
-				<span use:tip={marked ? m.vcs_finish_combine_tip() : m.vcs_finish_combine_ready_tip()}>
-					<button class="btn btn-xs preset-filled-primary-500 gap-1.5" onclick={onFinishCombine} disabled={busy || marked > 0}>
-						<Check class="size-3.5" />
-						<span class="cap-center">{m.vcs_finish_combine()}</span>
+				<span class="min-w-0" use:tip={marked ? m.vcs_finish_combine_tip() : m.vcs_finish_combine_ready_tip()}>
+					<button
+						class="btn btn-xs preset-filled-primary-500 max-w-full gap-1.5 whitespace-normal"
+						onclick={onFinishCombine}
+						disabled={busy || marked > 0}
+					>
+						<Check class="size-3.5 shrink-0 @max-[6.5rem]:hidden" />
+						<span class="cap-center min-w-0 overflow-x-clip text-ellipsis">{m.vcs_finish_combine()}</span>
 					</button>
 				</span>
 				<!-- in the error colour: what it asks next throws away every choice made so far -->
 				<button
-					class="btn btn-xs preset-outlined-surface-200-800 text-error-ink hover:preset-filled-error-500 gap-1.5"
+					class="btn btn-xs preset-outlined-surface-200-800 text-error-ink hover:preset-filled-error-500 max-w-full min-w-0 gap-1.5 whitespace-normal"
 					onclick={onCancelCombine}
 					disabled={busy}
 					use:tip={m.vcs_cancel_combine_tip()}
 				>
-					<Undo2 class="size-3.5" />
-					<span class="cap-center">{m.vcs_cancel_combine()}</span>
+					<Undo2 class="size-3.5 shrink-0 @max-[6.5rem]:hidden" />
+					<span class="cap-center min-w-0 overflow-x-clip text-ellipsis">{m.vcs_cancel_combine()}</span>
 				</button>
 			</div>
 		{/if}

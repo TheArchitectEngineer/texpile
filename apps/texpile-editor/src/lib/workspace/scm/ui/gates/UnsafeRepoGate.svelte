@@ -48,13 +48,13 @@
 	<RepoPath path={repo} />
 	{#if canTrustRepo()}
 		<button
-			class="btn btn-xs preset-filled-primary-500 w-full gap-1.5"
+			class="btn btn-xs preset-filled-primary-500 w-full gap-1.5 whitespace-normal"
 			onclick={trust}
 			disabled={trusting}
 			use:tip={m.vcs_unsafe_trust_tip()}
 		>
-			{#if trusting}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ShieldCheck class="size-3.5" />{/if}
-			<span class="cap-center">{trusting ? m.vcs_running_trust() : m.vcs_unsafe_trust()}</span>
+			{#if trusting}<LoaderCircle class="size-3.5 shrink-0 animate-spin" />{:else}<ShieldCheck class="size-3.5 shrink-0" />{/if}
+			<span class="cap-center min-w-0 overflow-x-clip text-ellipsis">{trusting ? m.vcs_running_trust() : m.vcs_unsafe_trust()}</span>
 		</button>
 	{/if}
 </div>

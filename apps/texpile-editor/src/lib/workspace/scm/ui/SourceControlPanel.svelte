@@ -179,9 +179,13 @@
 		<a class="anchor text-sm" href="https://texpile.com/docs/installation/git" target="_blank" rel="noopener noreferrer"
 			>{m.vcs_git_install()}</a
 		>
-		<button class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal w-full gap-1.5" onclick={onRecheckGit} disabled={busy}>
-			<RefreshCw class="size-3.5" />
-			<span class="cap-center">{m.vcs_check_again()}</span>
+		<button
+			class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal w-full gap-1.5 whitespace-normal"
+			onclick={onRecheckGit}
+			disabled={busy}
+		>
+			<RefreshCw class="size-3.5 shrink-0" />
+			<span class="cap-center min-w-0 overflow-x-clip text-ellipsis">{m.vcs_check_again()}</span>
 		</button>
 	</div>
 {:else if gitUnsafe.current && root}
@@ -195,7 +199,9 @@
 		<ScmProgress active={busy || !!gitRunning.current} />
 		<!-- refresh belongs beside the branch: both are the state of the repository, and parked above
 		     an unrelated heading it read as a stray duplicate of the file tree's own refresh -->
-		<div class="text-muted flex h-7 shrink-0 items-center gap-1.5 px-3 text-xs">
+		<!-- a container: in a narrow sidebar Sync and Publish drop their word (SyncControls), which
+		     pushed Refresh out of sight -->
+		<div class="text-muted @container flex h-7 shrink-0 items-center gap-1.5 px-3 text-xs">
 			<!-- a label, as on master: switching is Switch branch in the command palette. Detached, git
 			     calls the branch "HEAD", which says nothing; this says what it means and where the way back is -->
 			<GitBranch class="size-3.5 shrink-0" />

@@ -63,8 +63,9 @@
 			aria-label={relPath(c.path)}
 			use:tip={selected.includes(c.path) ? m.vcs_untick_tip() : m.vcs_tick_tip()}
 		/>
+		<!-- a container: in a narrow sidebar the Texpile badge drops its words for its icon -->
 		<button
-			class="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+			class="@container flex min-w-0 flex-1 items-center gap-1.5 text-left"
 			onclick={() => {
 				// a deleted or non-text file has no places to open at: the question is which side to keep
 				if (locked && c.choose) scmHandlers.current?.chooseWhole(c.path, c.choose);
@@ -102,7 +103,7 @@
 			{#if isTexpileManaged(relPath(c.path))}
 				<span class="badge preset-tonal-primary shrink-0 gap-1 px-1 py-0 text-[10px]" use:tip={m.texpile_managed_note()}>
 					<Info class="size-3" />
-					<span class="cap-center">{m.vcs_texpile_managed()}</span>
+					<span class="cap-center @max-[11rem]:hidden">{m.vcs_texpile_managed()}</span>
 				</span>
 			{/if}
 		</button>
