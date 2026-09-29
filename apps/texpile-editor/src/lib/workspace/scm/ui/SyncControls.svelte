@@ -35,9 +35,11 @@
 		return m.vcs_sync_tip();
 	});
 	const publishable = $derived(!tracking && hasCommits && !detached && !!branch);
-	// the header always has one or the other; the main button only when there is something to do
-	const showSync = $derived(!!tracking && (place === 'header' || (!operation && (ahead > 0 || behind > 0))));
-	const showPublish = $derived(publishable && (place === 'header' || !operation));
+	// the header has one or the other, the main button only when there is something to do; neither
+	// while git is in the middle of a merge or rebase, which they would refuse. VS Code hides them
+	// then too, and the header says what is in progress in their place (SourceControlPanel)
+	const showSync = $derived(!!tracking && !operation && (place === 'header' || ahead > 0 || behind > 0));
+	const showPublish = $derived(publishable && !operation);
 	const syncing = $derived(gitRunning.current === 'sync');
 	const publishing = $derived(gitRunning.current === 'publish');
 	// the Refresh button's own box, widened to its contents, so the row's hovers are one height

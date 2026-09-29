@@ -46,7 +46,8 @@
      wide. A container, so there the words go a size down and the buttons, at the narrowest, drop
      their icons -->
 <div class="@container flex flex-col items-center gap-3 px-3 py-6 text-center">
-	<ShieldAlert class="text-warning-ink size-8" />
+	<!-- faint, as the other gates' icons: the words say what is wrong -->
+	<ShieldAlert class="text-faint size-8" />
 	<p class="text-sm @max-[11rem]:text-xs">{m.vcs_unsafe()}</p>
 	<RepoPath path={repo} />
 	{#if canTrustRepo()}

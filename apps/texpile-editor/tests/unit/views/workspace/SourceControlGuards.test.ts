@@ -84,6 +84,9 @@ it('opens a file both sides changed at its marked place, not as a comparison', (
 it('leaves a rebase to the terminal it was started in', () => {
 	render([{ path: '/p/main.tex', x: 'U', y: 'U', markers: true }], { operation: 'rebase' });
 	expect(button('Complete Merge')).toBeUndefined();
+	// beside the branch, as VS Code's status bar says it, the way to finish it in the tip and read out
+	const label = document.querySelector<HTMLElement>('[data-tip*="git rebase --continue"]');
+	expect(label?.textContent).toContain('(Rebasing)');
 	expect(document.body.textContent).toContain('git rebase --continue');
 });
 

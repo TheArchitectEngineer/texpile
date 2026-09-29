@@ -4,7 +4,6 @@
 	import { tip } from '$lib/components/tooltip.svelte';
 	import { GitBranch, RefreshCw, Check, GitCommitHorizontal, PackageX, LoaderCircle } from '@lucide/svelte';
 	import ChangeList from './changes/ChangeList.svelte';
-	import OperationNote from './OperationNote.svelte';
 	import MergeActions from './MergeActions.svelte';
 	import SyncControls from './SyncControls.svelte';
 	import ScmProgress from './ScmProgress.svelte';
@@ -155,6 +154,18 @@
 
 	/** a merge the panel can finish or cancel itself; the rest go back to the terminal they came from */
 	const combining = $derived(operation === 'merge' && !!onFinishCombine && !!onCancelCombine);
+	// What git is in the middle of, beside the branch in the header's grey, as VS Code's status bar
+	// says main (Rebasing); the tooltip says where to finish it. A merge this panel can finish points
+	// at Complete Merge, anything else at the terminal it was started in.
+	const OPERATION: Record<GitOperation, { label: () => string; tip: () => string }> = {
+		merge: { label: m.vcs_op_merge_label, tip: m.vcs_op_merge },
+		rebase: { label: m.vcs_op_rebase_label, tip: m.vcs_op_rebase },
+		'cherry-pick': { label: m.vcs_op_cherry_pick_label, tip: m.vcs_op_cherry_pick },
+		revert: { label: m.vcs_op_revert_label, tip: m.vcs_op_revert }
+	};
+	const opNote = $derived(
+		operation ? { label: OPERATION[operation].label(), tip: combining ? m.vcs_finish_combine_tip() : OPERATION[operation].tip() } : null
+	);
 	/** files still holding a place nobody has chosen for */
 	const marked = $derived(conflicts.filter((c) => c.markers).length);
 
@@ -216,6 +227,10 @@
 			{:else}
 				<span class="cap-center truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
 			{/if}
+			<!-- the branch name gives way first; the instructions are read out as well as hovered -->
+			{#if opNote}
+				<span class="cap-center shrink-0" use:tip={opNote.tip}>{opNote.label}<span class="sr-only">. {opNote.tip}</span></span>
+			{/if}
 			<div class="ml-auto flex shrink-0 items-center gap-1">
 				<SyncControls place="header" {tracking} {ahead} {behind} {hasCommits} {detached} {branch} {operation} {busy} {onSync} {onPublish} />
 				<button
@@ -233,9 +248,6 @@
 		<div class="flex min-h-0 flex-1 flex-col" bind:this={splitEl}>
 			<div class="flex min-h-0 flex-col" style="flex: 1 1 0%">
 				<div class="scroll-inset-r min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] pb-2">
-					{#if operation && !combining}
-						<OperationNote {operation} />
-					{/if}
 					{#if changes.length}
 						<!-- The total, then the groups it is made of. Deliberately not a group row itself: no
 						     tick box and no chevron, so a summary cannot be mistaken for what it summarises. -->
@@ -244,7 +256,8 @@
 							<span class="tabular-nums">{gitTruncated.current || changes.length}</span>
 						</div>
 						{#if gitTruncated.current}
-							<p class="text-warning-ink px-3 py-1 text-xs" role="status">
+							<!-- grey, as Find in Files says (truncated): a limit, not something wrong -->
+							<p class="text-muted px-3 py-1 text-xs" role="status">
 								{m.vcs_truncated({ shown: changes.length.toLocaleString() })}
 							</p>
 						{/if}
