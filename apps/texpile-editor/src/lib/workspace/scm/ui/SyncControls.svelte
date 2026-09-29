@@ -9,6 +9,7 @@
 	import { gitRunning } from '$lib/workspace/scm/gitStore';
 	import type { GitOperation } from '$lib/workspace/scm/git';
 	import { m } from '$lib/paraglide/messages';
+	import { getLocale, type Locale } from '$lib/paraglide/runtime';
 
 	type Props = {
 		place: 'header' | 'action';
@@ -44,6 +45,21 @@
 	const publishing = $derived(gitRunning.current === 'publish');
 	// the Refresh button's own box, widened to its contents, so the row's hovers are one height
 	const HEADER = 'btn-icon btn-icon-xs w-auto gap-1 px-1 hover:preset-tonal';
+	// The header is a container (SourceControlPanel): below the room its word needs beside a branch
+	// name as long as main, the word goes, and icon and counts say it. The room is the language's:
+	// Synchronisieren is four times Sync, and in German at the usual width it left the branch no
+	// name at all. Measured in the app; the locale is fixed until a reload.
+	const HEADER_WORD: Record<Locale, { sync: string; publish: string }> = {
+		en: { sync: '@max-[12rem]:hidden', publish: '@max-[13rem]:hidden' },
+		de: { sync: '@max-[16.5rem]:hidden', publish: '@max-[16.5rem]:hidden' },
+		'pt-BR': { sync: '@max-[14.5rem]:hidden', publish: '@max-[13.5rem]:hidden' },
+		'zh-Hans': { sync: '@max-[12rem]:hidden', publish: '@max-[10.5rem]:hidden' },
+		'zh-Hant': { sync: '@max-[13.5rem]:hidden', publish: '@max-[10.5rem]:hidden' }
+	};
+	const word = HEADER_WORD[getLocale()];
+	// at the narrowest the icon goes too when there are counts, as the main button's does: their
+	// arrows say it, and Refresh keeps to the row's edge
+	const iconFit = $derived(ahead > 0 || behind > 0 ? '@max-[8rem]:hidden' : '');
 	// in a narrow sidebar the main button's name wraps, and a word too long for the room ends in …
 	const ACTION = 'btn btn-xs preset-filled-primary-500 w-full gap-1.5 whitespace-normal';
 	const ACTION_LABEL = 'cap-center min-w-0 overflow-x-clip text-ellipsis';
@@ -67,9 +83,8 @@
 		onclick={onSync}
 		disabled={busy || !!operation}
 	>
-		{#if syncing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ArrowDownUp class="size-3.5" />{/if}
-		<!-- the header is a container (SourceControlPanel): too narrow for the word, icon and counts say it -->
-		<span class="cap-center @max-[12rem]:hidden">{m.vcs_sync_button()}</span>
+		{#if syncing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ArrowDownUp class="size-3.5 {iconFit}" />{/if}
+		<span class="cap-center {word.sync}">{m.vcs_sync_button()}</span>
 		{#if !syncing}{@render counts('size-3')}{/if}
 	</button>
 {:else if showSync}
@@ -91,13 +106,15 @@
 {:else if showPublish && place === 'header'}
 	<button
 		class={HEADER}
-		use:tip={m.vcs_publish_button_tip()}
+		use:tip={publishing ? m.vcs_running_publish() : m.vcs_publish_button_tip()}
 		aria-label={publishing ? m.vcs_running_publish() : m.vcs_publish_button()}
 		onclick={onPublish}
 		disabled={busy}
 	>
+		<!-- running, the word stays and the icon turns, as Sync's does: the longer Publishing Branch…
+		     would not fit the room measured for it -->
 		{#if publishing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<CloudUpload class="size-3.5" />{/if}
-		<span class="cap-center @max-[13rem]:hidden">{publishing ? m.vcs_running_publish() : m.vcs_publish_button()}</span>
+		<span class="cap-center {word.publish}">{m.vcs_publish_button()}</span>
 	</button>
 {:else if showPublish}
 	<div class="px-2">

@@ -104,6 +104,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: the link on Git not found reads How to install Git: it opens the install guide, and Texpile downloads nothing (by @louisqli)
 - change: a merge in progress shows as VS Code shows one: Complete Merge where Commit stands, greyed out until every conflict is resolved, with Abort Merge under it and both in the command palette, instead of a yellow box above the changes (by @louisqli)
 - change: Source Control keeps colour for what the rest of Texpile colours: a merge, rebase, cherry-pick or revert in progress shows as (Rebasing) and the like beside the branch, the way to finish it in the tooltip, where an orange sentence stood, and Sync and Publish step aside meanwhile; Resolved, conflict notes, the too-many-changes note and the Texpile badge are grey, and the unsafe repository's icon is faint like the others' (by @louisqli)
+- fix: Source Control's header fits a narrow sidebar in every language: Sync and Publish drop their word where it would leave the branch no name (in German that was even at the usual width), and (Merging), (Rebasing) and the like give way before Refresh does (by @louisqli)
 - fix: the word count in the top bar is the number its details give: a citation's leftover comma or a reference is no word, and the source view counts a LaTeX or Typst file's prose, not its markup (by @louisqli)
 
 ## [1.2.0] - 2026-09-25

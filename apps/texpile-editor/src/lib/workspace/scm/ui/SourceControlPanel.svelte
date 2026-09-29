@@ -166,6 +166,8 @@
 	const opNote = $derived(
 		operation ? { label: OPERATION[operation].label(), tip: combining ? m.vcs_finish_combine_tip() : OPERATION[operation].tip() } : null
 	);
+	// with both in the header, too narrow for the two: the branch name steps aside for what is going on
+	const branchFit = $derived(opNote ? '@max-[14rem]:hidden' : '');
 	/** files still holding a place nobody has chosen for */
 	const marked = $derived(conflicts.filter((c) => c.markers).length);
 
@@ -223,13 +225,17 @@
 			     calls the branch "HEAD", which says nothing; this says what it means and where the way back is -->
 			<GitBranch class="size-3.5 shrink-0" />
 			{#if detached}
-				<span class="cap-center truncate font-medium" use:tip={m.vcs_detached_tip()}>{m.vcs_detached({ short: shortHead })}</span>
+				<span class="cap-center shrink-100 truncate font-medium {branchFit}" use:tip={m.vcs_detached_tip()}
+					>{m.vcs_detached({ short: shortHead })}</span
+				>
 			{:else}
-				<span class="cap-center truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
+				<span class="cap-center shrink-100 truncate font-medium {branchFit}">{branch ?? m.vcs_no_branch()}</span>
 			{/if}
-			<!-- the branch name gives way first; the instructions are read out as well as hovered -->
+			<!-- the branch name gives way first (shrink-100, and in a narrow sidebar goes, rather than
+			     showing a letter), then this: in German or Chinese it did not fit beside Refresh at the
+			     narrowest. The instructions are read out as well as hovered -->
 			{#if opNote}
-				<span class="cap-center shrink-0" use:tip={opNote.tip}>{opNote.label}<span class="sr-only">. {opNote.tip}</span></span>
+				<span class="cap-center truncate" use:tip={opNote.tip}>{opNote.label}<span class="sr-only">. {opNote.tip}</span></span>
 			{/if}
 			<div class="ml-auto flex shrink-0 items-center gap-1">
 				<SyncControls place="header" {tracking} {ahead} {behind} {hasCommits} {detached} {branch} {operation} {busy} {onSync} {onPublish} />
