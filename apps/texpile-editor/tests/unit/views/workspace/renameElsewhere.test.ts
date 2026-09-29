@@ -64,7 +64,7 @@ describe('makeRenameElsewhere', () => {
 		expect(disk.get('/p/ch2.tex')).toBe('As \\cref{fig:results,fig:b} show.');
 		expect(disk.get('/p/notes.md')).toBe('fig:a');
 		expect(toasts).toEqual([{ kind: 'success', title: 'Also updated 2 references in 2 files' }]);
-		expect(history.undoLabel).toBe('Rename fig:a to fig:results in other files');
+		expect(history.undoLabel).toBe('Rename fig:a to fig:results in Other Files');
 	});
 
 	it('carries out a keystroke-by-keystroke rename once, from the first name to the last', async () => {
