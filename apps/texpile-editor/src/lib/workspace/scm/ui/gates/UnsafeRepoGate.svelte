@@ -42,9 +42,12 @@
 	}
 </script>
 
-<div class="flex flex-col items-center gap-3 p-6 text-center">
+<!-- px-3, as the panel's rows: at 24px a side a narrow sidebar left the words a column one or two
+     wide. A container, so there the words go a size down and the buttons, at the narrowest, drop
+     their icons -->
+<div class="@container flex flex-col items-center gap-3 px-3 py-6 text-center">
 	<ShieldAlert class="text-warning-ink size-8" />
-	<p class="text-sm">{m.vcs_unsafe()}</p>
+	<p class="text-sm @max-[11rem]:text-xs">{m.vcs_unsafe()}</p>
 	<RepoPath path={repo} />
 	{#if canTrustRepo()}
 		<button
@@ -53,7 +56,9 @@
 			disabled={trusting}
 			use:tip={m.vcs_unsafe_trust_tip()}
 		>
-			{#if trusting}<LoaderCircle class="size-3.5 shrink-0 animate-spin" />{:else}<ShieldCheck class="size-3.5 shrink-0" />{/if}
+			{#if trusting}<LoaderCircle class="size-3.5 shrink-0 animate-spin @max-[8rem]:hidden" />{:else}<ShieldCheck
+					class="size-3.5 shrink-0 @max-[8rem]:hidden"
+				/>{/if}
 			<span class="cap-center min-w-0 overflow-x-clip text-ellipsis">{trusting ? m.vcs_running_trust() : m.vcs_unsafe_trust()}</span>
 		</button>
 	{/if}

@@ -63,7 +63,8 @@
 			aria-label={relPath(c.path)}
 			use:tip={selected.includes(c.path) ? m.vcs_untick_tip() : m.vcs_tick_tip()}
 		/>
-		<!-- a container: in a narrow sidebar the Texpile badge drops its words for its icon -->
+		<!-- a container: in a narrow sidebar the Texpile badge and the Resolved note drop their words for
+		     their icons, which keep their tooltips -->
 		<button
 			class="@container flex min-w-0 flex-1 items-center gap-1.5 text-left"
 			onclick={() => {
@@ -95,7 +96,7 @@
 				>
 			{:else if locked && c.markers === false}
 				<span class="text-success-ink flex shrink-0 items-center gap-0.5 text-xs" use:tip={m.vcs_conflict_ready_tip()}>
-					<Check class="size-3" /><span class="cap-center">{m.vcs_conflict_ready()}</span>
+					<Check class="size-3" /><span class="cap-center @max-[11rem]:hidden">{m.vcs_conflict_ready()}</span>
 				</span>
 			{/if}
 			<!-- .texpile is hidden from the file tree, so this is the first place anyone meets the

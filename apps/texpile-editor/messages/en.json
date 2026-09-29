@@ -799,7 +799,7 @@
 	"vcs_signin_continue": "Continue",
 	"vcs_cancel": "Cancel",
 	"vcs_git_missing": "Git not found. Install it to use source control.",
-	"vcs_git_install": "Download Git",
+	"vcs_git_install": "How to install Git",
 	"vcs_check_again": "Check Again",
 	"vcs_git_still_missing": "Git not found. If you just installed it, restart Texpile.",
 	"vcs_group_conflicts": "Merge Changes",

@@ -799,7 +799,7 @@
 	"vcs_signin_continue": "Weiter",
 	"vcs_cancel": "Abbrechen",
 	"vcs_git_missing": "Git wurde nicht gefunden. Installieren Sie es, um die Quellcodeverwaltung zu verwenden.",
-	"vcs_git_install": "Git herunterladen",
+	"vcs_git_install": "Wie man Git installiert",
 	"vcs_check_again": "Erneut prüfen",
 	"vcs_git_still_missing": "Git wurde nicht gefunden. Wenn Sie es gerade installiert haben, starten Sie Texpile neu.",
 	"vcs_group_conflicts": "Merge-Änderungen",

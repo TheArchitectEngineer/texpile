@@ -42,7 +42,9 @@
 	const publishing = $derived(gitRunning.current === 'publish');
 	// the Refresh button's own box, widened to its contents, so the row's hovers are one height
 	const HEADER = 'btn-icon btn-icon-xs w-auto gap-1 px-1 hover:preset-tonal';
-	const ACTION = 'btn btn-xs preset-filled-primary-500 w-full gap-1.5';
+	// in a narrow sidebar the main button's name wraps, and a word too long for the room ends in …
+	const ACTION = 'btn btn-xs preset-filled-primary-500 w-full gap-1.5 whitespace-normal';
+	const ACTION_LABEL = 'cap-center min-w-0 overflow-x-clip text-ellipsis';
 </script>
 
 {#snippet counts(size: string)}
@@ -69,14 +71,17 @@
 		{#if !syncing}{@render counts('size-3')}{/if}
 	</button>
 {:else if showSync}
-	<div class="px-2">
+	<!-- a container: with no room for the whole name beside its counts it says Sync, as the header
+	     does, and at the narrowest drops its icon, so the counts keep their room -->
+	<div class="@container px-2">
 		<button class={ACTION} onclick={onSync} disabled={busy} use:tip={syncTip}>
 			{#if syncing}
-				<LoaderCircle class="size-3.5 animate-spin" />
-				<span class="cap-center">{m.vcs_running_sync()}</span>
+				<LoaderCircle class="size-3.5 shrink-0 animate-spin" />
+				<span class={ACTION_LABEL}>{m.vcs_running_sync()}</span>
 			{:else}
-				<ArrowDownUp class="size-3.5" />
-				<span class="cap-center">{m.vcs_action_sync()}</span>
+				<ArrowDownUp class="size-3.5 shrink-0 @max-[7.5rem]:hidden" />
+				<span class="{ACTION_LABEL} @max-[12rem]:hidden">{m.vcs_action_sync()}</span>
+				<span class="{ACTION_LABEL} hidden @max-[12rem]:block">{m.vcs_sync_button()}</span>
 				{@render counts('size-3')}
 			{/if}
 		</button>
@@ -95,8 +100,8 @@
 {:else if showPublish}
 	<div class="px-2">
 		<button class={ACTION} use:tip={m.vcs_publish_dialog_title({ branch: branch ?? '' })} onclick={onPublish} disabled={busy}>
-			{#if publishing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<CloudUpload class="size-3.5" />{/if}
-			<span class="cap-center">{publishing ? m.vcs_running_publish() : m.vcs_action_publish()}</span>
+			{#if publishing}<LoaderCircle class="size-3.5 shrink-0 animate-spin" />{:else}<CloudUpload class="size-3.5 shrink-0" />{/if}
+			<span class={ACTION_LABEL}>{publishing ? m.vcs_running_publish() : m.vcs_action_publish()}</span>
 		</button>
 	</div>
 {/if}

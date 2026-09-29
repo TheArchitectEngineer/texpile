@@ -799,7 +799,7 @@
 	"vcs_signin_continue": "繼續",
 	"vcs_cancel": "取消",
 	"vcs_git_missing": "找不到 Git。請安裝它以使用原始檔控制。",
-	"vcs_git_install": "下載 Git",
+	"vcs_git_install": "如何安裝 Git",
 	"vcs_check_again": "重新檢查",
 	"vcs_git_still_missing": "找不到 Git。如果剛剛安裝，請重新啟動 Texpile。",
 	"vcs_group_conflicts": "合併變更",

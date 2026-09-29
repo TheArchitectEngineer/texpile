@@ -173,18 +173,23 @@
 
 {#if gitMissing}
 	<!-- "not under source control" with an Initialize button that then fails is what this used to say -->
-	<div class="flex flex-col items-center gap-3 p-6 text-center">
+	<!-- as the gates (gates/NoRepoGate.svelte): px-3, and a container for a narrow sidebar -->
+	<div class="@container flex flex-col items-center gap-3 px-3 py-6 text-center">
 		<PackageX class="text-faint size-8" />
-		<p class="text-muted text-sm">{m.vcs_git_missing()}</p>
-		<a class="anchor text-sm" href="https://texpile.com/docs/installation/git" target="_blank" rel="noopener noreferrer"
-			>{m.vcs_git_install()}</a
+		<p class="text-muted text-sm @max-[11rem]:text-xs">{m.vcs_git_missing()}</p>
+		<!-- Texpile installs nothing: the page says how, for each system (Preferences > Toolchain gives the command) -->
+		<a
+			class="anchor text-sm @max-[11rem]:text-xs"
+			href="https://texpile.com/docs/installation/git"
+			target="_blank"
+			rel="noopener noreferrer">{m.vcs_git_install()}</a
 		>
 		<button
 			class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal w-full gap-1.5 whitespace-normal"
 			onclick={onRecheckGit}
 			disabled={busy}
 		>
-			<RefreshCw class="size-3.5 shrink-0" />
+			<RefreshCw class="size-3.5 shrink-0 @max-[8rem]:hidden" />
 			<span class="cap-center min-w-0 overflow-x-clip text-ellipsis">{m.vcs_check_again()}</span>
 		</button>
 	</div>
@@ -257,9 +262,9 @@
 							/>
 						</div>
 					{:else}
-						<div class="text-muted mt-6 mb-2 flex flex-col items-center gap-1 px-3 text-center text-sm">
+						<div class="text-muted @container mt-6 mb-2 flex flex-col items-center gap-1 px-3 text-center text-sm">
 							<GitCommitHorizontal class="size-6 opacity-60" />
-							{m.vcs_no_changes()}
+							<span class="@max-[11rem]:text-xs">{m.vcs_no_changes()}</span>
 						</div>
 						<!-- VS Code's action button: with nothing to save, what is left to do is send and receive
 						     versions, or give the branch somewhere to go -->
