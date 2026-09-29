@@ -94,7 +94,7 @@
 				>
 			{:else if locked && c.markers === false}
 				<span class="text-success-ink flex shrink-0 items-center gap-0.5 text-xs" use:tip={m.vcs_conflict_ready_tip()}>
-					<Check class="size-3" />{m.vcs_conflict_ready()}
+					<Check class="size-3" /><span class="cap-center">{m.vcs_conflict_ready()}</span>
 				</span>
 			{/if}
 			<!-- .texpile is hidden from the file tree, so this is the first place anyone meets the
@@ -102,7 +102,7 @@
 			{#if isTexpileManaged(relPath(c.path))}
 				<span class="badge preset-tonal-primary shrink-0 gap-1 px-1 py-0 text-[10px]" use:tip={m.texpile_managed_note()}>
 					<Info class="size-3" />
-					{m.vcs_texpile_managed()}
+					<span class="cap-center">{m.vcs_texpile_managed()}</span>
 				</span>
 			{/if}
 		</button>

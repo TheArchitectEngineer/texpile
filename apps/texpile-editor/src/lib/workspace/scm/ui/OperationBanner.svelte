@@ -39,7 +39,7 @@
 <div class="border-warning-500/40 bg-warning-500/10 mx-2 mt-1 mb-2 flex gap-2 rounded-base border px-2.5 py-2 text-xs" role="status">
 	<TriangleAlert class="text-warning-ink mt-0.5 size-3.5 shrink-0" />
 	<div class="min-w-0 flex-1 space-y-2">
-		<p>{text}</p>
+		<p class="cap-center">{text}</p>
 		{#if combining}
 			<div class="flex flex-wrap gap-1.5">
 				<!-- disabled, not refused after the click: a file with <<<<<<< lines in it
@@ -47,7 +47,7 @@
 				<span use:tip={marked ? m.vcs_finish_combine_tip() : m.vcs_finish_combine_ready_tip()}>
 					<button class="btn btn-xs preset-filled-primary-500 gap-1.5" onclick={onFinishCombine} disabled={busy || marked > 0}>
 						<Check class="size-3.5" />
-						{m.vcs_finish_combine()}
+						<span class="cap-center">{m.vcs_finish_combine()}</span>
 					</button>
 				</span>
 				<!-- in the error colour: what it asks next throws away every choice made so far -->
@@ -58,7 +58,7 @@
 					use:tip={m.vcs_cancel_combine_tip()}
 				>
 					<Undo2 class="size-3.5" />
-					{m.vcs_cancel_combine()}
+					<span class="cap-center">{m.vcs_cancel_combine()}</span>
 				</button>
 			</div>
 		{/if}

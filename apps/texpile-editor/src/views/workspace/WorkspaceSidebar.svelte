@@ -392,10 +392,7 @@
 	{:else}
 		<div class="flex min-h-0 flex-1 flex-col" bind:this={splitEl}>
 			<!-- overflow-x-auto pairs with the tree's min-w-max: long names scroll, they are never trimmed -->
-			<div
-				class="scroll-inset-r min-h-0 overflow-x-auto overflow-y-auto p-1.5"
-				style={showToc ? `flex: ${1 - tocFraction} 1 0%` : 'flex: 1 1 0%'}
-			>
+			<div class="scroll-inset-r min-h-0 overflow-x-auto overflow-y-auto p-1.5" style="flex: 1 1 0%">
 				<FileTree
 					bind:this={fileTreeRef}
 					tree={fileTree.current}
@@ -430,10 +427,13 @@
 					aria-label={m.wsview_resize_toc_aria()}
 					tabindex="0"
 				></div>
-				<!-- scroll-inset-r moves the scrollbar in, not the box: the border-t still reaches the divider -->
+				<!-- scroll-inset-r moves the scrollbar in, not the box: the border-t still reaches the divider.
+				     A whole number of pixels tall, with the tree taking the rest: shared out as fractions, the
+				     rows under the divider started part-way into a pixel, where an icon and its words round
+				     to the grid apart -->
 				<div
 					class="border-surface-200-800 scroll-inset-r min-h-0 overflow-y-auto [scrollbar-gutter:stable] border-t p-2"
-					style="flex: {tocFraction} 1 0%"
+					style="flex: 0 1 round({tocFraction * 100}%, 1px)"
 				>
 					<ExplorerSections mode={viewMode === 'source' ? 'source' : 'visual'} onOpenFile={onOpenFileAt} />
 				</div>

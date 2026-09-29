@@ -1261,21 +1261,22 @@ html.pm-drop-refused .pm-drop-cursor {
 	}
 }
 /* A label its icon centres on by its capitals rather than by its line: the box is trimmed to the
-   capitals' height and gets the rest of the line back as equal space above and below, so the row
-   keeps its height and items-center puts the icon's middle on the capitals' middle. Measured from
-   the font as drawn, it holds for any system font, and past Chromium on Linux, which at 2× lifts
-   12.8px text a pixel inside its line. Single-line labels only: under overflow: hidden (truncate)
-   the trimmed box clips the tops and tails of letters, and a wrapped label centres as a block.
-   Without text-box the label is left as it was. */
+   capitals' height and gets the rest of the line back as equal padding above and below, so the
+   row keeps its height and items-center puts the icon's middle on the capitals' middle. Measured
+   from the font as drawn, it holds for any system font, and past Chromium on Linux, which at 2×
+   lifts 12.8px text a pixel inside its line. Padding rather than margin, so a truncated label
+   clips at its full line (overflow clips at the padding box) and keeps the tops and tails of its
+   letters; no height, so a label that wraps grows by its lines and centres as a block (one line
+   trims to exactly round(1cap, 1/64px), which the padding is worked out from). Not with py-*,
+   which would replace the padding. Without text-box the label is left as it was. */
 @utility cap-center {
 	@supports (text-box: trim-both cap alphabetic) {
 		/* in the browser's 1/64px steps, so the three parts add up to exactly one line */
 		--cap: round(1cap, 1px / 64);
 		--cap-above: round(down, calc((1lh - var(--cap)) / 2), 1px / 64);
 		text-box: trim-both cap alphabetic;
-		height: var(--cap);
-		margin-top: var(--cap-above);
-		margin-bottom: calc(1lh - var(--cap) - var(--cap-above));
+		padding-top: var(--cap-above);
+		padding-bottom: calc(1lh - var(--cap) - var(--cap-above));
 	}
 }
 @utility chip {

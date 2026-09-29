@@ -181,7 +181,7 @@
 		>
 		<button class="btn btn-xs preset-outlined-surface-200-800 hover:preset-tonal w-full gap-1.5" onclick={onRecheckGit} disabled={busy}>
 			<RefreshCw class="size-3.5" />
-			{m.vcs_check_again()}
+			<span class="cap-center">{m.vcs_check_again()}</span>
 		</button>
 	</div>
 {:else if gitUnsafe.current && root}
@@ -200,9 +200,9 @@
 			     calls the branch "HEAD", which says nothing; this says what it means and where the way back is -->
 			<GitBranch class="size-3.5 shrink-0" />
 			{#if detached}
-				<span class="truncate font-medium" use:tip={m.vcs_detached_tip()}>{m.vcs_detached({ short: shortHead })}</span>
+				<span class="cap-center truncate font-medium" use:tip={m.vcs_detached_tip()}>{m.vcs_detached({ short: shortHead })}</span>
 			{:else}
-				<span class="truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
+				<span class="cap-center truncate font-medium">{branch ?? m.vcs_no_branch()}</span>
 			{/if}
 			<div class="ml-auto flex shrink-0 items-center gap-1">
 				<SyncControls place="header" {tracking} {ahead} {behind} {hasCommits} {detached} {branch} {operation} {busy} {onSync} {onPublish} />
@@ -219,7 +219,7 @@
 
 		<!-- which half matters depends on what you are doing, so it is not the scrollbar's decision -->
 		<div class="flex min-h-0 flex-1 flex-col" bind:this={splitEl}>
-			<div class="flex min-h-0 flex-col" style="flex: {1 - historyFraction} 1 0%">
+			<div class="flex min-h-0 flex-col" style="flex: 1 1 0%">
 				<div class="scroll-inset-r min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] pb-2">
 					{#if operation}
 						<OperationBanner {operation} {marked} {busy} {onFinishCombine} {onCancelCombine} />
@@ -294,10 +294,10 @@
 						>
 							{#if gitRunning.current === 'save'}
 								<LoaderCircle class="size-3.5 animate-spin" />
-								{m.vcs_running_save()}
+								<span class="cap-center">{m.vcs_running_save()}</span>
 							{:else}
 								<Check class="size-3.5" />
-								{m.vcs_save_version_one()}
+								<span class="cap-center">{m.vcs_save_version_one()}</span>
 							{/if}
 						</button>
 					</div>
@@ -316,7 +316,10 @@
 				tabindex="0"
 			></div>
 
-			<div class="border-surface-200-800 flex min-h-0 flex-col border-t" style="flex: {historyFraction} 1 0%">
+			<!-- a whole number of pixels tall, the changes taking the rest, as the explorer's Contents is
+			     (WorkspaceSidebar.svelte): shared out as fractions, Commit and every row below started part-way
+			     into a pixel -->
+			<div class="border-surface-200-800 flex min-h-0 flex-col border-t" style="flex: 0 1 round({historyFraction * 100}%, 1px)">
 				<!-- the explorer's section heading, so the two sidebars name their parts alike -->
 				<div class="text-faint shrink-0 px-3 py-1 text-xs font-semibold tracking-wide uppercase">{m.vcs_history_heading()}</div>
 				<div class="scroll-inset-r min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] pb-2 pl-1.5">

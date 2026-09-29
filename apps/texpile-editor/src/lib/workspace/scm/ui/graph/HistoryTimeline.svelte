@@ -158,7 +158,7 @@
 					     name cannot push the message out of the row. -->
 					<span class="badge preset-tonal-primary ml-auto max-w-32 shrink-0 gap-1 px-1.5 py-0 text-[10px]" use:tip={branch}>
 						<GitBranch class="size-3 shrink-0" />
-						<span class="truncate">{branch}</span>
+						<span class="cap-center truncate">{branch}</span>
 					</span>
 				{/if}
 			</button>

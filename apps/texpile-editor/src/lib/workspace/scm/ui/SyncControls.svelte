@@ -46,8 +46,9 @@
 </script>
 
 {#snippet counts(size: string)}
-	{#if behind > 0}<span class="flex items-center tabular-nums"><ArrowDown class={size} />{behind}</span>{/if}
-	{#if ahead > 0}<span class="flex items-center tabular-nums"><ArrowUp class={size} />{ahead}</span>{/if}
+	{#if behind > 0}<span class="flex items-center tabular-nums"><ArrowDown class={size} /><span class="cap-center">{behind}</span></span
+		>{/if}
+	{#if ahead > 0}<span class="flex items-center tabular-nums"><ArrowUp class={size} /><span class="cap-center">{ahead}</span></span>{/if}
 {/snippet}
 
 {#if showSync && place === 'header'}
@@ -63,7 +64,7 @@
 		disabled={busy || !!operation}
 	>
 		{#if syncing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ArrowDownUp class="size-3.5" />{/if}
-		<span>{m.vcs_sync_button()}</span>
+		<span class="cap-center">{m.vcs_sync_button()}</span>
 		{#if !syncing}{@render counts('size-3')}{/if}
 	</button>
 {:else if showSync}
@@ -71,10 +72,10 @@
 		<button class={ACTION} onclick={onSync} disabled={busy} use:tip={syncTip}>
 			{#if syncing}
 				<LoaderCircle class="size-3.5 animate-spin" />
-				{m.vcs_running_sync()}
+				<span class="cap-center">{m.vcs_running_sync()}</span>
 			{:else}
 				<ArrowDownUp class="size-3.5" />
-				{m.vcs_action_sync()}
+				<span class="cap-center">{m.vcs_action_sync()}</span>
 				{@render counts('size-3')}
 			{/if}
 		</button>
@@ -82,13 +83,13 @@
 {:else if showPublish && place === 'header'}
 	<button class={HEADER} use:tip={m.vcs_publish_button_tip()} onclick={onPublish} disabled={busy}>
 		{#if publishing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<CloudUpload class="size-3.5" />{/if}
-		<span>{publishing ? m.vcs_running_publish() : m.vcs_publish_button()}</span>
+		<span class="cap-center">{publishing ? m.vcs_running_publish() : m.vcs_publish_button()}</span>
 	</button>
 {:else if showPublish}
 	<div class="px-2">
 		<button class={ACTION} use:tip={m.vcs_publish_dialog_title({ branch: branch ?? '' })} onclick={onPublish} disabled={busy}>
 			{#if publishing}<LoaderCircle class="size-3.5 animate-spin" />{:else}<CloudUpload class="size-3.5" />{/if}
-			{publishing ? m.vcs_running_publish() : m.vcs_action_publish()}
+			<span class="cap-center">{publishing ? m.vcs_running_publish() : m.vcs_action_publish()}</span>
 		</button>
 	</div>
 {/if}

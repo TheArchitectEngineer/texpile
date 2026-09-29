@@ -16,6 +16,6 @@
 	<p class="text-muted text-sm">{m.vcs_not_a_repo()}</p>
 	<button class="btn btn-xs preset-filled-primary-500 w-full gap-1.5" onclick={onInit} disabled={busy} use:tip={m.vcs_init_repo_tip()}>
 		<FolderGit2 class="size-3.5" />
-		{m.vcs_init_repo()}
+		<span class="cap-center">{m.vcs_init_repo()}</span>
 	</button>
 </div>

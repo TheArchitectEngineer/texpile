@@ -54,7 +54,7 @@
 			use:tip={m.vcs_unsafe_trust_tip()}
 		>
 			{#if trusting}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ShieldCheck class="size-3.5" />{/if}
-			{trusting ? m.vcs_running_trust() : m.vcs_unsafe_trust()}
+			<span class="cap-center">{trusting ? m.vcs_running_trust() : m.vcs_unsafe_trust()}</span>
 		</button>
 	{/if}
 </div>

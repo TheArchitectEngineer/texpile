@@ -19,7 +19,7 @@
 	<div class="flex w-full flex-col gap-1.5">
 		<button class="{BUTTON} preset-filled-primary-500" onclick={onUse} disabled={busy} use:tip={m.vcs_parent_repo_use_tip()}>
 			<FolderUp class="size-3.5 shrink-0" />
-			{m.vcs_parent_repo_use()}
+			<span class="cap-center">{m.vcs_parent_repo_use()}</span>
 		</button>
 		<button
 			class="{BUTTON} preset-outlined-surface-200-800 hover:preset-tonal"
@@ -28,7 +28,7 @@
 			use:tip={m.vcs_parent_repo_init_tip()}
 		>
 			<FolderGit2 class="size-3.5 shrink-0" />
-			{m.vcs_parent_repo_init()}
+			<span class="cap-center">{m.vcs_parent_repo_init()}</span>
 		</button>
 	</div>
 </div>
