@@ -1264,19 +1264,38 @@ html.pm-drop-refused .pm-drop-cursor {
    capitals' height and gets the rest of the line back as equal padding above and below, so the
    row keeps its height and items-center puts the icon's middle on the capitals' middle. Measured
    from the font as drawn, it holds for any system font, and past Chromium on Linux, which at 2×
-   lifts 12.8px text a pixel inside its line. Padding rather than margin, so a truncated label
-   clips at its full line (overflow clips at the padding box) and keeps the tops and tails of its
-   letters; no height, so a label that wraps grows by its lines and centres as a block (one line
-   trims to exactly round(1cap, 1/64px), which the padding is worked out from). Not with py-*,
-   which would replace the padding. Without text-box the label is left as it was. */
+   lifts 12.8px text a pixel inside its line. Padding rather than margin; no height, so a label
+   that wraps grows by its lines and centres as a block (one line trims to exactly
+   round(1cap, 1/64px), which the padding is worked out from). Not with py-*, which would replace
+   the padding. Without text-box the label is left as it was. Under the window's zoom the line
+   is not a whole number of 1/64px steps in CSS pixels, and a label can come out up to 3/64px off
+   its line either way. */
 @utility cap-center {
 	@supports (text-box: trim-both cap alphabetic) {
+		/* The line, taken to the whole pixel when it is within 1/32px of one. The text sizes' lines
+		   are whole pixels (above), but 1lh works from the font size before the browser rounds it
+		   and can read up to 1/32px short: a text-base label, a dialog's title, came out that much
+		   shorter than its line and moved the dialog under it a pixel. 2 clamp(±1/32) - clamp(±1/16)
+		   is the distance to a whole pixel that near, and 0 from further away, where a line such as
+		   leading-relaxed's is meant to be fractional. */
+		--lh: round(1lh, 1px / 64);
+		--to-whole: calc(round(1lh, 1px) - var(--lh));
+		--line: calc(var(--lh) + 2 * clamp(-1px / 32, var(--to-whole), 1px / 32) - clamp(-1px / 16, var(--to-whole), 1px / 16));
 		/* in the browser's 1/64px steps, so the three parts add up to exactly one line */
 		--cap: round(1cap, 1px / 64);
-		--cap-above: round(down, calc((1lh - var(--cap)) / 2), 1px / 64);
+		--cap-above: round(down, calc((var(--line) - var(--cap)) / 2), 1px / 64);
 		text-box: trim-both cap alphabetic;
 		padding-top: var(--cap-above);
-		padding-bottom: calc(1lh - var(--cap) - var(--cap-above));
+		padding-bottom: calc(var(--line) - var(--cap) - var(--cap-above));
+		/* truncate cuts only at the sides: moved onto its capitals, a label on a tight line (the
+		   history's 10px branch badge) reaches past it, and hidden cut the tails off its g and y.
+		   clip, unlike hidden, leaves a flex item its whole text as its minimum width, so min-width
+		   goes back to the 0 that truncate had. */
+		&.truncate {
+			overflow-x: clip;
+			overflow-y: visible;
+			min-width: 0;
+		}
 	}
 }
 @utility chip {

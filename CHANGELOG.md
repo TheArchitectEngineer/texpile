@@ -98,7 +98,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: replace across files keeps a comment on the words it rewrites in a file that is not open, and in suggestion mode makes those changes suggestions, as it does in the open file; undo puts both back (by @louisqli)
 - fix: the visual editor shows one loading bar while it renders a file, not two (by @louisqli)
 - fix: comment cards a narrow editor pane cuts off fade out at its edge, rather than stopping in a hard line mid-word (by @louisqli)
-- fix: icons in Source Control, Local History, the comparison and conflict bars, the explorer's Contents and dialog titles sit level with their words, where the words sat about 2px high (by @louisqli)
+- fix: icons in Source Control, Local History, the comparison and conflict bars, the editor's read-only, deleted-file and managed-file notices, the explorer's Contents and dialog titles sit level with their words, where the words sat about 2px high (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 
