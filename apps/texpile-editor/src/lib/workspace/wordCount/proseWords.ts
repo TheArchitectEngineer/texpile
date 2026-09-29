@@ -46,6 +46,25 @@ function tally(text: string, regions: Region[]): WordTally {
 	return out;
 }
 
+export type ProseCount = { words: number; characters: number; charactersWithSpaces: number };
+
+/**
+ * The top bar's count of a stretch of prose, by the same rule as the parts above: a word holds a
+ * letter or a digit, so the comma a citation leaves behind is none. Characters leave spaces out;
+ * with spaces, each gap between two runs of text is one, however much markup was blanked there.
+ */
+export function countProse(text: string): ProseCount {
+	let words = 0;
+	let characters = 0;
+	let gaps = 0;
+	for (const w of text.matchAll(WORD)) {
+		if (HAS_LETTER.test(w[0])) words++;
+		if (characters) gaps++;
+		characters += w[0].length;
+	}
+	return { words, characters, charactersWithSpaces: characters + gaps };
+}
+
 const CLOSER: Record<string, string> = { '{': '}', '[': ']', '(': ')' };
 
 /** the end of the balanced group opening at `open` ({, [ or (), or -1 */
@@ -85,6 +104,16 @@ const TABLE_ENV = /\\begin\{(tabular\*?|tabularx|tabulary|longtable\*?|supertabu
  * a heading, wherever \title was given.
  */
 export function latexWords(source: string, main: boolean): WordTally {
+	const { text, regions } = latexText(source, main);
+	return tally(text, regions);
+}
+
+/** the prose latexWords counts, markup blanked out: what the top bar counts in the source view */
+export function latexProse(source: string, main: boolean): string {
+	return latexText(source, main).text;
+}
+
+function latexText(source: string, main: boolean): { text: string; regions: Region[] } {
 	let src = source
 		.replace(ACCENT, (_, braced?: string, bare?: string) => (braced ?? bare ?? '').replace('\\', ''))
 		.replace(LETTER_COMMAND, 'x');
@@ -114,7 +143,7 @@ export function latexWords(source: string, main: boolean): WordTally {
 		}
 	}
 	for (const m of src.matchAll(TABLE_ENV)) regions.push({ from: m.index ?? 0, to: (m.index ?? 0) + m[0].length, part: 'tables' });
-	return tally(maskTex(src).text, regions);
+	return { text: maskTex(src).text, regions };
 }
 
 /** a stretch of text as spaces, its line breaks kept, so every offset after it stays put */
@@ -127,6 +156,16 @@ function blank(text: string): string {
  * footnotes and the cells of a table counted apart.
  */
 export function typstWords(source: string): WordTally {
+	const { text, regions } = typstText(source);
+	return tally(text, regions);
+}
+
+/** the prose typstWords counts, markup and code blanked out */
+export function typstProse(source: string): string {
+	return typstText(source).text;
+}
+
+function typstText(source: string): { text: string; regions: Region[] } {
 	let src = source
 		.replace(/\/\*[\s\S]*?\*\//g, blank)
 		.replace(/(^|[^:])\/\/[^\n]*/g, (m, lead: string) => lead + ' '.repeat(m.length - lead.length))
@@ -156,7 +195,7 @@ export function typstWords(source: string): WordTally {
 	}
 	// what is left of the markup: emphasis marks, list markers, the = of a heading, a # call name
 	const text = src.replace(/#[\w.-]+/g, blank).replace(/[*_=#[\]]/g, ' ');
-	return tally(text, regions);
+	return { text, regions };
 }
 
 /** Typst code blanked out, keeping [content] blocks (they are prose) and every offset */

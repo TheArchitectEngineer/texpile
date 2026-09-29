@@ -100,6 +100,7 @@ Release notes for Texpile Desktop. Add notes under `## [Unreleased]` as you work
 - fix: comment cards a narrow editor pane cuts off fade out at its edge, rather than stopping in a hard line mid-word (by @louisqli)
 - fix: icons in Source Control, Local History, the comparison and conflict bars, the editor's read-only, deleted-file and managed-file notices, the explorer's Contents and dialog titles sit level with their words, where the words sat about 2px high (by @louisqli)
 - fix: Source Control fits a narrow sidebar: Complete and Abort Merge, the repository buttons, Sync, Publish and the Texpile badge stay inside it, where they ran past its edge (by @louisqli)
+- fix: the word count in the top bar is the number its details give: a citation's leftover comma or a reference is no word, and the source view counts a LaTeX or Typst file's prose, not its markup (by @louisqli)
 
 ## [1.2.0] - 2026-09-25
 

@@ -41,6 +41,7 @@ import { createSuggestPlugin } from '$lib/editor/visual/extensions/suggest/sugge
 import { proofreadPlugin, spellChipPlugin, spellClickBoundaryPlugin } from '$lib/editor/spellcheck/spellcheckplugin';
 import { createTemplateEditorSettings, createLocalImageSettings } from '$lib/editor/visual/extensions/image/imageplugin.svelte';
 import { createWordCountPlugin } from '$lib/editor/visual/extensions/wordcount/wordCountPlugin';
+import { latexProse } from '$lib/workspace/wordCount/proseWords';
 import { emDashRule, enDashRule, emDashUpgradeRule } from '$lib/editor/visual/extensions/inputrules/dashRules';
 import { tableWrapperView } from '$lib/editor/visual/extensions/table/tableWrapperView.svelte';
 import { CodeBlockView } from '$lib/editor/visual/extensions/codemirrorbridge/cmview.svelte';
@@ -188,7 +189,7 @@ export function latexEditorPlugins(setup: LatexEditorSetup): Plugin[] {
 		search(),
 		placeholderPlugin(placeholder),
 		tablePlaceholderPlugin(),
-		createWordCountPlugin(),
+		createWordCountPlugin((raw) => latexProse(raw, false)),
 		createTocPlugin(),
 		createPersistentSelectionPlugin(),
 		spellClickBoundaryPlugin, // must precede proofreadPlugin; see its comment

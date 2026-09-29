@@ -51,6 +51,7 @@ import { pasteUuidFixPlugin } from '$lib/editor/visual/extensions/paste-uuid-fix
 import { placeholderPlugin } from '$lib/editor/visual/extensions/placeholderplugin';
 import { tablePlaceholderPlugin } from '$lib/editor/visual/extensions/table/tablePlaceholderPlugin';
 import { createWordCountPlugin } from '$lib/editor/visual/extensions/wordcount/wordCountPlugin';
+import { typstProse } from '$lib/workspace/wordCount/proseWords';
 import { createTocPlugin } from '$lib/editor/visual/extensions/tableofcontents/tocPlugin';
 import { createPersistentSelectionPlugin } from '$lib/editor/visual/extensions/persistentSelection/persistentSelectionPlugin';
 import { proofreadPlugin, spellClickBoundaryPlugin } from '$lib/editor/spellcheck/spellcheckplugin';
@@ -213,7 +214,7 @@ export function typstEditorPlugins(setup: TypstEditorSetup): Plugin[] {
 		search(),
 		placeholderPlugin(placeholder),
 		tablePlaceholderPlugin(),
-		createWordCountPlugin(),
+		createWordCountPlugin(typstProse),
 		createTocPlugin(),
 		createPersistentSelectionPlugin(),
 		spellClickBoundaryPlugin, // must precede proofreadPlugin; see its comment
