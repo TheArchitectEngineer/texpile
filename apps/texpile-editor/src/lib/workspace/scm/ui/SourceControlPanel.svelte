@@ -166,8 +166,9 @@
 	const opNote = $derived(
 		operation ? { label: OPERATION[operation].label(), tip: combining ? m.vcs_finish_combine_tip() : OPERATION[operation].tip() } : null
 	);
-	// with both in the header, too narrow for the two: the branch name steps aside for what is going on
-	const branchFit = $derived(opNote ? '@max-[14rem]:hidden' : '');
+	// with both in the header, too narrow for the two: the branch name steps aside for what is going on,
+	// and at the narrowest for Sync's counts (SyncControls), rather than showing half a letter
+	const branchFit = $derived(opNote ? '@max-[14rem]:hidden' : tracking && (ahead > 0 || behind > 0) ? '@max-[8rem]:hidden' : '');
 	/** files still holding a place nobody has chosen for */
 	const marked = $derived(conflicts.filter((c) => c.markers).length);
 

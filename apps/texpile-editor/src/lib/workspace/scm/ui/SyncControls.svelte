@@ -57,9 +57,10 @@
 		'zh-Hant': { sync: '@max-[13.5rem]:hidden', publish: '@max-[10.5rem]:hidden' }
 	};
 	const word = HEADER_WORD[getLocale()];
-	// at the narrowest the icon goes too when there are counts, as the main button's does: their
-	// arrows say it, and Refresh keeps to the row's edge
-	const iconFit = $derived(ahead > 0 || behind > 0 ? '@max-[8rem]:hidden' : '');
+	// narrower still, the icon goes too when there are counts, as the main button's does: their arrows
+	// say it, the branch name keeps room for a letter and … (below 8rem it goes, SourceControlPanel),
+	// and Refresh keeps to the row's edge
+	const iconFit = $derived(ahead > 0 || behind > 0 ? '@max-[9rem]:hidden' : '');
 	// in a narrow sidebar the main button's name wraps, and a word too long for the room ends in …
 	const ACTION = 'btn btn-xs preset-filled-primary-500 w-full gap-1.5 whitespace-normal';
 	const ACTION_LABEL = 'cap-center min-w-0 overflow-x-clip text-ellipsis';
